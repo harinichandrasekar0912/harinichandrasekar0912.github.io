@@ -64,6 +64,12 @@
     font-size: var(--text-md);
   }
 
+  /* the apple takes the full width of the copy column, between the second and third paragraphs */
+  .about-apple {
+    width: 100%;
+    margin: 1.75em 0;
+  }
+
   .work-list {
     gap: clamp(1.5rem, 7vw, 2.5rem);
   }
