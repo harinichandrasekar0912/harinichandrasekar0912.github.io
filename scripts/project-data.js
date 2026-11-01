@@ -12,6 +12,8 @@
     Overview tiles load lazily; viewer images load only when a project is opened (the hero and panel 2 are warmed when a tile is
     hovered or touched, the other panels are requested as they come near the screen).
     "meta" is an optional one-line fact strip under the summary on the first panel.
+    "ritual" (optional) names a short playable piece in scripts/play/ that runs on the dark stage before the panels (skippable).
+    "liveUrl" (optional) is the address of the live work: when it is filled in, the last panel ends with a link ("liveLabel") to it.
   */
   window.HariniProjectData = [
     {
@@ -70,6 +72,10 @@
       alt: "Home view of the Spatial Archive prototype, where drawings, photographs, notes and two 3D models (sample apartment material) float in a dark three-dimensional field, tied together by thin threads.",
       summary: "What if where something sits could say what it means? Spatial Archive is a three-dimensional research archive, built as a working web prototype. Research for one project ends up spread across folders, and folders cannot show how the pieces relate. Here, images, notes, drawings and 3D models sit in one navigable field, and the position of each item carries part of its meaning. The apartment material shown is sample content.",
       meta: "interaction design, web prototype · 2026 · hand sketches, javascript, three.js · individual project",
+      ritual: "where-it-sits",
+      /* the address of the live archive goes here once it is online; the link stays hidden while this is empty (label: DRAFT copy) */
+      liveUrl: "",
+      liveLabel: "open the live archive ↗",
       panels: [
         {
           heading: "spatial archive",

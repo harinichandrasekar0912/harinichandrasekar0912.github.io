@@ -1623,3 +1623,128 @@ html.is-camera-moving .edge-vignette {
 .play-button[aria-pressed="true"] span {
   color: var(--color-paper);
 }
+
+/* the progress line has nothing to say while a ritual holds the panels back */
+.project-viewer.is-ritual .project-progress {
+  opacity: 0;
+}
+
+/* a project ends with a link to the live work once there is an address for it (project.liveUrl) */
+.project-panel .project-live {
+  margin: var(--space-5) 0 0;
+  font-size: var(--text-xs);
+}
+
+.project-live a {
+  color: var(--project-text);
+  text-underline-offset: 0.25em;
+}
+
+/* "where it sits" (scripts/play/where-it-sits.js): fragments as small grey cards on the field, the line and "skip" at the bottom */
+.wis {
+  color: var(--project-text-soft);
+  outline: none;
+  transition: opacity 200ms var(--ease-standard);
+}
+
+.wis.is-closing {
+  opacity: 0;
+}
+
+.wis-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.wis-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 0;
+  border: var(--line-thin) solid var(--project-line);
+  border-radius: 6px;
+  background: var(--project-bg);
+  opacity: 0;
+  cursor: grab;
+  touch-action: none;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.wis-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
+  object-fit: cover;
+  filter: grayscale(1);
+  pointer-events: none;
+  transition: filter 900ms var(--ease-standard);
+}
+
+.wis-card.is-linked img {
+  filter: grayscale(0);
+}
+
+.wis-card.is-lifted {
+  border-color: var(--project-line-strong);
+  cursor: grabbing;
+}
+
+.wis-cap {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  font-size: var(--text-xs);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-transform: lowercase;
+  pointer-events: none;
+}
+
+.wis-line,
+.wis-skip {
+  position: absolute;
+  bottom: calc(var(--nav-bottom-buffer) + 7px);
+  transition: opacity 600ms var(--ease-standard);
+}
+
+.wis-line {
+  left: 50%;
+  bottom: calc(var(--nav-bottom-buffer) + var(--plus-circle-size) + 22px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.wis-skip {
+  right: var(--page-x);
+}
+
+/* the line comes in with the last landing stage ("inviting", 1.2 s after the field starts) */
+.wis.is-inviting .wis-line {
+  opacity: 1;
+  transition-delay: 1200ms;
+}
+
+.wis.is-leaving .wis-line,
+.wis.is-leaving .wis-skip {
+  opacity: 0;
+  transition-delay: 0ms;
+}
+
+/* phones: the line and "skip" share a row above the dark fade at the bottom of the viewer, "skip" under the right thumb */
+.project-viewer[data-project-mode="stacked"] .wis-line,
+.project-viewer[data-project-mode="stacked"] .wis-skip {
+  bottom: calc(126px + env(safe-area-inset-bottom, 0px));
+}
+
+.project-viewer[data-project-mode="stacked"] .wis-line {
+  left: var(--page-x);
+  transform: none;
+}

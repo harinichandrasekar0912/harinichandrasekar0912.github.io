@@ -933,6 +933,19 @@
         ].join("");
       }).join("");
 
+      /* a project can end with a link to the live work (project.liveUrl); nothing is shown until there is an address */
+      var lastCopy = project.liveUrl ? track.querySelector(".project-panel:last-child .project-panel-copy") : null;
+
+      if (lastCopy) {
+        lastCopy.insertAdjacentHTML("beforeend", [
+          '<p class="project-live"><a href="',
+          escapeHtml(project.liveUrl),
+          '" target="_blank" rel="noopener">',
+          escapeHtml(project.liveLabel || "open the live work \u2197"),
+          "</a></p>"
+        ].join(""));
+      }
+
       watchPanelImages();
       mountPanels(project, openToken);
     }
