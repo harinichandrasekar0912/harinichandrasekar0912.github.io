@@ -252,6 +252,11 @@
     gap: clamp(1.25rem, 3vh, 2rem);
   }
 
+  /* on a phone the stairs link sits above the plus, never beside it */
+  .landing-play-link {
+    bottom: calc(var(--nav-bottom-buffer) + var(--plus-circle-size) + 1.1rem);
+  }
+
   .work-space {
     min-height: clamp(0.5rem, 2vw, 1rem);
   }

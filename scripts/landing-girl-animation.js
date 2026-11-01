@@ -2000,7 +2000,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       tiptoe: clamp(num(p.tiptoe, 0), 0, 1), bodyRoll: clamp(num(p.bodyRoll, 0), -1.5, 1.5), giggle: clamp(num(p.giggle, 0), 0, 1), toeTap: clamp(num(p.toeTap, 0), 0, 1),
       weight: clamp(num(p.weight, 0), -1, 1), feet: clamp(num(p.feet, 0), 0, 1), footUp: clamp(num(p.footUp, 0), 0, 1), skip: clamp(num(g.skip, 0), 0, 1),
       hand: [handIn(p.hand && p.hand[0]), handIn(p.hand && p.hand[1])],
-      footYaw: num(p.footYaw, 0), footYawW: clamp(num(p.footYawW, 0), 0, 1),          // round 12: the feet stay planted at this heading while the body turns a little over them (gestures at 3/4)
+      footYaw: num(p.footYaw, 0), footYawW: clamp(num(p.footYawW, 0), 0, 1),
+      footZ: [num(p.footZ && p.footZ[0], 0), num(p.footZ && p.footZ[1], 0)],          // round 12: extra height of each foot above the root's ground (stairs: the treads)          // round 12: the feet stay planted at this heading while the body turns a little over them (gestures at 3/4)
       turnStep: p.turnStep && p.turnStep.w > 0 ? { u: clamp(num(p.turnStep.u, 0), 0, 1), yaw0: num(p.turnStep.yaw0, 0), yaw1: num(p.turnStep.yaw1, 1), w: clamp(num(p.turnStep.w, 1), 0, 1), first: p.turnStep.first ? 1 : 0 } : null,          // round 12: a turn on the spot in two small steps (G3)
       wind: { x: num(w.x, 0), y: num(w.y, 0) }, t: num(p.t, 0),
     };
@@ -2153,6 +2154,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (e3 > 0) { beta = lerp(beta, rad(-20), e3); z += 11.5 * e3; }          // E3: up on her toes
       if (sqn > 0) { var tp = min(1, sqn * 5) * (1 - aw); z += 20 * tp; beta = lerp(beta, rad(-36), tp); }       // boing stretch: up on the toes
       if (pk > 0) f -= C.peekLegBack * pk;               // peek: the feet are braced back (away from the edge), hidden behind it
+      z += P.footZ[li];
       if (air > 0) {                                   // hop: toes point first (push-off), then the knees tuck up under her
         var tk = sstep(0.1, 0.9, air), tp2 = sstep(0, 0.55, air);          // push-off: toes point first, then the knees come up; the feet end up behind the knees (not a chair)
         f = lerp(f, li ? -46 : -22, tk); z = lerp(z, li ? 84 : 102, tk); beta = lerp(beta, rad(li ? -58 : -48), tp2); c = lerp(c, side * 15, tk);
@@ -2738,7 +2740,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     girl.walkPresetName = function () { return A.walkPreset; };
 
     // ---- per-tick memo: step() (x2 per frame), draw() and anchors() are called with the same pose, so the rig is solved once per distinct pose
-    var memoVer = -1, KEYN = 65, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
+    var memoVer = -1, KEYN = 67, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
     function poseKey(p, o) {
       var g = p.gait || {}, w = p.wind || {};
       o[0] = p.x; o[1] = p.y; o[2] = p.yaw; o[3] = g.amount; o[4] = g.phase; o[5] = g.speed; o[6] = g.run; o[7] = p.headYaw; o[8] = p.headPitch; o[9] = p.headRoll; o[10] = p.lean; o[11] = p.squash;
@@ -2750,7 +2752,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         if (hh && hh.w > 0 && hh.at) { o[b0] = hh.w; o[b0 + 1] = hh.at[0]; o[b0 + 2] = hh.at[1]; o[b0 + 3] = hh.at[2]; o[b0 + 4] = (hh.open || 0) + 2 * (hh.point || 0); o[b0 + 5] = hh.f === 'head' ? 1 : hh.f === 'pelvis' ? 3 : 2; o[b0 + 6] = (hh.pole ? hh.pole[0] + 3 * hh.pole[1] + 9 * hh.pole[2] : 0) + (hh.hd ? 27 * hh.hd[0] + 81 * hh.hd[1] + 243 * hh.hd[2] : 0); }
         else { o[b0] = o[b0 + 1] = o[b0 + 2] = o[b0 + 3] = o[b0 + 4] = o[b0 + 5] = o[b0 + 6] = 0; }
       }
-      o[63] = p.footYaw || 0; o[64] = p.footYawW || 0;
+      o[63] = p.footYaw || 0; o[64] = p.footYawW || 0; o[65] = p.footZ ? p.footZ[0] : 0; o[66] = p.footZ ? p.footZ[1] : 0;
       var ts = p.turnStep; o[58] = ts ? ts.u : -1; o[59] = ts ? ts.yaw0 : 0; o[60] = ts ? ts.yaw1 : 0; o[61] = ts ? ts.w : 0; o[62] = ts && ts.first ? 1 : 0;
     }
     function solveMemo(pose) {
@@ -2877,6 +2879,30 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     girl.settle = function (pose) { anchLast = null; if (hair && hair.settle) hair.settle(solveMemo(pose)); };
     girl.reset(seed);
     return girl;
+  };
+
+  /* round 12: window.HariniGirl.create({ height, seed }) - the landing girl for the other pieces of the site (the stairs game): the same rig, drawing and hair
+     simulation, nothing of the landing's thought cloud.  draw(ctx, pose, pxPerUnit) draws in the caller's units (pose.x / pose.y = the root on its ground, the girl
+     `height` tall); pxPerUnit = device pixels per unit, so the outlines are swept at the right resolution.  Nothing here changes the landing page. */
+  window.HariniGirl = {
+    create: function (o) {
+      o = o || {};
+      var girl = GA.createGirl({ height: o.height || 250, seed: o.seed === undefined ? 3 : o.seed });
+      return {
+        girl: girl,
+        height: girl.height,
+        stride: girl.STRIDE,
+        step: function (dt, pose) { girl.step(dt, pose); },
+        settle: function (pose) { girl.reset(); girl.settle(pose); },
+        anchors: function (pose) { return girl.anchors(pose); },
+        solve: function (pose) { return girl.solve(pose); },
+        draw: function (ctx, pose, pxPerUnit) {
+          var S = GA.stage || {}, keep = S.px;
+          S.px = (pxPerUnit || 1) * girl.height / 500;          // (the rig sweeps its outlines in its own 500-unit space: device px per rig unit)
+          try { girl.draw(ctx, pose); } finally { S.px = keep; }
+        }
+      };
+    }
   };
 
   // ---- internals for the offline bake / extraction tools (the .mjs scripts in the trace folder); not used by the animation

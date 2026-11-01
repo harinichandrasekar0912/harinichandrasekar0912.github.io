@@ -1623,3 +1623,113 @@ html.is-camera-moving .edge-vignette {
 .play-button[aria-pressed="true"] span {
   color: var(--color-paper);
 }
+
+/* a line at the end of a project that opens another one */
+.project-link {
+  display: block;
+  max-width: 26rem;
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--project-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  text-align: inherit;
+  text-transform: lowercase;
+  cursor: pointer;
+}
+
+.project-link:hover,
+.project-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+/* ---- the stairs game card (scripts/play/stairs.js) */
+.stairs-card {
+  outline: none;
+}
+
+/* text on a paper card is ink (the viewer's own copy rules make panel text white) */
+.project-panel .play-card p,
+.play-card .play-line {
+  max-width: none;
+  color: var(--color-ink);
+  font-size: var(--text-xs);
+}
+
+.stairs-card:focus-visible {
+  box-shadow: 0 0 0 1px var(--project-line-strong, rgba(255, 255, 255, 0.86));
+}
+
+.stairs-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.stairs-ui {
+  position: absolute;
+  inset: 0;
+  padding: clamp(0.7rem, 2.2vw, 1.2rem);
+  pointer-events: none;
+}
+
+.stairs-ui .play-buttons,
+.stairs-ui .play-button {
+  pointer-events: auto;
+}
+
+.stairs-controls {
+  position: absolute;
+  left: clamp(0.7rem, 2.2vw, 1.2rem);
+  bottom: clamp(0.7rem, 2.2vw, 1.2rem);
+}
+
+.stairs-card.is-done .stairs-controls {
+  display: none;
+}
+
+.stairs-hint {
+  position: absolute;
+  left: 44%;
+  top: 30%;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 700ms var(--ease-standard), transform 700ms var(--ease-standard);
+}
+
+.stairs-card.is-hinting:not(.is-done) .stairs-hint {
+  opacity: 0.86;
+  transform: none;
+}
+
+.stairs-key {
+  margin-right: 0.5em;
+  padding: 0.1em 0.45em;
+  border: var(--line-thin) solid currentColor;
+  border-radius: var(--radius-soft);
+}
+
+.stairs-result {
+  position: absolute;
+  left: clamp(0.7rem, 2.2vw, 1.2rem);
+  top: clamp(0.7rem, 2.2vw, 1.2rem);
+  display: grid;
+  gap: var(--space-3);
+  opacity: 0;
+  transition: opacity 700ms var(--ease-standard);
+}
+
+.stairs-card.is-done .stairs-result {
+  opacity: 1;
+}
+
+.stairs-card:not(.is-done) .stairs-result .play-button {
+  visibility: hidden;
+}
+
+.stairs-card.is-reduced .stairs-controls {
+  display: flex;
+}

@@ -928,6 +928,7 @@
           "<p>",
           escapeHtml(panel.body),
           "</p>",
+          panel.link ? '<button class="project-link" type="button" data-open-project="' + escapeHtml(panel.link.open) + '">' + escapeHtml(panel.link.label) + "</button>" : "",
           "</div>",
           "</article>"
         ].join("");
@@ -1333,6 +1334,15 @@
     });
 
     closeButton.addEventListener("click", closeProject);
+
+    /* a line at the end of one project can open another (the staircase project leads to the stairs game) */
+    track.addEventListener("click", function (event) {
+      var link = event.target.closest ? event.target.closest("[data-open-project]") : null;
+
+      if (link) {
+        openById(link.getAttribute("data-open-project"));
+      }
+    });
 
     document.addEventListener("harini:project-close-request", closeProject);
 
