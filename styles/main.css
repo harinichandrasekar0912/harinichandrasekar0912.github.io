@@ -501,6 +501,14 @@ body.is-project-open .viewport-edge-blur {
   cursor: grabbing;
 }
 
+/* on a touch screen the square is as wide as the column, so an up or down swipe still scrolls the page; a sideways one spins the apple */
+@media (pointer: coarse) {
+  .about-apple[data-state="clearly"] .about-apple-stage canvas,
+  .about-apple[data-state="sort"] .about-apple-stage canvas {
+    touch-action: pan-y;
+  }
+}
+
 .about-apple-question,
 .about-apple-aside,
 .about-apple-word {
