@@ -2000,6 +2000,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       tiptoe: clamp(num(p.tiptoe, 0), 0, 1), bodyRoll: clamp(num(p.bodyRoll, 0), -1.5, 1.5), giggle: clamp(num(p.giggle, 0), 0, 1), toeTap: clamp(num(p.toeTap, 0), 0, 1),
       weight: clamp(num(p.weight, 0), -1, 1), feet: clamp(num(p.feet, 0), 0, 1), footUp: clamp(num(p.footUp, 0), 0, 1), skip: clamp(num(g.skip, 0), 0, 1),
       hand: [handIn(p.hand && p.hand[0]), handIn(p.hand && p.hand[1])],
+      footYaw: num(p.footYaw, 0), footYawW: clamp(num(p.footYawW, 0), 0, 1),          // round 12: the feet stay planted at this heading while the body turns a little over them (gestures at 3/4)
+      turnStep: p.turnStep && p.turnStep.w > 0 ? { u: clamp(num(p.turnStep.u, 0), 0, 1), yaw0: num(p.turnStep.yaw0, 0), yaw1: num(p.turnStep.yaw1, 1), w: clamp(num(p.turnStep.w, 1), 0, 1), first: p.turnStep.first ? 1 : 0 } : null,          // round 12: a turn on the spot in two small steps (G3)
       wind: { x: num(w.x, 0), y: num(w.y, 0) }, t: num(p.t, 0),
     };
   }
@@ -2115,13 +2117,38 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (unw > 0 || unwD > 0) { z += 5.5 * unw + 8 * e1 * (side < 0 ? 1 : 0) + 11 * unwD; f += 5 * unwD; c -= side * 3 * unw; beta = lerp(beta, rad(-18), max(0.85 * unw, unwD)); }
       if (rcA > 0) { var rt2 = rcA * (1 - aw) * (1 - min(1, 2 * max(sq, 0))); z += 8.5 * rt2; beta = lerp(beta, beta - rad(22), rt2); }          // recoil: a tiny lift up onto the toes (standing only)
       var freeW = femK * sstep(-0.35, 0.9, -side * wc);          // the unloaded leg: foot a little forward and turned out, the knee soft
-      if (freeW > 0) { f += C.femFoot[0] * freeW; c += side * C.femFoot[1] * freeW; toe += rad(C.femFoot[2]) * freeW; }
-      if (pvt > 0) { z += C.turnLift * pvt * (side < 0 ? 1 : 0.8); beta -= rad(13) * pvt; }          // turning on the spot: the feet pivot on the toes (heel up) instead of sliding with the rotating body
+      if (freeW > 0) {
+        f += C.femFoot[0] * freeW; c += side * C.femFoot[1] * freeW; toe += rad(C.femFoot[2]) * freeW;
+        // round 12 (G9): the free foot never slides when the weight changes legs: it lifts while it moves (the lift follows how fast it travels: a small step)
+        var swc = sin(TAU * t / C.femPeriod + 1.2), th2 = Math.tanh(2.2 * swc), dwc = (1 - th2 * th2) * 2.2 * cos(TAU * t / C.femPeriod + 1.2) * TAU / C.femPeriod;
+        var xw = (-side * th2 + 0.35) / 1.25, dsw = xw > 0 && xw < 1 ? 6 * xw * (1 - xw) / 1.25 : 0, spd = abs(femK * dsw * side * dwc) * C.femFoot[0];
+        var lift2 = min(12, 1.6 * spd); z += lift2; beta -= rad(1.2) * lift2;
+      }
+      // round 12: a heel that comes up (turning, tiptoe) PIVOTS ON THE BALL of the foot: the ankle is moved so the ball stays exactly where it is on the floor
+      var ballPivot = function (b1) { var b0 = beta; f -= (C.ballS * cos(b1) + C.ankleZ * sin(b1)) - (C.ballS * cos(b0) + C.ankleZ * sin(b0)); z -= (C.ballS * sin(b1) - C.ankleZ * cos(b1)) - (C.ballS * sin(b0) - C.ankleZ * cos(b0)); beta = b1; };
+      if (pvt > 0) ballPivot(beta - rad(13) * pvt);          // turning on the spot: the feet pivot on the toes (heel up) instead of sliding with the rotating body
       // round 12: up on the toes (heels 10-14 u up), a pointed toe tapping in front, the free foot lifted with a pointed toe, the feet together for a twirl
-      if (P.tiptoe > 0) { var ttw = P.tiptoe * (1 - aw); z += 12 * ttw; beta = lerp(beta, rad(-26), ttw); }
-      if (P.toeTap > 0 && side > 0) { var tpw = P.toeTap * (1 - aw), tpb = pow(max(0, sin(TAU * 3.0 * t)), 2); f += 16 * tpw; c += 4 * tpw; z += (7 + 9 * tpb) * tpw; beta = lerp(beta, rad(-34), tpw); }
+      if (P.tiptoe > 0) { var ttw = P.tiptoe * (1 - aw); ballPivot(lerp(beta, rad(-26), ttw)); }
+      if (P.toeTap > 0 && side > 0) { var tpw = P.toeTap * (1 - aw), tpb = pow(max(0, sin(TAU * 3.0 * t)), 2); f += 16 * tpw; c += 4 * tpw; z += (7 + 9 * tpb) * sqrt(tpw); beta = lerp(beta, rad(-34), tpw); }          // (the lift fades slower than the reach: the foot comes back through the air)
       if (P.footUp > 0 && side > 0) { var fuw = P.footUp * (1 - aw); f -= 12 * fuw; z += 44 * fuw; beta = lerp(beta, rad(-58), fuw); }
-      if (P.feet > 0) { c *= 1 - 0.72 * P.feet; toe *= 1 - 0.7 * P.feet; }
+      if (P.feet > 0) { c *= 1 - 0.72 * P.feet; toe *= 1 - 0.7 * P.feet; f -= 0.85 * C.ballS * P.feet * P.tiptoe * (1 - aw); }          // (spinning on the toes: the balls of the feet come under her, so the spin turns about them)
+      // round 12 (G3): turning on the spot in TWO SMALL STEPS - each foot stays planted where it stood (in the world) until its turn comes, then it lifts, swings and plants
+      // where it stands after the turn (the other foot meanwhile pivots on its ball); without this the feet slid sideways by c x sin(yaw) with the rotating body
+      var tYawX = 0;
+      if (!P.turnStep && P.footYawW > 0 && aw < 1) {
+        var fyw = P.footYawW * (1 - aw), thP = P.footYaw * PI / 2, thB = S.theta;
+        var wxP = -(f * cos(thP) + c * sin(thP)), wzP = f * sin(thP) - c * cos(thP);
+        f = lerp(f, -wxP * cos(thB) + wzP * sin(thB), fyw); c = lerp(c, -wxP * sin(thB) - wzP * cos(thB), fyw);
+        tYawX = (thP - thB) * fyw;
+      }
+      if (P.turnStep && aw < 1) {
+        var TSt = P.turnStep, th0 = TSt.yaw0 * PI / 2, th1 = TSt.yaw1 * PI / 2, thN = S.theta, tw = TSt.w * (1 - aw);
+        var su = li === TSt.first ? sstep(0.1, 0.5, TSt.u) : sstep(0.5, 0.9, TSt.u), thF = lerp(th0, th1, su);
+        var wxF = -(f * cos(thF) + c * sin(thF)), wzF = f * sin(thF) - c * cos(thF);
+        f = lerp(f, -wxF * cos(thN) + wzF * sin(thN), tw); c = lerp(c, -wxF * sin(thN) - wzF * cos(thN), tw);
+        var lf = sin(PI * su) * tw; z += 13 * lf; beta -= rad(14) * lf;
+        tYawX = (thF - thN) * tw;          // a planted foot keeps its heading in the world while the body turns over it
+      }
       if (e2 > 0 && side > 0) { var tb = rad(30) * tap; beta = lerp(beta, beta + tb, 1); z += 15 * sin(tb); }          // E2: the toe taps (the heel stays on the floor)
       if (e3 > 0) { beta = lerp(beta, rad(-20), e3); z += 11.5 * e3; }          // E3: up on her toes
       if (sqn > 0) { var tp = min(1, sqn * 5) * (1 - aw); z += 20 * tp; beta = lerp(beta, rad(-36), tp); }       // boing stretch: up on the toes
@@ -2132,7 +2159,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
       // toe bend weight (shoeFrame): the forefoot flexes against the ground while the heel rises in stance; it springs straight in the first 12 % of the swing (pointed foot in the air)
       var rhoG = lerp(GW.rho, GR.rho, run), usw = (q - rhoG) / (1 - rhoG), tbG = q < rhoG ? 1 : 1 - sstep(0.05, 0.3, usw) + sstep(0.85, 1, usw);          // (and the toes lift again for the ball landing)
-      legs.push({ side: side, f: f, c: c, z: z, beta: beta, toe: toe, tb: lerp(1, tbG, aw) * (1 - air) });
+      legs.push({ side: side, f: f, c: c, z: z, beta: beta, toe: toe, tYaw: tYawX, tb: lerp(1, tbG, aw) * (1 - air) });
     }
 
     // ---- pelvis: bob limited by leg reach (so legs never over-extend), twist, sway, shiver
@@ -2148,13 +2175,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // loading, straight over mid-stance, ~36 into the push-off); the lowest request wins (soft min), so the pelvis is lowest in the double support and highest over the straight
     // mid-stance leg: the bob emerges from the geometry (no cosine).  The landing leg's reach limit takes over just before its heel strike (continuous: kneeK(0) ~ legReach).
     var pelvRoll = rad(C.femRoll) * fw, Rp = K.mEuler(yawP, pitchP, pelvRoll), rhoG = lerp(GW.rho, GR.rho, run);
-    var kneeH = 1e9, Lmax = (L1 + L2) * (C.legReach - C.kneeSoft * aw * (1 - run)), lim = 1e9;
+    var kneeH = 1e9, Lmax = (L1 + L2) * (C.legReach - C.kneeSoft * aw * (1 - run)), lim = 1e9, limHard = 1e9, Lhard = (L1 + L2) * 0.9993;
     for (var i2 = 0; i2 < 2; i2++) {
       var lg = legs[i2], hc = lg.side * C.hipW, hv0 = Rp[1] * hc - Rp[2] * 3, hv1 = Rp[4] * hc - Rp[5] * 3, hv2 = Rp[7] * hc - Rp[8] * 3;          // the hip joint's offset from the pelvis origin (exact, incl. the pelvis rotation)
       var dx = lg.f - (fP + hv0), dy = lg.c - (cP + hv1), l2 = Lmax * Lmax - dx * dx - dy * dy;
       var usw2 = (S.legQ[i2] - rhoG) / (1 - rhoG), relax = usw2 > 0 ? 30 * aw * sstep(0, 0.12, usw2) * (1 - sstep(0.75, 0.95, usw2)) : 0;          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
       var limi = lg.z + sqrt(l2 > 25 ? l2 : 25) - hv2 + relax;
       lim = i2 === 0 ? limi : K.smin(lim, limi, lerp(10, 4, aw));          // (idle: the R9 smoothing, so the approved standing / peek poses keep their height)
+      if (S.legQ[i2] < rhoG - 0.005 || aw < 1e-3) { var lh2 = Lhard * Lhard - dx * dx - dy * dy; limHard = Math.min(limHard, lg.z + sqrt(lh2 > 25 ? lh2 : 25) - hv2); }          // round 12 (G2): a planted leg is never stretched past its length (the IK would drag its foot along the floor)
       if (a > 0 && S.legQ[i2] < GW.rho) {          // (the trailing leg's request fades out over the last 10 % of its stance: the landing leg has taken the weight)
         var kd = rad(K.curve(C.kneeK, S.legQ[i2])), Dk2 = L1 * L1 + L2 * L2 + 2 * L1 * L2 * cos(kd) - dx * dx - dy * dy, hk = lg.z + sqrt(Dk2 > 25 ? Dk2 : 25) - hv2 + 60 * sstep(GW.rho - 0.1, GW.rho, S.legQ[i2]);
         kneeH = kneeH > 1e8 ? hk : K.smin(kneeH, hk, C.kneeSmin);
@@ -2162,7 +2190,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     var idealW = kneeH > 1e8 ? C.pelvisIdle : lerp(C.pelvisIdle, kneeH, a);
     var ideal = lerp(idealW, C.runPelvis + C.runBob * runBobShape(2 * ph), run) + 9 * e3 + 10 * P.tiptoe * (1 - aw) - 44 * sqp + 14 * sqn - 14 * pk * (1 + 0.12 * sin(TAU * t / 2.3 + 2.2)) - C.hopAbsorb * absorb - 3 * dzy * (0.5 - 0.5 * cos(2 * dTT)) - 2 * scrN * (0.5 + 0.5 * sin(TAU * C.scratchHz * P.scratchT)) + 5 * rcA - 2.5 * blk - 7 * bow;
-    var hP = K.smin(ideal, lim, lerp(lerp(C.pelvisSmooth, C.pelvisSmoothW, a), 10, run));
+    var hP = Math.min(K.smin(ideal, lim, lerp(lerp(C.pelvisSmooth, C.pelvisSmoothW, a), 10, run)), limHard);
     if (air > 0) hP = lerp(hP, C.pelvisIdle - 4, air);
     var Fp = K.frame(Rp, [fP, cP, hP]), Fps = pk > 0 || fl > 0 || femK > 0 ? K.frame(K.mEuler(yawP, pitchP0 + fl * rad(8), 0), [fP, cP, hP]) : (femK > 0 ? K.frame(K.mEuler(yawP, pitchP0, pelvRoll * 0.4), [fP, cP, hP]) : Fp);      // the dress hangs down (not along the leaning pelvis); it does follow the small flinch recoil (else a sliver opens at the waist in profile)
     S.Fp = Fp; S.hipsMid = [fP, cP, hP];
@@ -2181,7 +2209,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var uswK = (S.legQ[lj] - GW.rho) / (1 - GW.rho), kOut = uswK > 0 ? a * (1 - run) * sstep(0, 0.06, uswK) * (1 - sstep(C.swingKneeU[0], C.swingKneeU[1], uswK)) : 0;
       var poleA = L.side * rad(7) + yawP * 0.5 - L.side * knock * 1.0 + L.side * rad(C.swingKneeOut) * kOut;
       var knee = ik2(hip, ank, [cos(poleA), sin(poleA), 0], L1, L2);
-      var Rf = K.mMul(K.mRz(L.side * L.toe), K.mRy(L.beta));
+      var Rf = K.mMul(K.mRz(L.side * L.toe - (L.tYaw || 0)), K.mRy(L.beta));
       var ofoot = v3sub(ank, K.mVec(Rf, 0, 0, C.ankleZ));
       S.leg.push({ side: L.side, hip: hip, knee: knee, ank: ank, Ff: K.frame(Rf, ofoot), beta: L.beta, tb: L.tb });
     }
@@ -2710,7 +2738,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     girl.walkPresetName = function () { return A.walkPreset; };
 
     // ---- per-tick memo: step() (x2 per frame), draw() and anchors() are called with the same pose, so the rig is solved once per distinct pose
-    var memoVer = -1, KEYN = 58, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
+    var memoVer = -1, KEYN = 65, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
     function poseKey(p, o) {
       var g = p.gait || {}, w = p.wind || {};
       o[0] = p.x; o[1] = p.y; o[2] = p.yaw; o[3] = g.amount; o[4] = g.phase; o[5] = g.speed; o[6] = g.run; o[7] = p.headYaw; o[8] = p.headPitch; o[9] = p.headRoll; o[10] = p.lean; o[11] = p.squash;
@@ -2722,6 +2750,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         if (hh && hh.w > 0 && hh.at) { o[b0] = hh.w; o[b0 + 1] = hh.at[0]; o[b0 + 2] = hh.at[1]; o[b0 + 3] = hh.at[2]; o[b0 + 4] = (hh.open || 0) + 2 * (hh.point || 0); o[b0 + 5] = hh.f === 'head' ? 1 : hh.f === 'pelvis' ? 3 : 2; o[b0 + 6] = (hh.pole ? hh.pole[0] + 3 * hh.pole[1] + 9 * hh.pole[2] : 0) + (hh.hd ? 27 * hh.hd[0] + 81 * hh.hd[1] + 243 * hh.hd[2] : 0); }
         else { o[b0] = o[b0 + 1] = o[b0 + 2] = o[b0 + 3] = o[b0 + 4] = o[b0 + 5] = o[b0 + 6] = 0; }
       }
+      o[63] = p.footYaw || 0; o[64] = p.footYawW || 0;
+      var ts = p.turnStep; o[58] = ts ? ts.u : -1; o[59] = ts ? ts.yaw0 : 0; o[60] = ts ? ts.yaw1 : 0; o[61] = ts ? ts.w : 0; o[62] = ts && ts.first ? 1 : 0;
     }
     function solveMemo(pose) {
       poseKey(pose, kNow);
@@ -2903,7 +2933,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   // ---- CUTE WALK (round 12, acting brief section 5): lighter and quicker - 330 u per cycle = 2.4 steps/s at V_WALK 400, a light heel contact, soft elbows with trailing
   //      wrists, a gentle hip sway, the occasional small head tilt.  Passing position: right after toe-off the swing knee turns out (swingKneeOut) so the swing shin never
   //      crosses the stance shin in the profile silhouette, and the foot is lifted behind with the toe pointed (sole ~9 % of the leg length above the floor at passing).
-  var cuteWalk = {"stride":330,"lift":28,"swZ":[[0.22,0.5],[0.45,0.85],[0.66,0.85],[0.86,0.3]],"swE":[[0,0],[0.25,0.28],[0.5,0.62],[0.75,0.88],[0.9,0.97],[1,1]],"swingKneeOut":70,"swingKneeU":[0.35,0.6],
+  var cuteWalk = {"stride":330,"lift":28,"swZ":[[0.15,0.75],[0.35,1.0],[0.62,0.85],[0.86,0.3]],"swE":[[0,0],[0.25,0.28],[0.5,0.62],[0.75,0.88],[0.9,0.97],[1,1]],"swingKneeOut":70,"swingKneeU":[0.35,0.6],
     "bhs":11,"hipSway":5.5,"swingFwd":22,"swingBack":22,"gammaWalk0":18,"gammaWalk1":14,"handLag":0.35,"headTilt":0.08};
   for (k in cuteWalk) { A.cfg[k] = cuteWalk[k]; walkGrace[k] = cuteWalk[k]; }
   // ---- ELEGANT CARTOON RUN (round 10, GAIT; replaces the fitted scurry crouch): stride 620 (3 steps/s at V_RUN 940), stance 34 % (flight 32 %), ball-of-foot landing, heel kicked
@@ -4007,7 +4037,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var ut = U.clamp((k - KB.twirl0) / (KB.twirl1 - KB.twirl0)), spin = U.easeInOutSine(ut) * 4;
       var tw = bump(k, KB.twirl0 - 0.15, KB.twirl0, KB.twirl1, KB.twirl1 + 0.25);
       if (k >= KB.twirl0) yaw = yaw + spin;          // after the twirl every yaw is 4 more (the same view: one turn further round)
-      p.tiptoe = Math.max(p.tiptoe, tw); p.feet = Math.max(p.feet, tw);
+      p.tiptoe = Math.max(p.tiptoe, tw); p.feet = Math.max(p.feet, tw, 0.62 * U.smoothstep(KB.twirl1 - 0.1, KB.twirl1 + 0.1, k));          // (after the twirl the feet stay close together until the first steps of the walk take them apart: no sideways slide)
       var armsOut = bump(k, KB.twirl0 - 0.2, KB.twirl0, 9.75, 9.95);
       setHand(p, 0, hand(armsOut * 0.95, 'chest', [10, -132, -46 + 18 * Math.sin(Math.PI * 2 * 1.3 * (k - 9.15)) * U.smoothstep(9.15, 9.3, k)], { open: 0.8, pole: [-0.2, -0.6, -1], hd: [0.1, -1, -0.15] }));
       setHand(p, 1, hand(armsOut * 0.95, 'chest', [10, 132, -46 - 18 * Math.sin(Math.PI * 2 * 1.3 * (k - 9.15)) * U.smoothstep(9.15, 9.3, k)], { open: 0.8, pole: [-0.2, 0.6, -1], hd: [0.1, 1, -0.15] }));
@@ -4041,6 +4071,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       hop(p, k, 12.45, 6, 0.08);
 
       p.yaw = yaw;
+      p.footYaw = k >= KB.twirl0 + 0.45 ? 5 : 1; p.footYawW = 1 - tw;          // the feet stay planted facing front while the body turns over them; the twirl spins on the toes
       p.headYaw = U.clamp(hy, -1, 1); p.headPitch = U.clamp(hp, -0.2, 1); p.headRoll = U.clamp(hr, -1, 1);
     }
 
@@ -4079,6 +4110,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         p.headYaw = 0.55 * Math.sin(Math.PI * Math.min(1, u * 1.15)) * (1 - U.smoothstep(0.85, 1, u));
         p.headRoll += 0.16 * Math.sin(Math.PI * u);
         p.twist = 0.5 * Math.sin(Math.PI * (1 - (1 - u) * (1 - u)));          // overlapping action: the shoulders are ahead of the hips during the turn
+        if (u > 0 && u < 1) p.turnStep = { u: u, yaw0: 0, yaw1: 1, w: 1, first: 1 };          // the feet turn in two small steps (each one planted until it steps)
         hop(p, t, c.turnFront0 + 0.7 * (c.turnFront1 - c.turnFront0), 9, 0.1);
         // the hello: a bright, small wave (elbow at shoulder height, forearm upright, ~2.7 waves at 2.2 Hz, wrist trailing), leaning toward the waving side with the weight on
         // the other leg and the free foot pointed, the other hand at the hip; it ends with a happy little bounce and a head tilt
@@ -4086,6 +4118,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         p.wave = hel; p.bodyRoll += 0.6 * hel; p.weight = -0.7 * hel; p.toeTap = 0.55 * hel; p.headRoll += 0.2 * hel; p.headPitch += 0.08 * hel;
         setHand(p, 0, hand(hel, 'pelvis', [-6, -36, 44], { fist: 0.6, pole: [-0.4, -1, 0.1], hd: [0.3, 0.4, -1] }));
         hop(p, t, c.helloEnd - 0.05, 5, 0.14);
+        if (t >= c.turnFront1) { p.footYaw = 1; p.footYawW = 1; }
         p.headRoll += 0.25 * bump(t, c.helloEnd - 0.1, c.helloEnd + 0.05, c.helloEnd + 0.3, c.helloEnd + 0.55);
 
         if (t >= c.turnFront1) {
@@ -4103,6 +4136,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         if (t >= c.turnLeft0) {
           var tl = turnLeftAt(t, p.headYaw, 4), tb = U.smoothstep(c.turnLeft0, c.turnLeft0 + 0.3, t);
           p.yaw = U.lerp(p.yaw, tl.yaw, U.smoothstep(c.turnLeft0, c.turnLeft0 + 0.12, t)); p.headYaw = tl.headYaw; p.twist = tl.twist; p.headPitch = U.lerp(p.headPitch, 0, tb); p.headRoll = U.lerp(p.headRoll, 0, tb);
+          var ul2 = U.clamp((t - c.turnLeft0) / (c.turnLeft1 - c.turnLeft0));
+          if (ul2 < 1) p.turnStep = { u: ul2, yaw0: 5, yaw1: 4, w: 1 - U.smoothstep(c.walkOut0 - 0.05, c.walkOut0 + 0.1, t), first: 0 };
           hop(p, t, c.turnLeft0 + 0.3, 10, 0.12);
         }
         p.wind.x += 200 * I * Math.sin(t * 1.9 + 0.6);
@@ -4123,6 +4158,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         // the skips: a step-hop rhythm (a little hop on every step, the free knee high, arms swinging higher), blending into the walk at a footfall
         var sk = U.smoothstep(c.walkOut0 + 0.1, c.walkOut0 + 0.35, t) * (1 - U.smoothstep(c.walkOut0 + 1.45, c.walkOut0 + 1.75, t));
         p.gait.skip = sk;
+        p.feet = 0.62 * (1 - U.smoothstep(c.walkOut0, c.walkOut0 + 0.35, t));
         var stepU = (2 * p.gait.phase) % 1;
         p.y -= sk * 15 * Math.pow(Math.max(0, Math.sin(Math.PI * stepU)), 1.3);
         p.air = Math.max(p.air, 0.25 * sk * Math.max(0, Math.sin(Math.PI * stepU)));
@@ -4215,6 +4251,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (standing) {
         var ut = U.clamp((rt - (TR - 0.3)) / 0.32), turnK = U.easeInOutCubic(ut);
         P.yaw = U.lerp(P.yaw, yawBase, turnK);
+        if (ut > 0 && ut < 1) P.turnStep = { u: ut, yaw0: yawBase + 0.6, yaw1: yawBase, w: 1 - sm(TR - 0.02, TR + 0.1), first: 0 };
         P.headYaw = U.lerp(P.headYaw, -0.5 * Math.sin(Math.PI * ut), sm(TR - 0.32, TR - 0.22));
         P.twist += -0.45 * Math.sin(Math.PI * (1 - (1 - ut) * (1 - ut))) * sm(TR - 0.32, TR - 0.25);
       }
