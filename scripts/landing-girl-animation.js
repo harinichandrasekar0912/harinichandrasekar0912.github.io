@@ -1590,8 +1590,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
       var tp = ch.tp, gw = ch.kind === 'head' ? (ch.fy ? fhalo : (1 - ch.fc * fcrn) * (1 - (1 - ch.fw) * fhalo)) : (lockW ? gHide : ch.kind === 'wisp' ? gRing * fwsp : gRing);          // tie wisps would poke up over the crown in 3/4 views
       if (gw < 0.03) return;
-      if (lockW) { var lwR = 2 * ch.wf * HC.lockRef * gw; for (i = 0; i < N; i++) WS[i] = lwR * tp[i] + 0.05; }
-      else { var w0g = ch.w0 * gw, fl = HC.minW * gw, tf = ch.tf; for (i = 0; i < N; i++) { var wv = w0g * tp[i], wf = fl * tf[i]; WS[i] = (wv > wf ? wv : wf) + HC.tipW; } }
+      var wDev = 0.8 / ((GA.stage && GA.stage.px) || 1) * gw;          // G22: no strand narrower than 0.8 device px anywhere (thinner moving ribbons crawl); a fading strand still thins to nothing with gw
+      if (lockW) { var lwR = 2 * ch.wf * HC.lockRef * gw; for (i = 0; i < N; i++) WS[i] = max(lwR * tp[i] + 0.05, wDev); }
+      else { var w0g = ch.w0 * gw, fl = HC.minW * gw, tf = ch.tf; for (i = 0; i < N; i++) { var wv = w0g * tp[i], wf = fl * tf[i]; WS[i] = max((wv > wf ? wv : wf) + HC.tipW, wDev); } }
       emit(ctx, XS, YS, WS, N);
     }
     /** round 12: the TAIL as one closed, smooth, chunky shape: the simulated spine offset left and right by a width profile (narrow at the tie, fullest at ~40 %, a
