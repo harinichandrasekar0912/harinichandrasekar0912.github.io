@@ -3581,14 +3581,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var nc = Math.max(8, Math.round(W / 130)), cx = [], i, v;
     for (i = 0; i < nc; i++) cx.push(rng.range(0, W));
     var y1b = Math.min(H + 70, (S.visBottom !== undefined ? S.visBottom : H) - 90);
-    var y0 = G0 - 10, y1 = Math.max(H - 9, y1b);     // a little above the feet line ... into the faded lower margin of the canvas (no hard edge)
+    var y0 = G0 + 3, y1 = Math.max(H - 9, y1b);     // G21: from just below the sole line ... into the faded lower margin of the canvas (no hard edge); none above it, so the floor reads under her
     for (i = 0; i < n; i++) {
       if (rng.next() < 0.58) x[i] = U.clamp(rng.pick(cx) + rng.gauss() * 130, 4, W - 4);
       else x[i] = rng.range(4, W - 4);
       v = rng.next();
       y[i] = y0 + (y1 - y0) * Math.pow(v, 1.05) + rng.gauss() * 4;
       if (y[i] > y1 + 6) y[i] = y1 - rng.range(0, 6);
-      if (rng.next() < 0.08) y[i] -= rng.range(10, 30);
+      rng.next();          // (was: 8 % lifted 10-30 above; the draw is kept so the rest of the seeded layout does not change)
       var q = rng.next(), r;
       if (q < 0.45) r = rng.range(0.85, 1.35); else if (q < 0.84) r = rng.range(1.35, 2.0); else r = rng.range(2.0, 2.9);
       rx[i] = r * (rng.next() < 0.22 ? rng.range(1.5, 2.6) : 1); // a few little horizontal dashes
@@ -4841,8 +4841,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     safe('specks', function () { if (GA.fx && GA.fx.specks) GA.fx.specks.draw(ctx); });
     safe('shadow', function () {
       if (GA.fx && GA.fx.shadow && onScreen && pose.x > -320 && pose.x < W + 320) {
-        var sh = T.shadowFor(pose);
-        GA.fx.shadow(ctx, { x: sh.x, y: G + 4, w: sh.w, h: sh.h, alpha: sh.alpha });
+        // G21: a soft body shadow under the hips (smaller and fainter with the height of a hop), plus a small contact shadow under each foot that fades as the foot
+        // lifts, so double support, a lifted foot and a hop all read on the floor
+        var sh = T.shadowFor(pose), an = girl.anchors(pose), pk = 1 - 0.97 * Math.min(1, pose.peek || 0);
+        GA.fx.shadow(ctx, { x: an.hips.x + 8, y: G + 3, w: sh.w, h: sh.h, alpha: 0.65 * sh.alpha });
+        [an.footL, an.footR].forEach(function (fp) {
+          var lift = Math.max(0, G - fp.y), k = Math.max(0, 1 - lift / 36);
+          if (k > 0) GA.fx.shadow(ctx, { x: fp.x, y: G + 2, w: 74 * (0.8 + 0.2 * k), h: 13 * (0.8 + 0.2 * k), alpha: 0.2 * k * k * pk });
+        });
       }
     });
     safe('dust', function () { if (GA.dust) GA.dust.draw(ctx); });
