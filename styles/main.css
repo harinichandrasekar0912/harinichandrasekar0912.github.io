@@ -319,49 +319,6 @@ body.is-project-open .viewport-edge-blur {
   text-transform: lowercase;
 }
 
-/* the quiet way into the stairs game from the landing: bottom left, clear of the site name and of the navigation plus; it fades in after her hello */
-.landing-section {
-  position: relative;
-}
-
-.landing-play-link {
-  position: absolute;
-  left: var(--page-x);
-  bottom: calc(var(--nav-bottom-buffer) + 0.6rem);
-  z-index: 2;
-  padding: 0.4em 0;
-  border: 0;
-  background: transparent;
-  color: var(--color-ink-soft);
-  font: inherit;
-  font-size: var(--text-xs);
-  text-transform: lowercase;
-  cursor: pointer;
-  opacity: 0;
-  animation: landingPlayIn 900ms var(--ease-standard) 6s forwards;
-}
-
-/* the picture is only there as the source of the opening flight */
-.landing-play-link img {
-  display: none;
-}
-
-.landing-play-link span {
-  border-bottom: var(--line-thin) solid transparent;
-  transition: border-color var(--duration-fast) var(--ease-standard);
-}
-
-.landing-play-link:hover span,
-.landing-play-link:focus-visible span {
-  border-bottom-color: currentColor;
-}
-
-@keyframes landingPlayIn {
-  to {
-    opacity: 1;
-  }
-}
-
 .landing-media {
   position: relative;
   align-self: center;
@@ -375,7 +332,9 @@ body.is-project-open .viewport-edge-blur {
 }
 
 .landing-media::before,
-.landing-media::after {
+.landing-media::after,
+.sketch-line,
+.sketch-point {
   position: absolute;
   display: block;
   pointer-events: none;
@@ -398,6 +357,52 @@ body.is-project-open .viewport-edge-blur {
   height: 30%;
   border-left: var(--line-thin) solid rgba(21, 20, 18, 0.16);
   border-bottom: var(--line-thin) solid rgba(21, 20, 18, 0.16);
+}
+
+.sketch-line {
+  height: 1px;
+  background: rgba(21, 20, 18, 0.18);
+  transform-origin: left center;
+}
+
+.sketch-line-a {
+  left: 19%;
+  top: 70%;
+  width: 50%;
+  transform: rotate(-10deg);
+}
+
+.sketch-line-b {
+  left: 39%;
+  top: 31%;
+  width: 32%;
+  transform: rotate(28deg);
+}
+
+.sketch-line-c {
+  left: 24%;
+  top: 47%;
+  width: 52%;
+  background: transparent;
+  border-top: 1px dotted rgba(21, 20, 18, 0.14);
+  transform: rotate(3deg);
+}
+
+.sketch-point {
+  width: 5px;
+  height: 5px;
+  border: 1px solid rgba(21, 20, 18, 0.22);
+  border-radius: 50%;
+}
+
+.sketch-point-a {
+  left: 18%;
+  top: 70%;
+}
+
+.sketch-point-b {
+  right: 22%;
+  top: 28%;
 }
 
 .about-section {
@@ -461,164 +466,6 @@ body.is-project-open .viewport-edge-blur {
 
 .about-copy p {
   margin: 0;
-}
-
-/* "an apple" (scripts/play/apple.js): a small paper square set with the paragraph about picturing things. Before the script
-   arrives it is only the square with its question in it, so nothing looks broken while it loads. */
-.about-apple {
-  width: min(100%, 264px);
-  margin: 2em auto 1.25em;
-  color: var(--color-ink);
-}
-
-.about-apple-stage {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  border: var(--line-thin) solid var(--color-line);
-  background: var(--color-paper);
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.about-apple-stage:focus-visible {
-  outline: 1px solid var(--color-ink);
-  outline-offset: 4px;
-}
-
-.about-apple-stage canvas {
-  position: absolute;
-  inset: 0;
-}
-
-/* only while there is an apple to spin does a drag on it belong to the drawing instead of the page */
-.about-apple[data-state="clearly"] .about-apple-stage canvas,
-.about-apple[data-state="sort"] .about-apple-stage canvas {
-  touch-action: none;
-  cursor: grab;
-}
-
-.about-apple.is-dragging .about-apple-stage canvas {
-  cursor: grabbing;
-}
-
-/* on a touch screen the square is as wide as the column, so an up or down swipe still scrolls the page; a sideways one spins the apple */
-@media (pointer: coarse) {
-  .about-apple[data-state="clearly"] .about-apple-stage canvas,
-  .about-apple[data-state="sort"] .about-apple-stage canvas {
-    touch-action: pan-y;
-  }
-}
-
-.about-apple-question,
-.about-apple-aside,
-.about-apple-word {
-  position: absolute;
-  left: 1.25em;
-  right: 1.25em;
-  margin: 0;
-  text-align: center;
-  text-transform: lowercase;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--duration-slow) var(--ease-standard);
-}
-
-.about-apple-question {
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-ink);
-  font-size: var(--text-sm);
-  line-height: 1.6;
-  white-space: pre-line;
-}
-
-.about-apple-word {
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-ink);
-  font-size: var(--text-md);
-  letter-spacing: 0.04em;
-}
-
-.about-apple-aside {
-  bottom: 1em;
-  color: var(--color-ink-soft);
-  font-size: var(--text-xs);
-}
-
-.about-apple:not([data-state]) .about-apple-question,
-.about-apple[data-state="ask"] .about-apple-question,
-.about-apple[data-state="not"] .about-apple-word {
-  opacity: 1;
-}
-
-.about-apple[data-state="not"] .about-apple-aside {
-  opacity: 1;
-  transition-delay: 900ms;
-}
-
-/* the answers and the closing line share one place under the square, so swapping them never moves the text below */
-.about-apple-foot {
-  display: grid;
-  margin-top: var(--space-3);
-  color: var(--color-ink-soft);
-  font-size: var(--text-xs);
-}
-
-.about-apple-choices,
-.about-apple-coda {
-  grid-area: 1 / 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: center;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity var(--duration-medium) var(--ease-standard), visibility 0s linear var(--duration-medium);
-}
-
-.about-apple-choices {
-  gap: 0 0.1em;
-}
-
-.about-apple-coda {
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2em;
-}
-
-.about-apple[data-state="ask"] .about-apple-choices {
-  visibility: visible;
-  opacity: 1;
-  transition-delay: 0s;
-}
-
-.about-apple[data-state="clearly"] .about-apple-coda,
-.about-apple[data-state="sort"] .about-apple-coda,
-.about-apple[data-state="not"] .about-apple-coda {
-  visibility: visible;
-  opacity: 1;
-  transition: opacity var(--duration-slow) var(--ease-standard) 1.2s, visibility 0s linear 0s;
-}
-
-.about-apple .play-button {
-  padding: 0.35em 0.4em;
-  border-color: transparent;
-  color: var(--color-ink);
-  text-underline-offset: 0.28em;
-}
-
-.about-apple .play-button:hover {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-}
-
-.about-apple-coda .play-button {
-  color: var(--color-ink-soft);
-}
-
-.about-apple-dot {
-  opacity: 0.5;
 }
 
 .work-section {

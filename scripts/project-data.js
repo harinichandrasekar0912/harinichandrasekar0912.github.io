@@ -415,36 +415,7 @@
           body: "A low view from under the flight: the dark curved spine below and the two glass balustrade ribbons above. One spine, twenty modules. The work remains a preliminary structural study, not a certified design.",
           image: "assets/images/work/project-05/panel-12.webp",
           alt: "Render of the whole stair from low on the underside: the dark curved spine below and the two glass balustrade ribbons above.",
-          ratio: 1.259,
-          link: { label: "the stair i designed asked how light a structure can look. this one asks whether we need it at all \u2192", open: "play-01" }
-        }
-      ]
-    },
-    {
-      // a playable piece (scripts/play/stairs.js): panel "type" names the custom panel the viewer mounts; the copy is DRAFT until Harini approves it
-      id: "play-01",
-      title: "would you take the stairs?",
-      image: "assets/images/work/play-01/hero-1600.webp",
-      alt: "A line drawing of a girl at the foot of a flight of stairs that rises to a door.",
-      summary: "A small game about my dissertation question. There is a stair, a door at the top, and gravity is optional. How you get up is up to you.",
-      meta: "playable drawing · 2026 · javascript · individual project",
-      panels: [
-        {
-          heading: "would you take the stairs?",
-          body: ""
-        },
-        {
-          type: "stairs",
-          heading: "the stair",
-          body: "Walk with the arrow keys, or hold the up arrow to float. On a phone, hold the lower half of the drawing to walk and the upper half to float. There is no wrong way up.",
-          ratio: 1.25
-        },
-        {
-          type: "stairs-question",
-          script: "stairs",
-          heading: "what's the question?",
-          body: "My dissertation asks which spatial conventions survive when real-world constraints disappear. In games and virtual worlds nothing has to fall, so nothing strictly needs a stair, a floor or a door, and yet they keep appearing. I wanted to know why: do they stay because they still help people find their way, gather and understand a place, or mostly out of habit? This little stair is that question in miniature. I'm curious which way you went.",
-          ratio: 1.25
+          ratio: 1.259
         }
       ]
     },

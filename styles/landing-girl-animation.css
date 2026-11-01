@@ -55,15 +55,8 @@
 }
 
 /* phones and portrait tablets: a 16:4.5 strip would make her tiny, so give the band more height on narrow screens */
-@media (max-width: 767px), (max-width: 1024px) and (orientation: portrait) {
+@media (max-width: 760px), (max-width: 1024px) and (orientation: portrait) {
   .landing-media {
     aspect-ratio: 16 / 8;
-  }
-}
-
-/* round 12 (G25): on a phone held upright she is about a fifth of the screen tall (she was ~13 %); the cloud still fits around her */
-@media (max-width: 767px) and (orientation: portrait) {
-  .landing-media {
-    aspect-ratio: 4 / 3;
   }
 }

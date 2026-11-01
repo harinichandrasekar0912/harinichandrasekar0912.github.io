@@ -30,11 +30,9 @@ scripts/
   project-viewer.js
   project-data.js
   landing-girl-animation.js   the landing animation (girl, walk / run, hair, timeline, scene)
-  landing-girl-thoughts.js    the thought cloud (props, swirl), loaded after the first paint
-  play/                       the playable pieces, loaded only when needed
+  landing-girl-thoughts.js    the thought cloud (props, swirl), loaded after the first frame
+  play/                       short playable pieces, loaded only when needed
     ink-kit.js                shared helpers (stage, theme, loop, pointer, session memory)
-    stairs.js                 "would you take the stairs?" (project play-01)
-    apple.js                  "an apple" (About)
     where-it-sits.js          "where it sits" (opening the Spatial Archive project)
 assets/
   images/
@@ -84,10 +82,9 @@ To add a project: create its image set in the same sizes, add an entry to `scrip
 
 ## Landing Animation
 
-- `scripts/landing-girl-animation.js` boots as soon as it runs: the first painted frame already shows her mid-stride inside the right edge (`FIRST_LOOK` in the site section). The thought cloud (`scripts/landing-girl-thoughts.js`) is requested after the first paint and an idle moment (not at all with Save-Data, where she has a happy idle instead).
-- The story is a pure function of time (`timeline.js` section, about 29 s): walk in, turn and hello, then she enjoys her thoughts (a gasp-hop at the first idea, pokes one, taps a bulb on tiptoe, points and giggles, conducts the swirl, "mind blown" with a hop, a twirl on one foot, a wobble and a laugh), a little round thought boops her head, the thoughts pop like soap bubbles and she catches one, a pat on the head and a shrug, she skips away to the left and peeks back in from the left edge. The thought cloud follows her script (`thoughtPlan`). The nav `+` starts a reaction (look, happy hop, clap, a cute run off).
-- Walk and run steps change length with speed (short quick steps when starting or stopping); planted feet stay planted (turns in two small steps, heels pivot on the ball, the twirl turns on the ball of one foot). The ponytail is one closed, bouncy shape that stays visible from the front.
-- `window.HariniGirl.create({ height, seed })` gives the playable pieces the same girl (the stairs game uses it).
+- `scripts/landing-girl-animation.js` boots as soon as it runs: the first painted frame already shows her mid-stride inside the right edge (`FIRST_LOOK` in the site section). The thought cloud (`scripts/landing-girl-thoughts.js`) is requested at the same moment and only needed about 5 s later, so the first script stays small.
+- The story is a pure function of time (`timeline.js` section): walk in, a hello wave, about 20 s of thinking, the ball, two looks back on the walk out, a peek. The nav `+` starts a reaction (look, take, jump, turn, run away with dust and a look back).
+- Walk and run steps change length with speed (short quick steps when starting or stopping), so the planted feet never slide. Arms swing continuously; the ponytail streams along the body when she looks back.
 - On fast displays the scene is drawn on every n-th refresh while a frame costs more than one refresh (`pace()` in the scene section): an even 72 fps on a 144 Hz screen instead of an uneven mix.
 - Deterministic test hooks: `window.__landingGirl.scene` has `restart(t0)`, `advanceTo(t)`, `press()`, `advanceBy(s)`, `render()`.
 

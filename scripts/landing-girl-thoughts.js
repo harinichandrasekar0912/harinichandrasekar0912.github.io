@@ -6608,16 +6608,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   var DOO = { x: 0, y: 0, r: 0, t0: 0, vx: 0, vy: 0, kind: 'dot', z: 0 };
   var JS_ = { tx: 0, ty: 0, ang: 0, e: 0, vx: 0, vy: 0, om: 0 };
 
-  function spawnCube(o) {
-    D.info.cubes++;
-    if (D.bubble) { if (D.dotAPI && rnd() < 0.4) { var tb = D.dotAPI.spawn(GA.fx.bubbleFragment(o, true)); if (tb > D.tEnd) D.tEnd = tb; } return; }          // round 12: popped like bubbles (fewer, light fragments)
-    if (D.cubeAPI) { var te = D.cubeAPI.spawn(o); if (te > D.tEnd) D.tEnd = te; }
-  }
-  function spawnDot(o) {
-    D.info.dots++;
-    if (D.bubble) { if (D.dotAPI && rnd() < 0.4) { var tb = D.dotAPI.spawn(GA.fx.bubbleFragment(o, false)); if (tb > D.tEnd) D.tEnd = tb; } return; }
-    if (D.dotAPI) { var te = D.dotAPI.spawn(o); if (te > D.tEnd) D.tEnd = te; }
-  }
+  function spawnCube(o) { D.info.cubes++; if (D.cubeAPI) { var te = D.cubeAPI.spawn(o); if (te > D.tEnd) D.tEnd = te; } }
+  function spawnDot(o) { D.info.dots++; if (D.dotAPI) { var te = D.dotAPI.spawn(o); if (te > D.tEnd) D.tEnd = te; } }
   /** cube edge length (world units), still random but with CLEARLY visible mid-size cubes: ~50 % dust 3-8, ~30 % small 8-18, ~13 % mid 16-30, ~4-6 % chunky 36-62
       (heavier lines give a few more chunky ones; ~15-20 chunks in a full dissolve; the fx pools hold 1536 per layer) */
   function rndSize(maxS) {
@@ -6973,7 +6965,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   }
 
   var ARM_COLS = ['g3', 'g2', 'g1', 'ink'];   // pale first, dark last
-  var ARM_SC = 0.55;   // round 12 (G11): the arms are drawn at a little over half their old width, so the swirl reads in the same hairline weight as the drawings
   function drawPre(ctx, t, layer) {
     var i, L, back = layer === 'back', C = G.C, ci;
     G.haloF = 1;
@@ -7002,12 +6993,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       for (ci = 0; ci < ARM_COLS.length; ci++) {
         var key = ARM_COLS[ci], any = false;
         ctx.fillStyle = C[key]; ctx.beginPath();
-        for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.sp.col === key && !L.own) { drawRuns(ctx, L, 'back', ARM_SC, null, false, true); any = true; } }
+        for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.sp.col === key && !L.own) { drawRuns(ctx, L, 'back', 1, null, false, true); any = true; } }
         if (any) ctx.fill();
       }
-      for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.own && L.iB >= L.iA) drawRuns(ctx, L, 'back', ARM_SC, C[L.col], false, false); }
+      for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.own && L.iB >= L.iA) drawRuns(ctx, L, 'back', 1, C[L.col], false, false); }
     } else {
-      for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.frontable) drawRuns(ctx, L, 'front', ARM_SC, C[L.col], true, false); }
+      for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.frontable) drawRuns(ctx, L, 'front', 1, C[L.col], true, false); }
     }
     // tip dots
     for (i = 0; i < G.arms.length; i++) {
@@ -7210,7 +7201,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     o = o || {};
     var speed = o.speed > 0 ? +o.speed : 1, stagger = o.stagger >= 0 ? +o.stagger : 0.9;
     D = makeD(+t0, speed, stagger, false);
-    D.bubble = o.style === 'bubble' && !!(GA.fx && GA.fx.bubbleFragment);
     G.items = [];
     startDissolve();
     G.info = D.info;
@@ -7584,7 +7574,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
           BEAT = the real pop times: bulb / fw are SYNC POINTS the girl reacts to; info().beats publishes them (loop seconds + k) after any wait / compression. ---- */
   var ACT_OFF = 1.1;
   var ACT = { I: 0, II: 5.5, III: 12.0, IV: 17.7, END: 20.3 };
-  var PLAN = {};          // round 12: build({plan}) - {act, beat (k seconds, unscaled when act.END is given), maxItems, noChurn, flowBoost: [[k0, k1, gain], ...]}
   var BEAT = {
     hero: [1.4, 2.9, 4.15, 5.35], heroMate: [5.7, 6.1, 6.5, 6.9], spark: [4.55, 5.05],
     S: [5.9, 6.58, 7.26, 7.94, 8.62, 9.3, 9.98, 10.66, 11.34], mateLag: [0.32, 0.5],
@@ -7848,7 +7837,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   function flowRate(t) {
     var k = kOf(t), r = 0.52 + 0.36 * sstep(ACT.II - 0.8, ACT.II + 1.8, k) + 0.57 * sstep(ACT.III - 0.6, ACT.III + 3.6, k);   // the acts: I calm (0.52), II lively (0.88), III busy (1.45)
     r *= 1 + CFG.SURGE * sstep(G.tNom - 2.5, G.tNom, t);                             // act IV, the funnel: everything speeds up in the last 2.5 s
-    if (PLAN.flowBoost) for (var bi = 0; bi < PLAN.flowBoost.length; bi++) { var fb = PLAN.flowBoost[bi]; r *= 1 + fb[2] * sstep(fb[0] - 0.25, fb[0] + 0.15, k) * (1 - sstep(fb[1] - 0.15, fb[1] + 0.35, k)); }   // round 12: she conducts / twirls: the orbits follow her
     r *= 1 - 0.5 * sstep(G.tNom, G.tNom + 0.9, t);
     return r;
   }
@@ -7883,7 +7871,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var q = (t - it.tp) / it.swP + it.swPh; q -= floor(q);
       if (q < it.swD) { var s2 = sin(Math.PI * q / it.swD), f = 1 - it.swA * s2 * s2; x0 = G.cx + (x0 - G.cx) * f; y0 = G.cy + (y0 - G.cy) * f; }
     }
-    if (it.dtA && !PLAN.noDarts) {                                                         // a quick flick: a short dart across the cloud and back (round 12: off by plan, it read as a glitch)
+    if (it.dtA) {                                                                         // a quick flick: a short dart across the cloud and back
       var q2 = (t - it.tp) / it.dtP + it.dtPh; q2 -= floor(q2);
       if (q2 < it.dtD) {
         var s3 = sin(Math.PI * q2 / it.dtD); s3 *= s3;
@@ -7891,8 +7879,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
     }
     var bw = it.wob * (1 + 0.9 * sstep(G.tNom - 2.5, G.tNom, t));                         // bob / wobble: larger for the small pieces, stronger in the crescendo
-    var fk = it.fk || (it.fk = 0.72 + 0.56 * ((Math.abs(it.p3 * 7.13 + it.p4 * 3.71) % 1)));          // round 12 (G13): every piece bobs and breathes at its own pace (+-28 %), no synchronised jelly
-    var x = x0 + bw * (10 * sin(0.83 * fk * t + it.p3) + 4 * sin(2.3 * fk * t + it.p5)), y = y0 + bw * (12 * sin(1.17 * fk * t + it.p4) + 5 * sin(2.9 * fk * t + it.p6)), zn = o.zn;
+    var x = x0 + bw * (10 * sin(0.83 * t + it.p3) + 4 * sin(2.3 * t + it.p5)), y = y0 + bw * (12 * sin(1.17 * t + it.p4) + 5 * sin(2.9 * t + it.p6)), zn = o.zn;
     var age = t - it.tp, dt = t - G.shockT, enter = age < it.enter ? (1 - spring(age, 0.9, 5.5)) * (1 - sstep(it.enter * 0.6, it.enter, age)) : 0, swell = 0;
     if (enter !== 0) { x += (G.hx - x) * it.glide * enter; y += (G.hy - y) * it.glide * enter; }   // glides out of her head on a soft spring
     if (dt > 0) {
@@ -7907,7 +7894,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
     }
     o.x = x; o.y = y; o.zn = zn;
-    o.sc = it.sc0 > 0 && t >= it.t0 ? it.sc0 : (1 + CFG.PERSP * zn) * (1 + it.br * sin(0.9 * (it.fk || 1) * t + it.p7)) * (1 + swell) * (1 - CFG.FUNNEL_SHRINK * sstep(G.tNom - 2.6, G.tNom - 0.4, t));   // (act IV: sucked in, a little smaller)
+    o.sc = it.sc0 > 0 && t >= it.t0 ? it.sc0 : (1 + CFG.PERSP * zn) * (1 + it.br * sin(0.9 * t + it.p7)) * (1 + swell) * (1 - CFG.FUNNEL_SHRINK * sstep(G.tNom - 2.6, G.tNom - 0.4, t));   // (act IV: sucked in, a little smaller)
     o.da = min(1, (1 - CFG.DEPTH_ALPHA * sstep(0.1, -1, zn)) * it.dla * (1 + 0.05 * sin(1.3 * t + it.p6)));   // far = a little lighter; gentle breathing of the alpha
     var ph = R * 0.9;
     o.rx = it.rx0 + it.ax * sin(ph * it.f1 + it.q1);
@@ -7936,14 +7923,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   }
 
   /** the slots of a cast with their prop names resolved (missing / blacklisted names replaced by the next unused piece of the fallback rings) */
-  var ACT_DEF = null, BEAT_DEF = null;
-  function applyPlan(p) {
-    var k;
-    if (!ACT_DEF) { ACT_DEF = {}; for (k in ACT) ACT_DEF[k] = ACT[k]; BEAT_DEF = {}; for (k in BEAT) BEAT_DEF[k] = BEAT[k]; }
-    PLAN = p || {};
-    ACT = {}; for (k in ACT_DEF) ACT[k] = PLAN.act && PLAN.act[k] !== undefined ? PLAN.act[k] : ACT_DEF[k];
-    BEAT = {}; for (k in BEAT_DEF) BEAT[k] = PLAN.beat && PLAN.beat[k] !== undefined ? PLAN.beat[k] : BEAT_DEF[k];
-  }
   function selectCast(W, gen) {
     var cast = CASTS[((gen % CASTS.length) + CASTS.length) % CASTS.length], used = {}, ctr = {}, fb = { D: gen * 5, B: 0, C: 0, R: 0, X: 0, T: 0, M: gen * 3, F: 0, I: 0 }, i, n, j = 0;
     var rng = U.rng(G.seed * 53 + gen * 11 + 7);
@@ -7989,7 +7968,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     function at(list, ks, step) { for (var q2 = 0; q2 < list.length; q2++) list[q2].kt = q2 < ks.length ? ks[q2] : ks[ks.length - 1] + (step || 0.4) * (q2 - ks.length + 1); }
     at(heroes, BEAT.hero, 0.6); at(sups, BEAT.S, 0.68); at(books, BEAT.B, 0.7); at(chai, BEAT.C, 0.7); at(rl, BEAT.R, 0.7); at(xl, BEAT.X, 0.7); at(il, BEAT.bulb, 1.5);
     for (i = 0; i < il.length; i++) { il[i].life = BEAT.bulbLife; il[i].churn = false; }
-    if (il.length) { il[0].rf = PLAN.firstBulb ? PLAN.firstBulb[0] : 0.44; il[0].th = (PLAN.firstBulb ? PLAN.firstBulb[1] : -62) * Math.PI / 180; il[0].dl = 0; il[0].cw = 1; il[0].size *= 1.35; }          // the first idea lights up beside her head (round 12: right where she taps it)
+    if (il.length) { il[0].rf = 0.44; il[0].th = -62 * Math.PI / 180; il[0].dl = 0; il[0].cw = 1; il[0].size *= 1.35; }                        // the first idea lights up beside her head
     var sparks = ml.splice(0, min(2, ml.length)); at(sparks, BEAT.spark, 0.5);
     for (i = 0; i < sparks.length; i++) sparks[i].churn = false;
     function mate(en, lead, k) {                                                                   // a satellite: beside its leader, same depth layer / sense / (later) orbit speed
@@ -8034,7 +8013,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     G.info.cast = cast.name;
     var keepN = clamp(round(seq.length * pow(W / 2773, 0.9)), 14, seq.length);       // narrow stages: fewer pieces (the opening ones always stay)
-    if (PLAN.maxItems > 0) keepN = min(keepN, PLAN.maxItems);                           // round 12: a calmer cloud (about 14-18 visible pieces)
     return { seq: seq.slice(0, keepN), bursts: bursts, twin: twin };
   }
 
@@ -8560,13 +8538,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     // cube sites: every ink cell is a candidate; thin to the budget (random, keeps the proportions), skew the sizes (many tiny, a few large)
     var cubeAPI = !dry && GA.fx && GA.fx.cubes && GA.fx.cubes.spawn ? GA.fx.cubes : null, dotAPI = !dry && GA.fx && GA.fx.dots && GA.fx.dots.spawn ? GA.fx.dots : null;
-    if (o.style === 'bubble' && GA.fx && GA.fx.bubbleFragment) {          // round 12: popped like soap bubbles - fewer, lighter pieces, same ink and weight as the drawings
-      var rawDots = dotAPI;
-      cubeAPI = rawDots ? { spawn: function (q) { return rawDots.spawn(GA.fx.bubbleFragment(q, true)); } } : null;
-      dotAPI = rawDots ? { spawn: function (q) { return rawDots.spawn(GA.fx.bubbleFragment(q, false)); } } : null;
-      if (!o.cubes) o.cubes = round(G.capC * 0.35);
-      if (!o.dots) o.dots = round(G.capD * 0.3);
-    }
     var capC = o.cubes || G.capC, capD = o.dots || G.capD, totC = 0, totD = 0;
     for (i = 0; i < part.length; i++) { totC += part[i].ccN; totD += part[i].dsN; }
     var pk = min(1, capC / max(1, totC)), pd = min(1, capD / max(1, totC * (pk * 0.9 + (1 - pk) * 0.3) + totD * 0.5));
@@ -8685,7 +8656,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     o = o || {};
     var t00 = now(), S = GA.stage || {}, W = o.W || S.W || 2773, H = o.H || S.H || 780, groundY = S.groundY || (H - 80);
     var cx = o.cx !== undefined ? o.cx : W / 2, cy = o.cy !== undefined ? o.cy : groundY - 345;
-    applyPlan(o.plan);
     var tStart = o.tStart !== undefined ? o.tStart : 6.0, tFull = o.tFull !== undefined ? o.tFull : 12.8, tHit = o.tHit !== undefined ? o.tHit : Infinity;
     tFull = max(tFull, tStart + 3);
     if (isFinite(tHit)) tHit = max(tHit, tFull + 0.8);
@@ -8713,7 +8683,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     for (i = 0; i < sel.bursts.length; i++) all.push({ en: sel.bursts[i], ts: tOfK(sel.bursts[i].kt), o: 1000 + i });
     for (i = 4; i < cast.length; i++) {                                                                // CHURN: many small pieces live 3-7 s, fade, and a twin pops up elsewhere (a group's satellites a little longer)
       var en2 = cast[i];
-      if (!PLAN.noChurn && CHURN[en2.k] && en2.churn !== false && (i * 7 + 1) % 3 !== 0) {
+      if (CHURN[en2.k] && en2.churn !== false && (i * 7 + 1) % 3 !== 0) {
         var Lf = (en2.churn === 'mate' ? 4.5 : 3.0) + 2.5 * rng.next(), t1 = times[i];
         if (t1 + Lf < G.tNom - 1.4) { en2.life = Lf; var tw = sel.twin(en2); tw.kt = kOf(t1 + Lf - 0.1); all.push({ en: tw, ts: t1 + Lf - 0.1, o: 2000 + i }); }
       }
@@ -8839,10 +8809,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     if (it.life < 1e8) al *= 1 - sstep(it.life - 0.45, it.life, it.age);
     if (al <= 0.004) return;
     if (!sp || AT.k !== KA || AT.kd !== KD) { sp = renderSprite(it, t); if (!sp) { drawDirect(ctx, it); return; } }
-    var k = po.sc / sp.sc, w = abs(k - 1) < 0.003 ? sp.W : sp.W * k, h = abs(k - 1) < 0.003 ? sp.H : sp.H * k, dx = KA * po.x + TE, dy = KD * po.y + TF;          // round 12 (G12): sub-pixel placement (a slow orbit used to stair-step from pixel to pixel)
+    var k = po.sc / sp.sc, w = abs(k - 1) < 0.003 ? sp.W : sp.W * k, h = abs(k - 1) < 0.003 ? sp.H : sp.H * k, dx = round(KA * po.x + TE), dy = round(KD * po.y + TF);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.imageSmoothingEnabled = true;
     if (al < 0.999) ctx.globalAlpha *= al;
     ctx.drawImage(AT.cv, sp.x, sp.y, sp.W, sp.H, dx - w / 2, dy - h / 2, w, h);
     ctx.restore();

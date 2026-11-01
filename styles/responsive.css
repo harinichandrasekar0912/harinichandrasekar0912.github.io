@@ -18,7 +18,7 @@
 
 }
 
-@media (max-width: 767px) {
+@media (max-width: 760px) {
   :root {
     --page-x: clamp(1rem, 6vw, 1.5rem);
     --plus-circle-size: 44px;
@@ -62,12 +62,6 @@
     max-width: 20rem;
     margin-top: 0;
     font-size: var(--text-md);
-  }
-
-  /* the apple takes the full width of the copy column, between the second and third paragraphs */
-  .about-apple {
-    width: 100%;
-    margin: 1.75em 0;
   }
 
   .work-list {
@@ -147,28 +141,9 @@
     --item-y: -72px;
   }
 
-  .nav-object[data-nav-count="3"] .radial-item-about {
-    --item-x: -92px;
-    --item-y: -80px;
-  }
-
-  .nav-object[data-nav-count="3"] .radial-item-work {
-    --item-x: 0px;
-    --item-y: -124px;
-  }
-
-  .nav-object[data-nav-count="3"] .radial-item-contact {
-    --item-x: 92px;
-    --item-y: -80px;
-  }
-
   .radial-item button {
     width: var(--navi-circle-size);
     height: var(--navi-circle-size);
-  }
-
-  .nav-object {
-    --ball-condense: 0.78; /* 42 px ball / 54 px circle */
   }
 
   .project-panel {
@@ -238,6 +213,10 @@
 }
 
 @media (max-width: 767px) {
+  :root {
+    --nav-ball-form-duration: 1818ms;
+  }
+
   .section {
     padding-block: clamp(2.75rem, 6vh, 4rem);
   }
@@ -256,11 +235,6 @@
 
   .work-list {
     gap: clamp(1.25rem, 3vh, 2rem);
-  }
-
-  /* on a phone the stairs link sits above the plus, never beside it */
-  .landing-play-link {
-    bottom: calc(var(--nav-bottom-buffer) + var(--plus-circle-size) + 1.1rem);
   }
 
   .work-space {
@@ -392,6 +366,44 @@
 }
 
 @media (max-width: 767px) and (pointer: coarse) {
+  .nav-object.is-phone-preparing .radial-lines,
+  .nav-object.is-phone-preparing .radial-line,
+  .nav-object.is-phone-preparing .radial-item,
+  .nav-object.is-phone-opening.is-open .radial-item {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .nav-object.is-phone-preparing .radial-item,
+  .nav-object.is-phone-opening.is-open .radial-item {
+    transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(0.92);
+    animation: none;
+  }
+
+  .nav-object.is-phone-preparing .nav-ring circle {
+    stroke-dashoffset: 1;
+    transition: none;
+  }
+
+  .nav-object.is-phone-opening.is-open .radial-menu {
+    pointer-events: none;
+  }
+
+  .nav-object.is-phone-opening.is-open .radial-item {
+    animation: none;
+  }
+
+  .nav-object.is-phone-opening.is-phone-items-ready.is-open .radial-menu {
+    pointer-events: auto;
+  }
+
+  .nav-object.is-phone-opening.is-phone-items-ready.is-open .radial-item {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(1);
+    animation: radialPop 440ms var(--ease-standard) var(--pop-delay, 0ms) both;
+  }
+
   .archive-bars.has-active-archive-item .archive-bar:not(.is-active) {
     opacity: 1;
     transform: none;
@@ -435,10 +447,44 @@
     min-height: clamp(2.5rem, 6vw, 4.5rem);
   }
 
-  .nav-object:not(.is-open):not(.is-choosing) .radial-item,
-  .nav-object:not(.is-open):not(.is-choosing):hover .radial-item {
+  .nav-object:not(.is-open):not(.is-phone-opening):not(.is-choosing) .radial-item,
+  .nav-object:not(.is-open):not(.is-phone-opening):not(.is-choosing):hover .radial-item,
+  .nav-object.is-phone-preparing .radial-lines,
+  .nav-object.is-phone-preparing .radial-line,
+  .nav-object.is-phone-preparing .radial-item,
+  .nav-object.is-phone-opening.is-open .radial-item {
     opacity: 0;
     pointer-events: none;
+  }
+
+  .nav-object.is-phone-preparing .radial-item,
+  .nav-object.is-phone-opening.is-open .radial-item {
+    transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(0.92);
+    animation: none;
+  }
+
+  .nav-object.is-phone-preparing .nav-ring circle {
+    stroke-dashoffset: 1;
+    transition: none;
+  }
+
+  .nav-object.is-phone-opening.is-open .radial-menu {
+    pointer-events: none;
+  }
+
+  .nav-object.is-phone-opening.is-open .radial-item {
+    animation: none;
+  }
+
+  .nav-object.is-phone-opening.is-phone-items-ready.is-open .radial-menu {
+    pointer-events: auto;
+  }
+
+  .nav-object.is-phone-opening.is-phone-items-ready.is-open .radial-item {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(1);
+    animation: radialPop 440ms var(--ease-standard) var(--pop-delay, 0ms) both;
   }
 
   .project-viewer.is-ready .project-panel-copy {

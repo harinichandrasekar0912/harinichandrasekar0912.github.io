@@ -1243,7 +1243,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var P = S.P; shud = P.shudder || 0; shT = P.shudderT || 0;
       hangW = HC.hang + 0.1 * (P.peek || 0);
       tFront = 0;
-      var yy = A.yawFold ? A.yawFold(P.yaw) : (P.yaw > 1 ? 1 : P.yaw < 0 ? 0 : P.yaw);
+      var ym = ((P.yaw % 4) + 4) % 4, yy = ym <= 1 ? ym : ym <= 2 ? 2 - ym : ym <= 3 ? ym - 2 : 4 - ym;          // the yaw folded onto 0 (profile) .. 1 (front)
       faceK = sin(S.theta) > 0 ? sin(S.theta) : 0;          // round 12: 1 facing us, 0 in profile and from behind
       fhide = sstep(HC.hideY[0], HC.hideY[1], yy); gHide = 1; gRing = 1;          // (round 12: nothing of the tail is shrunk or thinned with the view any more) fhalo = sstep(HC.haloY[0], HC.haloY[1], yy); fcrn = sstep(0.2, 0.6, yy); fwsp = 1 - sstep(0.12, 0.45, yy);
     }
@@ -1273,7 +1273,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         var ct = cos(th), st = sin(th), hw0 = HWt[so + i], w = hangW * (hw0 + (1 - hw0) * max(bowK, 0.6 * rw));          // (run lean: the root must not rise above the head)
         var dx = -fx * ct + ux * st, dy = -fy * ct + uy * st, dz = -fz * ct + uz * st;          // designed direction in the head frame
         dx += (-hx * ct - dx) * w; dy += (-hy * ct - dy) * w; dz += (st - dz) * w;             // ... toward the upright frame
-        if (side > 0) { var sk = side * sstep(0.12, 0.5, i / (PN - 1)); dx -= lx * sk; dy -= ly * sk; dz -= lz * sk; }          // facing us: over towards her left shoulder
+        if (side > 0) { var ui = i / (PN - 1), sk = side * (HC.frontDrape ? sstep(0, 0.15, ui) * (1 - sstep(HC.frontDrape[0], HC.frontDrape[1], ui)) : sstep(0.12, 0.5, ui)); dx -= lx * sk; dy -= ly * sk; dz -= lz * sk; }          // facing us: over towards her left shoulder (frontDrape: pushed out near the tie, then it hangs)
         var dl = sqrt(dx * dx + dy * dy + dz * dz) || 1; dx /= dl; dy /= dl; dz /= dl;
         if (i === 1) { rdF = dx; rdC = dy; rdH = dz; }
         pf += dx * ds; pc += dy * ds; ph += dz * ds;
@@ -1820,16 +1820,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     handOm: 30, handZeta: 0.5, handFollow: 0.55,          // round 11: hand follow-through spring (rad/s, damping ratio, how much of it is drawn)          // round 11: the hello wave (upper arm elevation, mean elbow angle, swing amplitude (deg), swing frequency (Hz))
     pelvisIdle: 244.5, bob: 2.5, walkAlpha0: -2, walkXoff: 0, walkLean: 2.5, walkYaw: 6,
     armBetaL: 19, armBetaR: 19, armAlphaL: 4, armAlphaR: 4, armGammaL: 10, armGammaR: 10, swingFwd: 17, swingBack: 17, gammaWalk0: 9, gammaWalk1: 14,
-    // G27: DEAD (nothing reads them; kept so the fitted tables below still load, changing them does nothing): bob, walkDrop, liftPow, swingTan, swingTan1, liftSkew,
-    //      runKick, runKickU, runFwd, runArmFwd, runArmBack, runGammaFwd, runGammaBack, runKeyed, handScale, sleeve, legKeysF, armKeysF, handScaleF
     // run (scurry)
     runRho: 0.36, runQ1: 0.05, runQ2: 0.2, runLift: 52, runLean: 17, runPelvis: 233, runBob: 15,
     runArmFwd: 52, runArmBack: -40, runGammaFwd: 95, runGammaBack: 72,
     runKick: [-222, 105, -55], runKickU: 0.375, runFwd: [60, 70, 6], runXoff: 0, runPelvisF: 0, runHead: 11, runBendH: 30, runLeanDeg: 18, runLean0: 0.4, idleChest: 5.2, idleSway: 10, idleSwayF: 8, idleRoll: 0.22, idleNod: 0.08, shrugAmp: 4.5, idleBeat: 1, idleScript: 1, ideaT: [5.8, 7.3, 2.4, 10.9], dizzyC: 12, dizzyF: 9, hopAbsorb: 14,
     thinkHand: [8, -52, 4], thinkPole: [0.1, -1, -0.35], mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], clutchAt: [6, 46, 24], reachAt: [70, 14, -110], reachPole: [0.9, 0.3, -0.2], scratchHz: 6.5, scratchAmp: [8, 11], scratchAt: [0, -18, 51], paw: [18, 135, 16], pelvisSmooth: 20, liftPow: 1.6, swingTan: 1, swingTan1: 1, liftSkew: 0.35, walkDrop: 0, bobH2: 0, bobH2ph: 0, bobPh: 0.27, hipSway: 2.2, shoulderCounter: 1.9, handLag: 0, headNod: 2, headTilt: 0, hemBounce: 0, headMorph: 0, headMorph0: 1, headW: 0.88, freezeBack: 6, bowDeg: 35, twistDeg: 52, chestHand: [18, -9, -20], chestPole: [-0.25, -1, -0.45], stepLift: 11, turnLift: 8, armIdleM: 0.25, armIdleGP: 0.5, sleeveR: [11.4, 10], sleeveRS: [13.5, 12], sleeveL: 26, neckShort: 0.88, shDrop: -3, armOut: 6, kneeSoft: 0.008, hemTiltA: 7.5, walkChest: 2.4, headBob: 2.6, pelvTilt: 3, hemFlutter: 1.8, shLag: 0.07, armLag: 0.035, foreLag: 0.11, headLag: 0.15, spineAmp: 3.4, spineLag: 0.1, asym: 1,
-    femWeight: 1, femPeriod: 14, femShift: 10, femRoll: 8, femCounter: 11, femHead: 0.5, femChest: 4, femFoot: [13, 9, 14], femHand: [3, 60, -25], femHandPole: [-0.1, 1, -0.1], peekSpread: 0.75, peekNeck: 12, peekLean: 58, peekHead: 72, peekYaw: 0.2, peekHand: [-40, -30, -20], peekPelvisF: 52, peekLegBack: 140, peekHemF: 140, peekHemTilt: 18, peekPole: [0.8, -0.3, -0.5], runBobK: [[0, 0.3], [0.2, -0.536], [0.35, -0.7], [0.5, 0.1], [0.62, 0.85], [0.78, 1.1], [0.9, 0.75]], runLeanK: 0.06, runHemF: 16, runHemTilt: 5, runHemLift: 0.6, runSpread: 0.06, runTilt: [0, 0, 0, 0], runShift: [0, 0, 0],   // run swing foot keys: [f, z, beta deg] at the kick-back extreme (u = runKickU of the swing) and at u = 0.75
-    swingRelaxU: [0.5, 1.0],          // G24: over this part of the swing the landing leg takes the pelvis back down (a short range = a sharp drop at every step)
-    swingKneeOut: 0, swingKneeU: [0.3, 0.5],          // round 12: how far (deg) the swing knee turns out after toe-off, and the swing range over which it turns back in
+    femWeight: 1, femPeriod: 14, femShift: 10, femRoll: 8, femCounter: 11, femHead: 0.5, femChest: 4, femFoot: [13, 9, 14], femHand: [3, 60, -25], femHandPole: [-0.1, 1, -0.1], peekSpread: 0.75, peekNeck: 12, peekLean: 58, peekHead: 72, peekYaw: 0.2, peekHand: [20, -22, -60], peekPelvisF: 52, peekLegBack: 140, peekHemF: 140, peekHemTilt: 18, peekPole: [0.8, -0.3, -0.5], runBobK: [[0, 0.3], [0.2, -0.536], [0.35, -0.7], [0.5, 0.1], [0.62, 0.85], [0.78, 1.1], [0.9, 0.75]], runLeanK: 0.06, runHemF: 16, runHemTilt: 5, runHemLift: 0.6, runSpread: 0.06, runTilt: [0, 0, 0, 0], runShift: [0, 0, 0],   // run swing foot keys: [f, z, beta deg] at the kick-back extreme (u = runKickU of the swing) and at u = 0.75
     runKeyed: false, runLegK: 0, runArmK: 0, runShoulderBack: 0, runShoulderFwd: 0, runPelvisPitch: -6, runCrownK: 0, runWaistK: 0, runNeckK: 0,                                           // limbs are a bit longer in the traced run drawing
     runArmA: [52, 95], runArmB: [-40, 72],                                  // run arm roles [alpha, gamma] deg: forward (A) / back (B)
     headRowStep: 2, skirtRowStep: 2, shoeRowStep: 2, handRowStep: 2, limbStep: 2, ringHead: 52, ringTrunk: 40, ringShoe: 24, ringHand: 24,   // ring resolution of the lofts (silhouettes are faired, so this only needs to beat the fairing radius)
@@ -1999,29 +1995,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       startle: clamp(num(p.startle, 0), 0, 1), spread: clamp(num(p.spread, 0), 0, 1), poke: clamp(num(p.poke, 0), 0, 1), clutch: clamp(num(p.clutch, 0), 0, 1), shrug: clamp(num(p.shrug, 0), 0, 1), thinkT: num(p.thinkT, -1),
       reach: clamp(num(p.reach, 0), 0, 1),          // the right hand reaches down-forward (toward the nav console below her), index finger out
       wave: clamp(num(p.wave, 0), 0, 1),          // round 11: the right hand waves hello at the viewer (open hand, the forearm swings)
-      // round 12 (acting brief): up on the toes, a sideways lean of the whole body, the shoulder bob of a giggle, a pointed toe tapping, the weight on one leg, the feet
-      // together (twirl), the free foot lifted with a pointed toe (happy wobble), the skip (gait.skip), and a free hand target per arm (hand[0] = left, hand[1] = right)
-      tiptoe: clamp(num(p.tiptoe, 0), 0, 1), bodyRoll: clamp(num(p.bodyRoll, 0), -1.5, 1.5), giggle: clamp(num(p.giggle, 0), 0, 1), toeTap: clamp(num(p.toeTap, 0), 0, 1),
-      weight: clamp(num(p.weight, 0), -1, 1), feet: clamp(num(p.feet, 0), 0, 1), footUp: clamp(num(p.footUp, 0), 0, 1), skip: clamp(num(g.skip, 0), 0, 1),
-      hand: [handIn(p.hand && p.hand[0]), handIn(p.hand && p.hand[1])],
-      footYaw: num(p.footYaw, 0), footYawW: clamp(num(p.footYawW, 0), 0, 1),
-      spin: p.spin && (p.spin.w > 0 || p.spin.wd > 0) ? { w: clamp(num(p.spin.w, 0), 0, 1), wd: clamp(num(p.spin.wd, 0), 0, 1), yaw0: num(p.spin.yaw0, 0), foot: p.spin.foot ? 1 : 0 } : null,          // a spin on the ball of one foot (the twirl): that ball stays put while the body turns round it
-      footZ: [num(p.footZ && p.footZ[0], 0), num(p.footZ && p.footZ[1], 0)],          // round 12: extra height of each foot above the root's ground (stairs: the treads)          // round 12: the feet stay planted at this heading while the body turns a little over them (gestures at 3/4)
-      turnStep: p.turnStep && p.turnStep.w > 0 ? { u: clamp(num(p.turnStep.u, 0), 0, 1), yaw0: num(p.turnStep.yaw0, 0), yaw1: num(p.turnStep.yaw1, 1), w: clamp(num(p.turnStep.w, 1), 0, 1), first: p.turnStep.first ? 1 : 0 } : null,          // round 12: a turn on the spot in two small steps (G3)
       wind: { x: num(w.x, 0), y: num(w.y, 0) }, t: num(p.t, 0),
     };
   }
-  /** a free hand target (round 12): {w 0..1, f: 'head' | 'chest' | 'pelvis' (the frame the target lives in), at: [forward, lateral (+ = her right), up], pole: elbow direction
-      in that frame (optional), hd: hand direction in that frame (optional), open / point / fist 0..1}.  Weights blend smoothly (never a threshold). */
-  function handIn(h) {
-    if (!h || !(h.w > 0) || !h.at) return null;
-    return { w: clamp(num(h.w, 0), 0, 1), f: h.f || 'chest', at: [num(h.at[0], 0), num(h.at[1], 0), num(h.at[2], 0)], pole: h.pole || null, hd: h.hd || null,
-      open: clamp(num(h.open, 0), 0, 1), point: clamp(num(h.point, 0), 0, 1), fist: clamp(num(h.fist, 0), 0, 1) };
-  }
-  /** round 12: any yaw (a full twirl turns through the back view): 0 = profile facing left, 1 = front, 2 = profile facing right, 3 = back.  The traced views are
-      blended by the folded value (profile tables at 0 / 2, front tables at 1 / 3: in ink the back reads like the front) */
-  function yawFold(y) { var m = ((y % 4) + 4) % 4; return m <= 1 ? m : m <= 2 ? 2 - m : m <= 3 ? m - 2 : 4 - m; }
-  A.yawFold = yawFold;
   /** smooth one-shot pulse inside a repeating period: rises over `rise` s, falls over `fall` s, starting at `ph` (+ k * P). Returns [value, side] (side alternates -1 / +1 per repetition) */
   var BV = [0, 1];
   function beat(t, P, ph, rise, fall) {
@@ -2062,10 +2038,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var P = prep(pose), S = { P: P };
     gaitSets(P.strideK);
     var pk = sstep(0, 1, P.peek);
-    var ym4 = ((P.yaw % 4) + 4) % 4, yf0 = yawFold(P.yaw);
-    P.yaw = P.yaw + C.peekYaw * pk * (1 - yf0) * (ym4 > 1.5 && ym4 < 2.5 ? -1 : 1);          // peek: a three-quarter view (both shoulders / the chest turn toward the viewer; from the left edge she faces right)
+    P.yaw = P.yaw + C.peekYaw * pk * (1 - clamp(P.yaw, 0, 1));          // peek: a three-quarter view (both shoulders / the chest turn toward the viewer)
     S.theta = P.yaw * PI / 2; S.ox = P.x / sc; S.oy = P.y / sc;
-    var Yw = yawFold(P.yaw), yawS = sstep(0, 1, Yw);
+    var Yw = clamp(P.yaw, 0, 1), yawS = sstep(0, 1, Yw);
     var a = P.amount, run = sstep(0, 1, P.run), air = P.air, ph = P.phase + C.phaseOff, t = P.t, lean = P.lean, idleA = (1 - a) * (1 - run), sh = P.shudder;
     var cPh = cos(TAU * ph), sPh = sin(TAU * ph), scrN = sstep(0.3, 0.8, P.scratch);
     var fl = P.flinch, shT = P.shudderT, fz = sh, rcA = fz > 0 ? recoilPulse(shT) * sqrt(fz) : 0, blk = fz > 0 ? blinkPulse(shT) * fz : 0, trm = fz * sstep(0.25, 0.6, shT);          // deer-in-headlights: freeze envelope, recoil, blink, tremble weight
@@ -2082,7 +2057,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
 
     // ---- idle life (all zero at t=0 so the default pose is the neutral reference pose)
     var breath = sin(TAU * t / 3.9);
-    var wsh = (sin(TAU * t / 6.8) * 0.65 + sin(TAU * t / 4.3) * 0.35) * idleA * (1 - abs(P.weight)) + P.weight;          // weight shift -1..1 (+ = toward her right; round 12: pose.weight puts it on one leg)
+    var wsh = (sin(TAU * t / 6.8) * 0.65 + sin(TAU * t / 4.3) * 0.35) * idleA;          // weight shift -1..1 (+ = toward her right)
     var wsf = (sin(TAU * t / 5.9) * 0.6 + sin(TAU * t / 3.7) * 0.4) * idleA;            // weight shift forward / back (the profile view's sway)
     // occasional beats on incommensurate 5-9 s cycles (all start at least 2 s after t = 0 and are zero at t = 0): stretch + exhale, hip shift + head tilt, one-sided shrug, glance-and-settle
     // THINK-IDLE script (deterministic, keyed on pose.thinkT = seconds since she turned to the front (round 10; off while thinkT < 0); only while she stands calmly):
@@ -2110,7 +2085,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var side = li === 0 ? -1 : 1;                    // left leg (c-), right leg (c+)
       var q = frac(ph + (li === 0 ? 0 : 0.5));
       S.legQ[li] = q;
-      var wf = legFoot(q, GW, C.lift * (1 + 1.25 * P.skip), C.walkXoff), rf = legFoot(q, GR, C.runLift, C.runXoff);          // (round 12: the skip lifts the free knee high)
+      var wf = legFoot(q, GW, C.lift, C.walkXoff), rf = legFoot(q, GR, C.runLift, C.runXoff);
       // the swing foot LIFTS first and travels afterwards when the gait starts / stops (its clearance and pitch ramp in over a ~0.3 amount, its stride travel with the amount): no slide along the floor
       var swF = sstep(GW.rho, GW.rho + 0.07, q) * (1 - sstep(0.93, 1, q)), aL = lerp(a, sstep(0, 0.3, a), swF);
       var f = lerp(a * wf[0], rf[0], run), z = lerp(lerp(C.ankleZ, wf[1], aL), rf[1], run), beta = lerp(aL * wf[2], rf[2], run);
@@ -2123,51 +2098,19 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (unw > 0 || unwD > 0) { z += 5.5 * unw + 8 * e1 * (side < 0 ? 1 : 0) + 11 * unwD; f += 5 * unwD; c -= side * 3 * unw; beta = lerp(beta, rad(-18), max(0.85 * unw, unwD)); }
       if (rcA > 0) { var rt2 = rcA * (1 - aw) * (1 - min(1, 2 * max(sq, 0))); z += 8.5 * rt2; beta = lerp(beta, beta - rad(22), rt2); }          // recoil: a tiny lift up onto the toes (standing only)
       var freeW = femK * sstep(-0.35, 0.9, -side * wc);          // the unloaded leg: foot a little forward and turned out, the knee soft
-      if (freeW > 0) {
-        f += C.femFoot[0] * freeW; c += side * C.femFoot[1] * freeW; toe += rad(C.femFoot[2]) * freeW;
-        // round 12 (G9): the free foot never slides when the weight changes legs: it lifts while it moves (the lift follows how fast it travels: a small step)
-        var swc = sin(TAU * t / C.femPeriod + 1.2), th2 = Math.tanh(2.2 * swc), dwc = (1 - th2 * th2) * 2.2 * cos(TAU * t / C.femPeriod + 1.2) * TAU / C.femPeriod;
-        var xw = (-side * th2 + 0.35) / 1.25, dsw = xw > 0 && xw < 1 ? 6 * xw * (1 - xw) / 1.25 : 0, spd = abs(femK * dsw * side * dwc) * C.femFoot[0];
-        var lift2 = min(12, 1.6 * spd); z += lift2; beta -= rad(1.2) * lift2;
-      }
-      // round 12: a heel that comes up (turning, tiptoe) PIVOTS ON THE BALL of the foot: the ankle is moved so the ball stays exactly where it is on the floor
-      var ballPivot = function (b1) { var b0 = beta; f -= (C.ballS * cos(b1) + C.ankleZ * sin(b1)) - (C.ballS * cos(b0) + C.ankleZ * sin(b0)); z -= (C.ballS * sin(b1) - C.ankleZ * cos(b1)) - (C.ballS * sin(b0) - C.ankleZ * cos(b0)); beta = b1; };
-      if (pvt > 0) ballPivot(beta - rad(13) * pvt);          // turning on the spot: the feet pivot on the toes (heel up) instead of sliding with the rotating body
-      // round 12: up on the toes (heels 10-14 u up), a pointed toe tapping in front, the free foot lifted with a pointed toe, the feet together for a twirl
-      if (P.tiptoe > 0) { var ttw = P.tiptoe * (1 - aw); ballPivot(lerp(beta, rad(-26), ttw)); }
-      if (P.toeTap > 0 && side > 0) { var tpw = P.toeTap * (1 - aw), tpb = pow(max(0, sin(TAU * 3.0 * t)), 2); f += 16 * tpw; c += 4 * tpw; z += (7 + 9 * tpb) * sqrt(tpw); beta = lerp(beta, rad(-34), tpw); }          // (the lift fades slower than the reach: the foot comes back through the air)
-      if (P.footUp > 0 && side > 0) { var fuw = P.footUp * (1 - aw); f -= 12 * fuw; z += 44 * fuw; beta = lerp(beta, rad(-58), fuw); }
-      var fc0 = [f, c];
-      if (P.feet > 0) { c *= 1 - 0.72 * P.feet; toe *= 1 - 0.7 * P.feet; f -= 0.85 * C.ballS * P.feet * P.tiptoe * (1 - aw); }          // (spinning on the toes: the balls of the feet come under her, so the spin turns about them)
-      // round 12 (G3): turning on the spot in TWO SMALL STEPS - each foot stays planted where it stood (in the world) until its turn comes, then it lifts, swings and plants
-      // where it stands after the turn (the other foot meanwhile pivots on its ball); without this the feet slid sideways by c x sin(yaw) with the rotating body
-      var tYawX = 0;
-      if (!P.turnStep && P.footYawW > 0 && aw < 1) {
-        var fyw = P.footYawW * (1 - aw), thP = P.footYaw * PI / 2, thB = S.theta;
-        var wxP = -(f * cos(thP) + c * sin(thP)), wzP = f * sin(thP) - c * cos(thP);
-        f = lerp(f, -wxP * cos(thB) + wzP * sin(thB), fyw); c = lerp(c, -wxP * sin(thB) - wzP * cos(thB), fyw);
-        tYawX = (thP - thB) * fyw;
-      }
-      if (P.turnStep && aw < 1) {
-        var TSt = P.turnStep, th0 = TSt.yaw0 * PI / 2, th1 = TSt.yaw1 * PI / 2, thN = S.theta, tw = TSt.w * (1 - aw);
-        var su = li === TSt.first ? sstep(0.1, 0.5, TSt.u) : sstep(0.5, 0.9, TSt.u), thF = lerp(th0, th1, su);
-        var wxF = -(f * cos(thF) + c * sin(thF)), wzF = f * sin(thF) - c * cos(thF);
-        f = lerp(f, -wxF * cos(thN) + wzF * sin(thN), tw); c = lerp(c, -wxF * sin(thN) - wzF * cos(thN), tw);
-        var lf = sin(PI * su) * tw; z += 13 * lf; beta -= rad(14) * lf;
-        tYawX = (thF - thN) * tw;          // a planted foot keeps its heading in the world while the body turns over it
-      }
+      if (freeW > 0) { f += C.femFoot[0] * freeW; c += side * C.femFoot[1] * freeW; toe += rad(C.femFoot[2]) * freeW; }
+      if (pvt > 0) { z += C.turnLift * pvt * (side < 0 ? 1 : 0.8); beta -= rad(13) * pvt; }          // turning on the spot: the feet pivot on the toes (heel up) instead of sliding with the rotating body
       if (e2 > 0 && side > 0) { var tb = rad(30) * tap; beta = lerp(beta, beta + tb, 1); z += 15 * sin(tb); }          // E2: the toe taps (the heel stays on the floor)
       if (e3 > 0) { beta = lerp(beta, rad(-20), e3); z += 11.5 * e3; }          // E3: up on her toes
       if (sqn > 0) { var tp = min(1, sqn * 5) * (1 - aw); z += 20 * tp; beta = lerp(beta, rad(-36), tp); }       // boing stretch: up on the toes
       if (pk > 0) f -= C.peekLegBack * pk;               // peek: the feet are braced back (away from the edge), hidden behind it
-      z += P.footZ[li];
       if (air > 0) {                                   // hop: toes point first (push-off), then the knees tuck up under her
         var tk = sstep(0.1, 0.9, air), tp2 = sstep(0, 0.55, air);          // push-off: toes point first, then the knees come up; the feet end up behind the knees (not a chair)
         f = lerp(f, li ? -46 : -22, tk); z = lerp(z, li ? 84 : 102, tk); beta = lerp(beta, rad(li ? -58 : -48), tp2); c = lerp(c, side * 15, tk);
       }
       // toe bend weight (shoeFrame): the forefoot flexes against the ground while the heel rises in stance; it springs straight in the first 12 % of the swing (pointed foot in the air)
       var rhoG = lerp(GW.rho, GR.rho, run), usw = (q - rhoG) / (1 - rhoG), tbG = q < rhoG ? 1 : 1 - sstep(0.05, 0.3, usw) + sstep(0.85, 1, usw);          // (and the toes lift again for the ball landing)
-      legs.push({ side: side, f: f, c: c, z: z, beta: beta, toe: toe, tYaw: tYawX, tb: lerp(1, tbG, aw) * (1 - air), dfc: [fc0[0] - f, fc0[1] - c] });
+      legs.push({ side: side, f: f, c: c, z: z, beta: beta, toe: toe, tb: lerp(1, tbG, aw) * (1 - air) });
     }
 
     // ---- pelvis: bob limited by leg reach (so legs never over-extend), twist, sway, shiver
@@ -2175,7 +2118,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var pitchP0 = -a * rad(2.0) + a * (1 - run) * rad(C.pelvTilt) * sin(TAU * 2 * (ph - C.bobPh + 0.05)) + run * rad(C.runPelvisPitch) - max(lean, 0) * (1 - 0.9 * run) * rad(6) + (0.45 * fz + 0.55 * rcA) * rad(C.freezeBack) - bow * rad(4) * (1 - run);          // (deer: a small lean back; bow: the waist tips forward a little)
     var pitchP = pitchP0 - pk * (rad(C.peekLean) + rad(2.4) * sin(TAU * t / 2.3 + 0.7) + rad(1.2) * sin(TAU * t / 1.1)) + fl * rad(8);          // peek: she sways in and out a little (breathing, weight)
     var fP = -14 * max(lean, 0) * (1 - 0.9 * run) + C.runPelvisF * run - C.peekPelvisF * pk + C.idleSwayF * wsf - 3 * b1 + C.dizzyF * dzy * dS2 + trm * 0.35 * tr1;
-    var cP = -C.hipSway * a * sPh + C.idleSway * wsh + 7 * b2 * s2 + 16 * e1 + trm * 0.3 * tr2 + C.dizzyC * dzy * dS1 + C.femShift * fw + 6 * P.bodyRoll;
+    var cP = -C.hipSway * a * sPh + C.idleSway * wsh + 7 * b2 * s2 + 16 * e1 + trm * 0.3 * tr2 + C.dizzyC * dzy * dS1 + C.femShift * fw;
     var absorb = air * (1 - air) * 4;                       // knee absorb / anticipation while the hop blend passes through 0.5
     var lk = 1 + C.runLegK * run, L1 = C.L1 * lk, L2 = C.L2 * lk, ak = 1 + C.runArmK * run;
     S.lk = lk; S.ak = ak;
@@ -2183,22 +2126,21 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // loading, straight over mid-stance, ~36 into the push-off); the lowest request wins (soft min), so the pelvis is lowest in the double support and highest over the straight
     // mid-stance leg: the bob emerges from the geometry (no cosine).  The landing leg's reach limit takes over just before its heel strike (continuous: kneeK(0) ~ legReach).
     var pelvRoll = rad(C.femRoll) * fw, Rp = K.mEuler(yawP, pitchP, pelvRoll), rhoG = lerp(GW.rho, GR.rho, run);
-    var kneeH = 1e9, Lmax = (L1 + L2) * (C.legReach - C.kneeSoft * aw * (1 - run)), lim = 1e9, limHard = 1e9, Lhard = (L1 + L2) * 0.9993;
+    var kneeH = 1e9, Lmax = (L1 + L2) * (C.legReach - C.kneeSoft * aw * (1 - run)), lim = 1e9;
     for (var i2 = 0; i2 < 2; i2++) {
       var lg = legs[i2], hc = lg.side * C.hipW, hv0 = Rp[1] * hc - Rp[2] * 3, hv1 = Rp[4] * hc - Rp[5] * 3, hv2 = Rp[7] * hc - Rp[8] * 3;          // the hip joint's offset from the pelvis origin (exact, incl. the pelvis rotation)
       var dx = lg.f - (fP + hv0), dy = lg.c - (cP + hv1), l2 = Lmax * Lmax - dx * dx - dy * dy;
-      var usw2 = (S.legQ[i2] - rhoG) / (1 - rhoG), relax = usw2 > 0 ? 30 * aw * sstep(0, 0.12, usw2) * (1 - sstep(C.swingRelaxU[0], C.swingRelaxU[1], usw2)) : 0;          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
+      var usw2 = (S.legQ[i2] - rhoG) / (1 - rhoG), relax = usw2 > 0 ? 30 * aw * sstep(0, 0.12, usw2) * (1 - sstep(0.75, 0.95, usw2)) : 0;          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
       var limi = lg.z + sqrt(l2 > 25 ? l2 : 25) - hv2 + relax;
       lim = i2 === 0 ? limi : K.smin(lim, limi, lerp(10, 4, aw));          // (idle: the R9 smoothing, so the approved standing / peek poses keep their height)
-      if (S.legQ[i2] < rhoG - 0.005 || aw < 1e-3) { var lh2 = Lhard * Lhard - dx * dx - dy * dy; limHard = Math.min(limHard, lg.z + sqrt(lh2 > 25 ? lh2 : 25) - hv2); }          // round 12 (G2): a planted leg is never stretched past its length (the IK would drag its foot along the floor)
       if (a > 0 && S.legQ[i2] < GW.rho) {          // (the trailing leg's request fades out over the last 10 % of its stance: the landing leg has taken the weight)
         var kd = rad(K.curve(C.kneeK, S.legQ[i2])), Dk2 = L1 * L1 + L2 * L2 + 2 * L1 * L2 * cos(kd) - dx * dx - dy * dy, hk = lg.z + sqrt(Dk2 > 25 ? Dk2 : 25) - hv2 + 60 * sstep(GW.rho - 0.1, GW.rho, S.legQ[i2]);
         kneeH = kneeH > 1e8 ? hk : K.smin(kneeH, hk, C.kneeSmin);
       }
     }
     var idealW = kneeH > 1e8 ? C.pelvisIdle : lerp(C.pelvisIdle, kneeH, a);
-    var ideal = lerp(idealW, C.runPelvis + C.runBob * runBobShape(2 * ph), run) + 9 * e3 + 10 * P.tiptoe * (1 - aw) - 44 * sqp + 14 * sqn - 14 * pk * (1 + 0.12 * sin(TAU * t / 2.3 + 2.2)) - C.hopAbsorb * absorb - 3 * dzy * (0.5 - 0.5 * cos(2 * dTT)) - 2 * scrN * (0.5 + 0.5 * sin(TAU * C.scratchHz * P.scratchT)) + 5 * rcA - 2.5 * blk - 7 * bow;
-    var hP = Math.min(K.smin(ideal, lim, lerp(lerp(C.pelvisSmooth, C.pelvisSmoothW, a), 10, run)), limHard);
+    var ideal = lerp(idealW, C.runPelvis + C.runBob * runBobShape(2 * ph), run) + 9 * e3 - 44 * sqp + 14 * sqn - 14 * pk * (1 + 0.12 * sin(TAU * t / 2.3 + 2.2)) - C.hopAbsorb * absorb - 3 * dzy * (0.5 - 0.5 * cos(2 * dTT)) - 2 * scrN * (0.5 + 0.5 * sin(TAU * C.scratchHz * P.scratchT)) + 5 * rcA - 2.5 * blk - 7 * bow;
+    var hP = K.smin(ideal, lim, lerp(lerp(C.pelvisSmooth, C.pelvisSmoothW, a), 10, run));
     if (air > 0) hP = lerp(hP, C.pelvisIdle - 4, air);
     var Fp = K.frame(Rp, [fP, cP, hP]), Fps = pk > 0 || fl > 0 || femK > 0 ? K.frame(K.mEuler(yawP, pitchP0 + fl * rad(8), 0), [fP, cP, hP]) : (femK > 0 ? K.frame(K.mEuler(yawP, pitchP0, pelvRoll * 0.4), [fP, cP, hP]) : Fp);      // the dress hangs down (not along the leaning pelvis); it does follow the small flinch recoil (else a sliver opens at the waist in profile)
     S.Fp = Fp; S.hipsMid = [fP, cP, hP];
@@ -2212,14 +2154,11 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var dd = v3sub(ank, hip), dl = v3len(dd), reach = (L1 + L2) * 0.9995;
       if (dl > reach) ank = v3mad(hip, dd, reach / dl);
       var knock = fz * (1 - aw) * rad(7);          // frozen: the knees drift slightly inward
-      // round 12 (passing position): right after toe-off the swing knee turns out a little instead of jutting forward, so in the profile silhouette the swing shin never
-      // crosses the stance shin (no 'X' of tangled legs); it turns back in as the foot comes through under the body
-      var uswK = (S.legQ[lj] - GW.rho) / (1 - GW.rho), kOut = uswK > 0 ? a * (1 - run) * sstep(0, 0.06, uswK) * (1 - sstep(C.swingKneeU[0], C.swingKneeU[1], uswK)) : 0;
-      var poleA = L.side * rad(7) + yawP * 0.5 - L.side * knock * 1.0 + L.side * rad(C.swingKneeOut) * kOut;
+      var poleA = L.side * rad(7) + yawP * 0.5 - L.side * knock * 1.0;
       var knee = ik2(hip, ank, [cos(poleA), sin(poleA), 0], L1, L2);
-      var Rf = K.mMul(K.mRz(L.side * L.toe - (L.tYaw || 0)), K.mRy(L.beta));
+      var Rf = K.mMul(K.mRz(L.side * L.toe), K.mRy(L.beta));
       var ofoot = v3sub(ank, K.mVec(Rf, 0, 0, C.ankleZ));
-      S.leg.push({ side: L.side, hip: hip, knee: knee, ank: ank, Ff: K.frame(Rf, ofoot), beta: L.beta, tb: L.tb, dfc: L.dfc });
+      S.leg.push({ side: L.side, hip: hip, knee: knee, ank: ank, Ff: K.frame(Rf, ofoot), beta: L.beta, tb: L.tb });
     }
 
     // ---- head angles (relative to the neck)
@@ -2228,7 +2167,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var hy = P.hy - 0.85 * e4 + 0.1 * e1 + 0.07 * sin(TAU * t / 5.3) * idleA + 0.4 * b4 * s4 * (1 - 0.25 * sin(TAU * 3 * t)) + 0.3 * dzy * sin(dTT + 0.6);
     var scT = P.scratchT, scW = sstep(0.3, 0.8, scr);          // scratch: head tilts into the hand, wince beats, rub-synchronous head wobble
     var hp = P.hp + 0.6 * e3 - 0.1 * e4 + 0.08 * e1 + (C.idleNod * sin(TAU * t / 3.9) + 0.05 * sin(TAU * t / 7.7)) * idleA + 0.16 * b1 - 0.08 * b4 - 0.10 * scr - 0.32 * sq - 0.12 * hunchS + 0.3 * air - 0.22 * fl - 0.1 * dzy - 0.1 * scW * max(0, sin(TAU * 1.7 * scT)) + 0.1 * fz + 0.1 * rcA - 0.3 * blk - 0.05 * femK;
-    var hr = P.hr + 0.26 * P.giggle * sin(TAU * 2.75 * t) + 0.62 * e1 - 0.12 * e4 + (C.idleRoll * sin(TAU * t / 6.7) + 0.08 * sin(TAU * t / 3.1)) * idleA + 0.45 * b2 * s2 + 0.2 * b4 * s4 + 0.62 * scr + 0.1 * scW * sin(TAU * C.scratchHz * 0.5 * scT) + 0.12 * fz + 0.3 * bow + 0.3 * pk + a * (1 - run) * C.headTilt * sin(TAU * (ph - C.headLag)) - C.femHead * fw - 0.06 * femK + 0.1 * fl + 0.45 * dzy * dS3;
+    var hr = P.hr + 0.62 * e1 - 0.12 * e4 + (C.idleRoll * sin(TAU * t / 6.7) + 0.08 * sin(TAU * t / 3.1)) * idleA + 0.45 * b2 * s2 + 0.2 * b4 * s4 + 0.62 * scr + 0.1 * scW * sin(TAU * C.scratchHz * 0.5 * scT) + 0.12 * fz + 0.3 * bow + 0.3 * pk + a * (1 - run) * C.headTilt * sin(TAU * (ph - C.headLag)) - C.femHead * fw - 0.06 * femK + 0.1 * fl + 0.45 * dzy * dS3;
     var psiH = -hy * rad(55) - headLead * rad(14);
     var runLeanTot = run * (rad(C.runLean + C.runLeanDeg * (lean - C.runLean0)) - rad(C.runPelvisPitch));          // the torso's total forward tip in the run (spine lean + pelvis pitch), rad
     var phiH = (hp >= 0 ? hp * rad(35) : hp * rad(38)) + pk * rad(C.peekHead) - a * rad(C.headNod) * cos(TAU * 2 * (ph - C.headLag)) + C.runHeadLevel * runLeanTot + run * rad(C.runHead) * (1 + 0.15 * sin(TAU * 2 * ph));          // run (GAIT R10): the head counter-rotates the lean = LEVEL in the world, eyes on the horizon (+ runHead deg chin-up)
@@ -2246,13 +2185,13 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var pitchT = -(1 - run) * leanT - a * (1 - run) * rad(C.walkLean) - run * rad(C.runLean + C.runLeanDeg * (lean - C.runLean0)) + wsf * rad(1.5) + dzy * rad(5) * dS2 - absorb * rad(10) + ld * rad(6.5) - bow * rad(C.bowDeg) + rcA * rad(3) + a * (1 - run) * rad(C.spineAmp) * walkBobShape(2 * (ph - C.bobPh - C.spineLag));
     var yawPl = aw * rad(C.walkYaw) * cos(TAU * (ph - C.shLag)) * (1 - 0.5 * run);          // the shoulders follow the hips with a small lag (successive breaking of the joints)
     var twistRel = -C.shoulderCounter * yawPl - twistU * rad(C.twistDeg);          // twist > 0: the upper body turns toward the viewer (look back over the shoulder)
-    var rollT = wsh * rad(-4.5) - rad(C.femCounter) * fw - rad(6.5) * e1 - 0.07 * b2 * s2 - 0.04 * b3 * s3 + scr * rad(-5) - dzy * rad(7) * dS1 - rad(8) * P.bodyRoll;          // (round 12: bodyRoll leans the whole body toward her right for +)
+    var rollT = wsh * rad(-4.5) - rad(C.femCounter) * fw - rad(6.5) * e1 - 0.07 * b2 * s2 - 0.04 * b3 * s3 + scr * rad(-5) - dzy * rad(7) * dS1;
     var comp = (1 - 0.07 * sqp + 0.2 * sqn) * stretch, wid = 1 + 0.07 * sqp - 0.02 * sqn;
     var nRows = TORSO_H.length;
     S.torsoF = new Array(nRows);
     var vbCs = trm * 0.25 * tr2, vbF = trm * 0.35 * tr1, vbC = vbCs - C.femChest * fw, vbH = trm * 0.3 * tr3 + 2.5 * rcA;          // upper-body shiver (the skirt top follows it: no seam at the waist)
     var oPrev = K.fApply(Fp, vbF, vbC, C.waistH - C.hipRest + C.runWaistK * run + vbH);
-    var chestUp = C.idleChest * (breath + 0.5 * b1 + 1.5 * e3 + 0.15 * sin(TAU * t / 1.7) * idleA) * idleA + C.walkChest * a * (1 - run) * cos(TAU * 2 * (ph - C.bobPh - 0.1)), shUp = C.shrugAmp * (0.35 * b3 + 0.3 * b1 + 0.7 * e1 + 0.9 * e3) + 1.5 * ld + 5.0 * fz + 2.5 * rcA + 1.5 * bow + 8 * P.shrug + 2.5 * P.startle + 2 * P.clutch + 3.8 * P.giggle * pow(max(0, sin(TAU * 5.5 * t)), 1.4), exPrev = 0, fNPrev = 0;          // breathing chest rise, shrug beats, look-down shoulder drop (accumulated along the spine)
+    var chestUp = C.idleChest * (breath + 0.5 * b1 + 1.5 * e3 + 0.15 * sin(TAU * t / 1.7) * idleA) * idleA + C.walkChest * a * (1 - run) * cos(TAU * 2 * (ph - C.bobPh - 0.1)), shUp = C.shrugAmp * (0.35 * b3 + 0.3 * b1 + 0.7 * e1 + 0.9 * e3) + 1.5 * ld + 5.0 * fz + 2.5 * rcA + 1.5 * bow + 8 * P.shrug + 2.5 * P.startle + 2 * P.clutch, exPrev = 0, fNPrev = 0;          // breathing chest rise, shrug beats, look-down shoulder drop (accumulated along the spine)
     for (var i = 0; i < nRows; i++) {
       var h = TORSO_H[i];
       var gb = lerp(sstep(C.waistH, C.neckBaseH, h), sstep(C.waistH, C.waistH + C.runBendH, h), run);
@@ -2306,12 +2245,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // ---- arms
     S.arm = solveArms(S, P, a, run, air, ph, sq, scr, pitchT, rollT, hunch, 0);
     sleeveFlap(S, run);
-    if (P.spin) {          // the spin's pivot: move the whole figure so the ball of the pivot foot is where it was at the start of the turn (in the projected view)
-      // (and where it was before the feet came together under her: the body moves over the pivot foot, the foot does not slide in under the body)
-      var SL = S.leg[P.spin.foot], SF = SL.Ff, bq0 = SF.R[0] * 35 + SF.o[0], bq1 = SF.R[3] * 35 + SF.o[1], th0 = P.spin.yaw0 * PI / 2, rq0 = bq0 + SL.dfc[0], rq1 = bq1 + SL.dfc[1];
-      // (wd without w: the feet are together after the twirl and the body stays over the pivot foot, whatever the heading, until the hop on the turn to profile)
-      S.ox += P.spin.w * ((bq0 * cos(S.theta) + bq1 * sin(S.theta)) - (rq0 * cos(th0) + rq1 * sin(th0))) - (1 - P.spin.w) * P.spin.wd * (SL.dfc[0] * cos(th0) + SL.dfc[1] * sin(th0));
-    }
     P.shudder = 0;          // (the hair module adds its own 15 Hz tremble for pose.shudder: that would fight the deer freeze; the hair follows the head motion instead)
     return S;
   }
@@ -2343,7 +2276,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var fw = side * cos(TAU * ph);                   // +1 = arm swung fully forward (opposite arm to the leading leg)
       var fwU = side * cos(TAU * (ph - C.armLag)), fwF = side * cos(TAU * (ph - C.foreLag)), asy = 1 + 0.1 * C.asym * sin(TAU * 0.37 * ph + side * 1.3);          // upper arm lags the shoulder a little, the forearm more (overlapping action); each arm has its own slow amplitude drift
       var swing = fwU >= 0 ? C.swingFwd : C.swingBack;
-      var alpha = lerp(rad(side < 0 ? C.armAlphaL : C.armAlphaR), rad(C.walkAlpha0) + rad(swing) * fwU * asy * (1 + 0.8 * P.skip), a);          // (round 12: a skip swings the arms higher)
+      var alpha = lerp(rad(side < 0 ? C.armAlphaL : C.armAlphaR), rad(C.walkAlpha0) + rad(swing) * fwU * asy, a);
       var gIdle = rad(side < 0 ? C.armGammaL : C.armGammaR) * lerp(C.armIdleGP, 1, S.yawS);          // standing in profile: the forearm hangs (the traced 30 deg bend is the front-view fit)
       var gamma = lerp(gIdle, rad(C.gammaWalk0) + rad(C.gammaWalk1) * sstep(-0.3, 1, fwF), a);
       var beta = rad(side < 0 ? C.armBetaL : C.armBetaR) + sq * rad(18) + rad(C.armOut) * S.yawS * (1 - run) * (1 - a);          // front view: the arms hang a little away from the body (clear gap at the waist)
@@ -2389,29 +2322,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (side === 1 && S.femK * S.yawS > 1e-3) applyFemArm(S, arm, S.femK * S.yawS);
       if (side === 1 && S.clutch > 1e-3) applyClutchR(S, arm, S.clutch);
       if (side === 1 && S.reach > 1e-3) applyReachR(S, arm, S.reach);
-      if (P.hand[ai]) applyHand(S, arm, P.hand[ai]);          // round 12: the acting script's free hand targets (clasp, poke, boop, point, conduct, temples, head pat, clap, catch ...)
       arm.runW = run;
       var ud = v3sub(arm.E, arm.S), ul = v3len(ud) || 1;
       arm.raise = sstep(0.12, 0.45, 1 + ud[2] / ul);        // how far the upper arm is away from hanging (the sleeve then leaves the torso silhouette)
       arms.push(arm);
     }
     return arms;
-  }
-  /** round 12: a free hand target in the head / chest / pelvis frame (see handIn).  The hand travels out and forward on the way (never straight through the body), the
-      elbow bends toward the given pole, the hand turns to the given direction; open / point / fist shape the hand. */
-  function frameOf(S, id) { return id === 'head' ? S.Fhead : id === 'pelvis' ? S.Fp : S.torsoF[SH_IDX]; }
-  function applyHand(S, arm, H) {
-    var w = sstep(0, 1, H.w), Fr = frameOf(S, H.f), Ssh = arm.S, arc = sin(PI * w);
-    var tgt = K.fApply(Fr, H.at[0], H.at[1], H.at[2]), fwd = K.mVec(S.Fp.R, 1, 0, 0), out = K.mVec(S.Fp.R, 0, arm.side, 0);
-    var Wt = v3lerp(arm.W, tgt, w);
-    Wt = [Wt[0] + (12 * fwd[0] + 8 * out[0]) * arc, Wt[1] + (12 * fwd[1] + 8 * out[1]) * arc, Wt[2] + (12 * fwd[2] + 8 * out[2]) * arc];
-    var d = v3sub(Wt, Ssh), dl = v3len(d), reach = (C.armU + C.armF) * S.ak * 0.998;
-    if (dl > reach) Wt = v3mad(Ssh, d, reach / dl);
-    var bend = v3sub(arm.E, v3lerp(Ssh, arm.W, C.armU / (C.armU + C.armF))), pole0 = v3len(bend) > 1.5 ? bend : [-0.2, arm.side, -1];
-    var pole = H.pole ? v3lerp(pole0, K.mVec(Fr.R, H.pole[0], H.pole[1], H.pole[2]), w) : pole0;
-    arm.E = ik2(Ssh, Wt, pole, C.armU * S.ak, C.armF * S.ak); arm.W = Wt;
-    if (H.hd) arm.hd = v3norm(v3lerp(arm.hd, v3norm(K.mVec(Fr.R, H.hd[0], H.hd[1], H.hd[2])), w));
-    arm.openW = max(arm.openW || 0, H.open * w); arm.pointW = max(arm.pointW || 0, H.point * w); arm.fist = lerp(arm.fist || 0, H.fist, w);
   }
   /** FEMININE STANDING POSE: the right hand lightly holds the side of the skirt (elbow out, soft); weight w = fem * front-ness */
   function applyFemArm(S, arm, w) {
@@ -2723,7 +2639,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     for (i = 0; i < 2 && !dbg.noArms; i++) {            // arms + hands
       var am = S.arm[i], wAa = armRoleW(S, i);
-      if (fillProfiles('arm', i, i, wAa, runW, lerp(C.armIdleM, 1, sstep(0, 0.8, max(S.amount, S.run))) * lerp(1, 0.5, sstep(0.4, 0.6, am.fist || 0)))) drawLimb(ctx, am.S, elbowCtl(am), am.W, i, tF);          // (round 12: a smooth blend: the old 'fist > 0.5' switch popped the arm silhouette in one frame)
+      if (fillProfiles('arm', i, i, wAa, runW, lerp(C.armIdleM, 1, sstep(0, 0.8, max(S.amount, S.run))) * (am.fist > 0.5 ? 0.5 : 1))) drawLimb(ctx, am.S, elbowCtl(am), am.W, i, tF);
       else K.batch(ctx, function () { legacyTube(ctx, am.S, elbowCtl(am), am.W, [[0, 11], [1, 7]], 24); });
       drawSleeve(ctx, am);
       if (HAND_S.length) {
@@ -2752,21 +2668,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     girl.walkPresetName = function () { return A.walkPreset; };
 
     // ---- per-tick memo: step() (x2 per frame), draw() and anchors() are called with the same pose, so the rig is solved once per distinct pose
-    var memoVer = -1, KEYN = 70, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
+    var memoVer = -1, KEYN = 36, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
     function poseKey(p, o) {
       var g = p.gait || {}, w = p.wind || {};
       o[0] = p.x; o[1] = p.y; o[2] = p.yaw; o[3] = g.amount; o[4] = g.phase; o[5] = g.speed; o[6] = g.run; o[7] = p.headYaw; o[8] = p.headPitch; o[9] = p.headRoll; o[10] = p.lean; o[11] = p.squash;
       o[12] = p.scratch; o[13] = p.scratchT; o[14] = p.think; o[15] = p.shudder; o[16] = p.shudderT; o[17] = p.air; o[18] = p.peek; o[19] = p.flinch; o[20] = p.dizzy; o[24] = p.bow; o[25] = p.twist; o[26] = p.chestHand; o[21] = w.x; o[22] = w.y; o[23] = p.t;
       o[27] = p.startle; o[28] = p.spread; o[29] = p.poke; o[30] = p.clutch; o[31] = p.shrug; o[32] = p.thinkT; o[33] = p.reach; o[34] = g.stride || 0; o[35] = p.wave;
-      o[36] = p.tiptoe; o[37] = p.bodyRoll; o[38] = p.giggle; o[39] = p.toeTap; o[40] = p.weight; o[41] = p.feet; o[42] = p.footUp; o[43] = g.skip;
-      for (var hi = 0; hi < 2; hi++) {
-        var hh = p.hand && p.hand[hi], b0 = 44 + hi * 7;
-        if (hh && hh.w > 0 && hh.at) { o[b0] = hh.w; o[b0 + 1] = hh.at[0]; o[b0 + 2] = hh.at[1]; o[b0 + 3] = hh.at[2]; o[b0 + 4] = (hh.open || 0) + 2 * (hh.point || 0); o[b0 + 5] = hh.f === 'head' ? 1 : hh.f === 'pelvis' ? 3 : 2; o[b0 + 6] = (hh.pole ? hh.pole[0] + 3 * hh.pole[1] + 9 * hh.pole[2] : 0) + (hh.hd ? 27 * hh.hd[0] + 81 * hh.hd[1] + 243 * hh.hd[2] : 0); }
-        else { o[b0] = o[b0 + 1] = o[b0 + 2] = o[b0 + 3] = o[b0 + 4] = o[b0 + 5] = o[b0 + 6] = 0; }
-      }
-      o[67] = p.spin ? p.spin.w + 2 * (p.spin.wd || 0) : 0; o[68] = p.spin ? p.spin.yaw0 : 0; o[69] = p.spin && p.spin.foot ? 1 : 0;
-      o[63] = p.footYaw || 0; o[64] = p.footYawW || 0; o[65] = p.footZ ? p.footZ[0] : 0; o[66] = p.footZ ? p.footZ[1] : 0;
-      var ts = p.turnStep; o[58] = ts ? ts.u : -1; o[59] = ts ? ts.yaw0 : 0; o[60] = ts ? ts.yaw1 : 0; o[61] = ts ? ts.w : 0; o[62] = ts && ts.first ? 1 : 0;
     }
     function solveMemo(pose) {
       poseKey(pose, kNow);
@@ -2795,7 +2702,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     var swapE = [null, null], swapW = [null, null];
     function armApply(S) {        // swap the sprung hands into the solved rig for this draw (restored by armRestore: the memoised solve stays pure)
-      var mix = C.handFollow * (1 - S.run * (1 - (C.runHandFollow || 0))) * (1 - (S.P.air || 0) * 0.5);          // (round 12: the hands stay loose in the cute run as well: they flap)
+      var mix = C.handFollow * (1 - S.run) * (1 - (S.P.air || 0) * 0.5);
       for (var i = 0; i < 2; i++) {
         var a = S.arm[i], d = AD[i]; swapE[i] = null;
         if (!d.on || mix < 1e-3) continue;
@@ -2808,47 +2715,16 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
     }
     function armRestore(S) { for (var i = 0; i < 2; i++) if (swapE[i]) { S.arm[i].E = swapE[i]; S.arm[i].W = swapW[i]; swapE[i] = null; } }
-    // ---- round 12 (G6): the DRESS rides three damped springs driven by the body's motion (the rig itself stays a pure function of the pose): the hem swings forward
-    //      when she stops and back when she sets off, lags behind a turn and flares out in a twirl, lifts when a hop lands; swapped in for the draw like the hands.
-    var DS = { on: false, ox: 0, th: 0, py: 0, vf: 0, vy: 0, vth: 0, x: 0, vx: 0, phi: 0, vphi: 0, fl: 0, vfl: 0 };
-    function wrapPi(a) { a = (a + PI) % TAU; if (a < 0) a += TAU; return a - PI; }
-    function dressDyn(dt, S) {
-      var py = S.oy - S.hipsMid[2];
-      if (!DS.on || !(dt > 0) || Math.abs(S.ox - DS.ox) > 200) { DS.on = true; DS.ox = S.ox; DS.th = S.theta; DS.py = py; DS.vf = DS.vy = DS.vth = 0; DS.x = DS.vx = DS.phi = DS.vphi = DS.fl = DS.vfl = 0; return; }
-      var cth = cos(S.theta), vf = abs(cth) > 0.25 ? -(S.ox - DS.ox) / dt * (cth > 0 ? 1 : -1) : DS.vf * 0.9, vy = (py - DS.py) / dt, vth = wrapPi(S.theta - DS.th) / dt;
-      var af = clamp((vf - DS.vf) / dt, -4000, 4000), ay = clamp((vy - DS.vy) / dt, -9000, 9000), ath = clamp((vth - DS.vth) / dt, -400, 400);
-      DS.ox = S.ox; DS.th = S.theta; DS.py = py; DS.vf = vf; DS.vy = vy; DS.vth = vth;
-      var n = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / n, flT = clamp(0.055 * abs(vth) + 0.00006 * max(0, -ay), 0, 0.55);
-      for (var i = 0; i < n; i++) {
-        DS.vx += (-81 * DS.x - 2 * 0.35 * 9 * DS.vx - 1.9 * af) * h; DS.x += DS.vx * h;
-        DS.vphi += (-100 * DS.phi - 2 * 0.32 * 10 * DS.vphi - ath) * h; DS.phi += DS.vphi * h;
-        DS.vfl += (144 * (flT - DS.fl) - 2 * 0.5 * 12 * DS.vfl) * h; DS.fl += DS.vfl * h;
-      }
-      DS.x = clamp(DS.x, -26, 26); DS.phi = clamp(DS.phi, -0.6, 0.6); DS.fl = clamp(DS.fl, -0.1, 0.6);
-    }
-    var skirtSave = null, skirtDyn = [];
-    function dressApply(S) {
-      if (!DS.on || (abs(DS.x) < 0.05 && abs(DS.phi) < 0.002 && abs(DS.fl) < 0.002)) return;
-      var hm = S.hipsMid, n = S.skirtF.length, cz = cos(0), j;
-      for (j = 0; j < n; j++) {
-        var Fj = S.skirtF[j], tj = SKIRT_NORM ? SKIRT_T[j] : j / max(1, n - 1), w2 = tj * tj, a = DS.phi * w2, ca = cos(a), sa = sin(a), k = 1 + DS.fl * w2, R = Fj.R, o = Fj.o;
-        var R2 = [(ca * R[0] - sa * R[3]) * k, (ca * R[1] - sa * R[4]) * k, ca * R[2] - sa * R[5], (sa * R[0] + ca * R[3]) * k, (sa * R[1] + ca * R[4]) * k, sa * R[2] + ca * R[5], R[6] * k, R[7] * k, R[8]];
-        var dx = o[0] - hm[0], dy = o[1] - hm[1];
-        skirtDyn[j] = { R: R2, o: [hm[0] + ca * dx - sa * dy + DS.x * w2, hm[1] + sa * dx + ca * dy, o[2] + 3 * DS.fl * w2] };
-      }
-      skirtDyn.length = n; skirtSave = S.skirtF; S.skirtF = skirtDyn;
-    }
-    function dressRestore(S) { if (skirtSave) { S.skirtF = skirtSave; skirtSave = null; } }
-    girl.reset = function (s) { anchLast = null; AD[0].on = AD[1].on = false; DS.on = false; if (hair) hair.reset(s === undefined ? seed : s); girl.STRIDE = C.stride * sc; girl.STRIDE_RUN = C.strideRun * sc; };
-    girl.step = function (dt, pose) { anchLast = null; var S = solveMemo(pose); armDyn(dt, S); dressDyn(dt, S); if (hair) hair.step(dt, S, sc); };
+    girl.reset = function (s) { anchLast = null; AD[0].on = AD[1].on = false; if (hair) hair.reset(s === undefined ? seed : s); girl.STRIDE = C.stride * sc; girl.STRIDE_RUN = C.strideRun * sc; };
+    girl.step = function (dt, pose) { anchLast = null; var S = solveMemo(pose); armDyn(dt, S); if (hair) hair.step(dt, S, sc); };
     girl.draw = function (ctx, pose) {
       var S = solveMemo(pose), dbg = A.dbg || {};
       ctx.save();
       if (sc !== 1) ctx.scale(sc, sc);
       ctx.fillStyle = GA.style ? GA.style.INK : '#0b0b0c';
-      armApply(S); dressApply(S);
+      armApply(S);
       if (!dbg.noBody) buildPath(ctx, S);
-      dressRestore(S); armRestore(S);
+      armRestore(S);
       if (hair && !dbg.noHair) hair.draw(ctx, S, sc);
       if (S.startle > 0.02 && !dbg.noBody) drawStartle(ctx, S);
       ctx.restore();
@@ -2882,7 +2758,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       return (anchLast = {
         headTop: W(top), headCenter: W(ctr), headR: 52 * S.su * sc, scratchSpot: W(spot),
         neck: W(K.fApply(S.torsoF[NECK_IDX], torsoRows[NECK_IDX][1], 0, 0)), hips: W(S.hipsMid),
-        footL: W(foot(S.leg[0])), footR: W(foot(S.leg[1])), handL: W(S.arm[0].W), handR: W(S.arm[1].W), bounds: { x0: b.x0 * sc, y0: b.y0 * sc, x1: b.x1 * sc, y1: b.y1 * sc },
+        footL: W(foot(S.leg[0])), footR: W(foot(S.leg[1])), bounds: { x0: b.x0 * sc, y0: b.y0 * sc, x1: b.x1 * sc, y1: b.y1 * sc },
       });
     };
     /** hair-simulation state snapshot / restore / settle (the body is a pure function of the pose, so only the hair carries state). snapshot(out?) reuses the buffer of a previous
@@ -2892,30 +2768,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     girl.settle = function (pose) { anchLast = null; if (hair && hair.settle) hair.settle(solveMemo(pose)); };
     girl.reset(seed);
     return girl;
-  };
-
-  /* round 12: window.HariniGirl.create({ height, seed }) - the landing girl for the other pieces of the site (the stairs game): the same rig, drawing and hair
-     simulation, nothing of the landing's thought cloud.  draw(ctx, pose, pxPerUnit) draws in the caller's units (pose.x / pose.y = the root on its ground, the girl
-     `height` tall); pxPerUnit = device pixels per unit, so the outlines are swept at the right resolution.  Nothing here changes the landing page. */
-  window.HariniGirl = {
-    create: function (o) {
-      o = o || {};
-      var girl = GA.createGirl({ height: o.height || 250, seed: o.seed === undefined ? 3 : o.seed });
-      return {
-        girl: girl,
-        height: girl.height,
-        stride: girl.STRIDE,
-        step: function (dt, pose) { girl.step(dt, pose); },
-        settle: function (pose) { girl.reset(); girl.settle(pose); },
-        anchors: function (pose) { return girl.anchors(pose); },
-        solve: function (pose) { return girl.solve(pose); },
-        draw: function (ctx, pose, pxPerUnit) {
-          var S = GA.stage || {}, keep = S.px;
-          S.px = (pxPerUnit || 1) * girl.height / 500;          // (the rig sweeps its outlines in its own 500-unit space: device px per rig unit)
-          try { girl.draw(ctx, pose); } finally { S.px = keep; }
-        }
-      };
-    }
   };
 
   // ---- internals for the offline bake / extraction tools (the .mjs scripts in the trace folder); not used by the animation
@@ -2943,7 +2795,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   A.hem = { walk: 152, run: 177 };
   A.dataRun = {"head":[[62.3,-13.02,0.4,0.4,0.4,2,0],[61.939,-12.85,8.586,8.586,0,2,0],[61.477,-12.467,11.196,11.196,0,2,0],[61.016,-14.079,11.98,11.98,0,2,0],[60.555,-14.606,12.711,12.711,0,2,0],[60.094,-14.971,13.893,13.893,0,2,0],[59.632,-15.326,14.723,14.723,0,2,0],[59.171,-15.877,15.872,15.872,0,2,0],[58.71,-15.209,17.305,17.305,0,2,0],[58.249,-15.304,18.418,18.418,0,2,0],[57.787,-15.197,19.373,19.373,3.561,2,0],[57.326,-14.873,20.712,20.712,8.727,2,0],[56.865,-14.726,21.578,21.578,11.872,2,0],[56.404,-16.365,24.772,24.772,13.915,2,0],[55.856,-15.959,25.65,25.65,16.81,2,0],[54.703,-14.594,28.171,28.171,21.839,2,0],[53.55,-14.965,28.817,28.817,25.5,2,0],[52.396,-15.58,29.169,29.169,28.063,2,0],[51.243,-15.209,30.421,30.421,29.965,2,0],[50.09,-14.872,31.712,31.712,31.778,2,0],[48.937,-14.537,33.048,33.048,33.079,2,0],[47.784,-14.157,34.085,34.085,34.17,2,0],[46.631,-13.97,35.03,35.03,35.41,2,0],[45.477,-13.889,35.999,35.999,37.228,2,0],[44.324,-13.759,36.853,36.853,39.552,2,0],[43.171,-13.113,38.123,38.123,42.824,2,0],[42.018,-13.069,38.802,38.802,45.569,2,0],[40.865,-13.027,39.376,39.376,47.227,2,0],[39.712,-12.944,39.938,39.938,48.481,2,0],[38.559,-12.599,40.51,40.51,49.691,2,0],[37.405,-10.996,42.191,42.191,50.726,2,0],[36.252,-10.725,43.095,43.095,51.603,2,0],[35.099,-11.121,42.954,42.954,52.403,2,0],[33.946,-10.009,44.083,44.083,53.087,2,0],[32.793,-8.754,45.383,45.383,53.838,2,0],[31.64,-8.645,45.781,45.781,54.427,2,0],[30.486,-9.448,45.524,45.524,54.961,2,0],[29.333,-8.757,46.303,46.303,55.39,2,0],[28.18,-8.466,46.628,46.628,55.73,2,0],[27.027,-8.45,46.679,46.679,55.994,2,0],[25.874,-8.09,47.143,47.143,56.158,2,0],[24.721,-8.042,47.731,47.731,56.221,2,0],[23.568,-8.489,47.564,47.564,56.25,2,0],[22.414,-8.373,47.708,47.708,56.215,2,0],[21.261,-8.418,47.702,47.702,56.138,2,0],[20.108,-7.832,48.53,48.53,55.959,2,0],[18.955,-8.577,48.424,48.424,55.707,2,0],[17.802,-8.25,48.785,48.785,53.884,2,0],[16.649,-7.987,49.084,49.084,48.432,2,0],[15.495,-7.804,49.346,49.346,48.169,2,0],[14.342,-7.911,49.799,49.799,47.952,2,0],[13.189,-7.911,50.084,50.084,47.76,2,0],[12.036,-7.765,50.293,50.293,47.547,2,0],[10.883,-8.045,50.829,50.829,47.331,2,0],[9.73,-7.898,51.011,51.011,47.131,2,0],[8.577,-7.785,51.158,51.158,46.898,2,0],[7.423,-7.929,51.498,51.498,46.714,2,0],[6.27,-7.965,51.849,51.849,46.504,2,0],[5.117,-7.877,51.979,51.979,46.326,2,0],[3.964,-8.175,52.459,52.459,46.175,2,0],[2.811,-8.031,52.705,52.705,46.033,2,0],[1.658,-7.997,52.773,52.773,45.936,2,0],[0.505,-8.188,52.948,52.948,45.875,2,0],[-0.649,-8.441,53.172,53.172,45.854,2,0],[-1.802,-11.864,49.832,49.832,45.866,2,0],[-2.955,-12.891,49.143,49.143,45.908,2,0],[-4.108,-13.317,49.113,49.113,45.978,2,0],[-5.261,-14.154,48.276,48.276,46.064,2,0],[-6.414,-14.341,48.105,48.105,46.167,2,0],[-7.568,-14.589,47.898,47.898,46.322,2,0],[-8.721,-13.981,48.051,48.051,46.58,2,0],[-9.874,-14.601,47.153,47.153,46.842,2,0],[-11.027,-14.522,47.288,47.288,47.024,2,0],[-12.18,-14.64,47.124,47.124,47.198,2,0],[-13.333,-14.85,46.53,46.53,47.297,2,0],[-14.486,-15.061,45.969,45.969,47.315,2,0],[-15.64,-15.092,45.499,45.499,47.262,2,0],[-16.793,-15.091,45.29,45.29,47.145,2,0],[-17.946,-14.874,44.835,44.835,46.988,2,0],[-19.099,-14.94,44.611,44.611,46.795,2,0],[-20.252,-14.66,44.247,44.247,46.489,2,0],[-21.405,-14.492,44.096,44.096,46.132,2,0],[-22.559,-14.178,43.913,43.913,45.792,2,0],[-23.712,-13.805,43.765,43.765,45.276,2,0],[-24.865,-13.37,43.52,43.52,44.592,2,0],[-26.018,-12.901,43.419,43.419,43.928,2,0],[-27.171,-12.297,43.35,43.35,43.115,2,0],[-28.324,-11.598,43.317,43.317,42.151,2,0],[-29.477,-10.819,43.19,43.19,41.126,2,0],[-30.631,-9.923,43.039,43.039,40.067,2,0],[-31.784,-8.965,42.741,42.741,38.88,2,0],[-32.937,-6.582,40.537,40.537,37.776,2,0],[-34.09,-5.723,39.639,39.639,36.606,2,0],[-35.243,-5.313,39.189,39.189,35.25,2,0],[-36.396,-4.985,38.817,38.817,33.888,2,0],[-37.55,-3.898,37.463,37.463,32.489,2,0],[-38.703,-3.534,35.959,35.959,30.87,2,0],[-39.856,-2.814,33.798,33.798,29.172,2,0],[-41.009,-1.75,31.886,31.886,27.27,2,0],[-42.162,-2.203,31.972,31.972,23.233,2,0],[-43.315,-1.356,30.992,30.992,13.036,2,0],[-44.468,0.037,29.423,29.423,12.882,2,0],[-45.622,0.15,28.976,28.976,12.861,2,0],[-46.775,0.423,28.066,28.066,12.716,2,0],[-47.928,2.026,25.252,25.252,12.377,2,0],[-49.081,2.037,23.263,23.263,11.966,2,0],[-50.234,2.249,21.429,21.429,11.494,2,0],[-51.387,3.101,19.914,19.914,10.952,2,0],[-52.541,3.968,17.975,17.975,10.321,2,0],[-53.694,4.519,15.914,15.914,9.567,2,0],[-54.847,5.702,12.989,12.989,8.606,2,0],[-56,10.073,7.805,7.805,6.669,2,0]],"torso":[[292,-24.66,42.71,42.71,33.683,2,-2.63],[293.5,-23.72,41.97,41.97,33.312,2,-2.57],[295,-22.68,41.04,41.04,32.975,2,-2.52],[296.5,-21.46,39.89,39.89,32.62,2,-2.5],[298,-20.15,38.56,38.56,32.271,2,-2.47],[299.5,-18.73,37.02,37.02,31.958,2,-2.42],[301,-17.17,35.28,35.28,31.712,2,-2.33],[302.5,-15.6,33.46,33.46,31.56,2,-2.25],[304,-13.62,31.69,31.69,31.486,2,-2.2],[305.5,-11.49,30.17,30.17,31.477,2,-2.17],[307,-9.28,28.29,28.29,31.529,2,-2.13],[308.5,-6.94,26.6,26.6,31.638,2,-2.09],[310,-6.26,26.52,26.52,31.8,2,-2],[311.5,-6,25.97,25.97,32.026,2,-1.87],[313,-6.43,25.81,25.81,32.321,2,-1.74],[314.5,-5.52,25.42,25.42,32.668,2,-1.69],[316,-5.45,25.9,25.9,33.053,2,-1.65],[317.5,-5.42,26.33,26.33,33.461,2,-1.62],[319,-5.44,26.76,26.76,33.885,2,-1.38],[320.5,-5.46,27.18,27.18,34.336,2,-1.36],[322,-5.5,27.65,27.65,34.81,2,-1.28],[323.5,-5.68,28.22,28.22,35.299,2,-1.26],[325,-5.86,28.82,28.82,35.799,2,-1.26],[326.5,-6.12,29.52,29.52,36.301,2,-1.21],[328,-6.51,30.4,30.4,36.8,2,-1.11],[329.5,-7.01,31.54,31.54,37.292,2,-1.06],[331,-7.51,32.67,32.67,37.782,2,-1.12],[332.5,-7.98,33.74,33.74,38.274,2,-1.12],[334,-8.52,34.83,34.83,38.776,2,-0.94],[335.5,-9.66,35.33,35.33,39.292,2,-0.2],[337,-11.18,35.4,35.4,39.829,2,0.78],[338.5,-12.63,35.41,35.41,40.391,2,1.1],[340,-13.98,35.31,35.31,40.987,2,0.63],[341.5,-15.21,35.09,35.09,41.614,2,-0.34],[343,-16.28,34.72,34.72,42.263,2,-0.87],[344.5,-17.19,34.17,34.17,42.927,2,-1.01],[346,-17.92,33.46,33.46,43.6,2,-1.02],[347.5,-18.49,32.58,32.58,44.417,2,-1.01],[349,-18.9,31.54,31.54,45.245,2,-0.91],[350.5,-19.16,30.35,30.35,45.691,2,-0.9],[352,-19.3,29.04,29.04,45.737,2,-0.84],[353.5,-19.34,27.63,27.63,45.517,2,-0.84],[355,-19.3,26.14,26.14,45.1,2,-0.79],[356.5,-19.21,24.6,24.6,44.462,2,-0.82],[358,-19.08,23.02,23.02,43.6,2,-0.78],[359.5,-18.93,21.42,21.42,42.486,2,-0.81],[361,-18.78,19.82,19.82,41.158,2,-0.75],[362.5,-18.63,18.25,18.25,39.703,2,-0.76],[364,-18.49,16.71,16.71,38.113,2,-0.71],[365.5,-18.39,15.23,15.23,36.395,2,-0.74],[367,-18.3,13.84,13.84,34.566,2,-0.76],[368.5,-18.25,12.57,12.57,32.614,2,-0.69],[370,-18.2,11.42,11.42,30.6,2,-0.62],[371.5,-18.15,10.42,10.42,28.441,2,-0.61],[373,-18.09,10,10,26.269,2,-0.71],[374.5,-18,10,10,24.437,2,-0.86],[376,-17.88,10,10,22.914,2,-0.98],[377.5,-17.73,10,10,21.713,2,-1.12],[379,-17.55,10,10,20.899,2,-1.43],[380.5,-17.38,10,10,20.376,2,-1.66],[382,-17.21,10,10,20.015,2,-1.8],[383.5,-17.05,10,10,19.697,2,-1.8],[385,-16.89,10,10,19.465,2,-1.8],[386.5,-16.77,10,10,19.314,2,-1.8],[388,-16.7,10,10,19.2,2,-1.8],[389.5,-16.66,10,10,19.112,2,-1.8],[391,-16.64,10,10,19.058,2,-1.8],[392.5,-16.63,10,10,19.025,2,-1.8],[394,-16.63,10,10,19,2,-1.8],[395.5,-16.63,10,10,18.976,2,-1.8],[397,-16.63,10,10,18.955,2,-1.8],[398.5,-16.63,10,10,18.936,2,-1.8],[400,-16.63,10,10,18.919,2,-1.8],[401.5,-16.63,10,10,18.902,2,-1.8]],"skirt":[[0,-20.85,36.11,36.11,34.25,2,-2.63],[0.0105,-21.278,36.456,36.456,34.246,2,-2.691],[0.0211,-21.705,36.727,36.727,34.299,2,-2.743],[0.0316,-22.105,37.024,37.024,34.391,2,-2.773],[0.0421,-22.525,37.288,37.288,34.479,2,-2.831],[0.0526,-22.948,37.559,37.559,34.556,2,-2.911],[0.0632,-23.354,37.78,37.78,34.694,2,-2.904],[0.0737,-23.746,38.019,38.019,34.833,2,-2.851],[0.0842,-22.531,39.882,39.882,34.969,2,-2.861],[0.0947,-21.389,41.656,41.656,35.234,2,-2.924],[0.1053,-21.096,42.524,42.524,35.714,2,-3.016],[0.1158,-21.095,43.1,43.1,36.341,2,-3.079],[0.1263,-21.291,43.497,43.497,37.021,2,-3.111],[0.1368,-21.474,43.893,43.893,37.713,2,-3.076],[0.1474,-20.827,45.127,45.127,38.315,2,-3.06],[0.1579,-19.78,46.985,46.985,38.895,2,-3.047],[0.1684,-19.156,48.85,48.85,39.575,2,-3.004],[0.1789,-18.725,50.638,50.638,40.255,2,-2.925],[0.1895,-18.401,52.369,52.369,40.865,2,-2.861],[0.2,-17.98,54.2,54.2,41.57,2,-2.82],[0.2105,-17.733,55.899,55.899,42.273,2,-2.842],[0.2211,-17.579,57.647,57.647,42.858,2,-2.85],[0.2316,-17.472,59.451,59.451,43.427,2,-2.844],[0.2421,-17.458,61.28,61.28,43.962,2,-2.823],[0.2526,-17.497,63.082,63.082,44.419,2,-2.809],[0.2632,-17.652,64.968,64.968,44.867,2,-2.779],[0.2737,-17.868,66.884,66.884,45.311,2,-2.722],[0.2842,-18.243,68.839,68.839,45.719,2,-2.669],[0.2947,-18.699,70.836,70.836,46.115,2,-2.687],[0.3053,-19.307,72.996,72.996,46.494,2,-2.651],[0.3158,-20.142,75.382,75.382,46.859,2,-2.548],[0.3263,-21.136,77.871,77.871,47.151,2,-2.484],[0.3368,-22.22,80.413,80.413,47.466,2,-2.485],[0.3474,-23.361,83.025,83.025,47.805,2,-2.471],[0.3579,-25.56,86.667,86.667,48.084,2,-2.419],[0.3684,-27.943,90.534,90.534,48.295,2,-2.334],[0.3789,-31.268,95.269,95.269,48.614,2,-2.226],[0.3895,-34.16,99.589,99.589,48.969,2,-2.141],[0.4,-34.97,101.97,101.97,49.27,2,-2.1],[0.4105,-34.024,102.672,102.672,49.563,2,-2.025],[0.4211,-33.076,103.242,103.242,49.888,2,-1.913],[0.4316,-31.979,103.576,103.576,50.13,2,-1.877],[0.4421,-30.472,103.717,103.717,50.394,2,-1.811],[0.4526,-28.846,103.702,103.702,50.745,2,-1.677],[0.4632,-27.142,103.502,103.502,51.086,2,-1.607],[0.4737,-25.594,103.378,103.378,51.388,2,-1.542],[0.4842,-24.37,103.536,103.536,51.712,2,-1.442],[0.4947,-23.578,103.438,103.438,52.024,2,-1.374],[0.5053,-23.074,103.182,103.182,52.293,2,-1.312],[0.5158,-22.716,102.807,102.807,52.556,2,-1.221],[0.5263,-22.5,102.304,102.304,52.805,2,-1.143],[0.5368,-22.277,101.778,101.778,53.062,2,-1.081],[0.5474,-22.107,101.186,101.186,53.376,2,-0.975],[0.5579,-21.583,100.904,100.904,53.693,2,-0.912],[0.5684,-20.658,101.006,101.006,54.023,2,-0.913],[0.5789,-20.696,100.066,100.066,54.362,2,-0.842],[0.5895,-21.447,98.363,98.363,54.677,2,-0.745],[0.6,-23.29,95.46,95.46,54.95,2,-0.7],[0.6105,-23.906,93.546,93.546,55.239,2,-0.603],[0.6211,-25.021,90.977,90.977,55.565,2,-0.527],[0.6316,-26.198,88.223,88.223,55.874,2,-0.491],[0.6421,-26.645,86.071,86.071,56.214,2,-0.396],[0.6526,-28.145,82.623,82.623,56.534,2,-0.318],[0.6632,-28.812,79.138,79.138,56.848,2,-0.274],[0.6737,-28.095,75.947,75.947,57.168,2,-0.178],[0.6842,-28.762,72.682,72.682,57.461,2,-0.058],[0.6947,-29.338,70.867,70.867,57.709,2,0.006],[0.7053,-29.45,69.552,69.552,58.002,2,0.057],[0.7158,-29.551,68.083,68.083,58.362,2,0.148],[0.7263,-29.754,66.465,66.465,58.702,2,0.268],[0.7368,-29.703,65.058,65.058,59.029,2,0.408],[0.7474,-28.811,62.042,62.042,59.678,2,0.575],[0.7579,-28.237,61.387,61.387,59.857,2,0.611],[0.7684,-27.374,60.607,60.607,60.062,2,0.654],[0.7789,-26.063,59.457,59.457,60.317,2,0.715],[0.7895,-24.215,57.84,57.84,60.611,2,0.797],[0.8,-21.888,55.79,55.79,60.927,2,0.897],[0.8105,-19.366,53.572,53.572,61.248,2,1.01],[0.8211,-17.06,51.58,51.58,61.568,2,1.123],[0.8316,-15.127,49.964,49.964,61.884,2,1.231],[0.8421,-13.457,48.611,48.611,62.196,2,1.335],[0.8526,-11.793,47.255,47.255,62.5,2,1.439],[0.8632,-9.936,45.67,45.67,62.797,2,1.542],[0.8737,-7.985,43.896,43.896,63.091,2,1.644],[0.8842,-6.185,42.096,42.096,63.384,2,1.744],[0.8947,-4.778,40.42,40.42,63.677,2,1.842],[0.9053,-3.892,38.921,38.921,63.974,2,1.938],[0.9158,-3.431,37.531,37.531,64.273,2,2.027],[0.9263,-3.215,36.165,36.165,64.579,2,2.107],[0.9368,-3.142,34.774,34.774,64.893,2,2.178],[0.9474,-3.158,33.344,33.344,65.213,2,2.246],[0.9579,-3.254,31.818,31.818,65.401,2,2.314],[0.9684,-3.413,29.574,29.574,64.148,2,2.38],[0.9789,-3.608,26.362,26.362,60.587,2,2.436],[0.9895,-3.81,22.371,22.371,54.697,2,2.477],[1,-3.994,17.685,17.685,46.47,2,2.503]],"shoe":[[[[-15.5,6,1,1.2,2.2],[-14.14,6.9,5.22,3.91,2.2],[-12.78,7.39,6.91,4.7,2.2],[-11.42,8,7.91,5.19,2.2],[-10.06,8.36,8.36,5.47,2.2],[-8.7,8.45,8.45,5.6,2.2],[-7.34,8.48,8.48,5.68,2.2],[-5.98,8.58,8.58,5.78,2.2],[-4.62,8.7,8.7,5.88,2.2],[-3.26,8.79,8.79,5.98,2.2],[-1.9,8.79,8.79,6.08,2.2],[-0.54,8.76,8.76,6.18,2.2],[0.82,8.71,8.71,6.29,2.2],[2.18,8.66,8.61,6.39,2.2],[3.54,8.6,8.48,6.5,2.2],[4.89,8.55,8.27,6.59,2.2],[6.25,8.53,7.92,6.67,2.2],[7.61,8.52,7.49,6.74,2.2],[8.97,8.5,7.11,6.8,2.2],[10.33,8.5,6.82,6.83,2.22],[11.69,8.5,6.58,6.85,2.25],[13.05,8.47,6.36,6.87,2.28],[14.41,8.34,6.14,6.92,2.31],[15.77,8.12,5.92,6.98,2.34],[17.13,7.87,5.67,7.06,2.36],[18.49,7.63,5.43,7.16,2.39],[19.85,7.37,5.27,7.27,2.42],[21.21,7.05,5.19,7.4,2.44],[22.57,6.73,5.14,7.54,2.47],[23.93,6.42,5.1,7.69,2.5],[25.29,6.12,5.07,7.85,2.53],[26.65,5.84,5.05,8.02,2.56],[28.01,5.57,5.03,8.19,2.59],[29.37,5.34,4.99,8.34,2.6],[30.73,5.14,4.93,8.49,2.6],[32.09,4.96,4.86,8.64,2.6],[33.45,4.81,4.79,8.76,2.6],[34.81,4.68,4.68,8.85,2.6],[36.17,4.58,4.58,8.93,2.6],[37.53,4.47,4.47,8.98,2.6],[38.89,4.36,4.36,9,2.6],[40.25,4.24,4.24,8.97,2.58],[41.61,4.12,4.12,8.9,2.55],[42.96,4,4,8.8,2.52],[44.32,3.87,3.87,8.67,2.49],[45.68,3.74,3.74,8.51,2.47],[47.04,3.6,3.6,8.32,2.44],[48.4,3.46,3.46,8.1,2.41],[49.76,3.32,3.32,7.86,2.38],[51.12,3.17,3.17,7.6,2.35],[52.48,3.02,3.02,7.28,2.32],[53.84,2.86,2.85,6.89,2.29],[55.2,2.69,2.66,6.41,2.26],[56.56,2.51,2.43,5.81,2.21],[57.92,2.33,2.18,5.1,2.17],[59.28,2.13,1.86,4.17,2.11],[60.64,1.91,1.34,2.83,2.02],[62,1.75,0.45,1,2]],[[-15.5,6,1,1.2,2.2],[-14.14,6.9,5.22,3.91,2.2],[-12.78,7.39,6.91,4.7,2.2],[-11.42,8,7.91,5.19,2.2],[-10.06,8.36,8.36,5.47,2.2],[-8.7,8.45,8.45,5.6,2.2],[-7.34,8.48,8.48,5.68,2.2],[-5.98,8.58,8.58,5.78,2.2],[-4.62,8.7,8.7,5.88,2.2],[-3.26,8.79,8.79,5.98,2.2],[-1.9,8.79,8.79,6.08,2.2],[-0.54,8.76,8.76,6.18,2.2],[0.82,8.71,8.71,6.29,2.2],[2.18,8.66,8.61,6.39,2.2],[3.54,8.6,8.48,6.5,2.2],[4.89,8.55,8.27,6.59,2.2],[6.25,8.53,7.92,6.67,2.2],[7.61,8.52,7.49,6.74,2.2],[8.97,8.5,7.11,6.8,2.2],[10.33,8.5,6.82,6.83,2.22],[11.69,8.5,6.58,6.85,2.25],[13.05,8.47,6.36,6.87,2.28],[14.41,8.34,6.14,6.92,2.31],[15.77,8.12,5.92,6.98,2.34],[17.13,7.87,5.67,7.06,2.36],[18.49,7.63,5.43,7.16,2.39],[19.85,7.37,5.27,7.27,2.42],[21.21,7.05,5.19,7.4,2.44],[22.57,6.73,5.14,7.54,2.47],[23.93,6.42,5.1,7.69,2.5],[25.29,6.12,5.07,7.85,2.53],[26.65,5.84,5.05,8.02,2.56],[28.01,5.57,5.03,8.19,2.59],[29.37,5.34,4.99,8.34,2.6],[30.73,5.14,4.93,8.49,2.6],[32.09,4.96,4.86,8.64,2.6],[33.45,4.81,4.79,8.76,2.6],[34.81,4.68,4.68,8.85,2.6],[36.17,4.58,4.58,8.93,2.6],[37.53,4.47,4.47,8.98,2.6],[38.89,4.36,4.36,9,2.6],[40.25,4.24,4.24,8.97,2.58],[41.61,4.12,4.12,8.9,2.55],[42.96,4,4,8.8,2.52],[44.32,3.87,3.87,8.67,2.49],[45.68,3.74,3.74,8.51,2.47],[47.04,3.6,3.6,8.32,2.44],[48.4,3.46,3.46,8.1,2.41],[49.76,3.32,3.32,7.86,2.38],[51.12,3.17,3.17,7.6,2.35],[52.48,3.02,3.02,7.28,2.32],[53.84,2.86,2.85,6.89,2.29],[55.2,2.69,2.66,6.41,2.26],[56.56,2.51,2.43,5.81,2.21],[57.92,2.33,2.18,5.1,2.17],[59.28,2.13,1.86,4.17,2.11],[60.64,1.91,1.34,2.83,2.02],[62,1.75,0.45,1,2]]],[[[-15.5,6,1,1.2,2.2],[-14.14,6.9,5.22,3.91,2.2],[-12.78,7.39,6.91,4.7,2.2],[-11.42,8,7.91,5.19,2.2],[-10.06,8.36,8.36,5.47,2.2],[-8.7,8.45,8.45,5.6,2.2],[-7.34,8.48,8.48,5.68,2.2],[-5.98,8.58,8.58,5.78,2.2],[-4.62,8.7,8.7,5.88,2.2],[-3.26,8.79,8.79,5.98,2.2],[-1.9,8.79,8.79,6.08,2.2],[-0.54,8.76,8.76,6.18,2.2],[0.82,8.71,8.71,6.29,2.2],[2.18,8.66,8.61,6.39,2.2],[3.54,8.6,8.48,6.5,2.2],[4.89,8.55,8.27,6.59,2.2],[6.25,8.53,7.92,6.67,2.2],[7.61,8.52,7.49,6.74,2.2],[8.97,8.5,7.11,6.8,2.2],[10.33,8.5,6.82,6.83,2.22],[11.69,8.5,6.58,6.85,2.25],[13.05,8.47,6.36,6.87,2.28],[14.41,8.34,6.14,6.92,2.31],[15.77,8.12,5.92,6.98,2.34],[17.13,7.87,5.67,7.06,2.36],[18.49,7.63,5.43,7.16,2.39],[19.85,7.37,5.27,7.27,2.42],[21.21,7.05,5.19,7.4,2.44],[22.57,6.73,5.14,7.54,2.47],[23.93,6.42,5.1,7.69,2.5],[25.29,6.12,5.07,7.85,2.53],[26.65,5.84,5.05,8.02,2.56],[28.01,5.57,5.03,8.19,2.59],[29.37,5.34,4.99,8.34,2.6],[30.73,5.14,4.93,8.49,2.6],[32.09,4.96,4.86,8.64,2.6],[33.45,4.81,4.79,8.76,2.6],[34.81,4.68,4.68,8.85,2.6],[36.17,4.58,4.58,8.93,2.6],[37.53,4.47,4.47,8.98,2.6],[38.89,4.36,4.36,9,2.6],[40.25,4.24,4.24,8.97,2.58],[41.61,4.12,4.12,8.9,2.55],[42.96,4,4,8.8,2.52],[44.32,3.87,3.87,8.67,2.49],[45.68,3.74,3.74,8.51,2.47],[47.04,3.6,3.6,8.32,2.44],[48.4,3.46,3.46,8.1,2.41],[49.76,3.32,3.32,7.86,2.38],[51.12,3.17,3.17,7.6,2.35],[52.48,3.02,3.02,7.28,2.32],[53.84,2.86,2.85,6.89,2.29],[55.2,2.69,2.66,6.41,2.26],[56.56,2.51,2.43,5.81,2.21],[57.92,2.33,2.18,5.1,2.17],[59.28,2.13,1.86,4.17,2.11],[60.64,1.91,1.34,2.83,2.02],[62,1.75,0.45,1,2]],[[-15.5,6,1,1.2,2.2],[-14.14,6.9,5.22,3.91,2.2],[-12.78,7.39,6.91,4.7,2.2],[-11.42,8,7.91,5.19,2.2],[-10.06,8.36,8.36,5.47,2.2],[-8.7,8.45,8.45,5.6,2.2],[-7.34,8.48,8.48,5.68,2.2],[-5.98,8.58,8.58,5.78,2.2],[-4.62,8.7,8.7,5.88,2.2],[-3.26,8.79,8.79,5.98,2.2],[-1.9,8.79,8.79,6.08,2.2],[-0.54,8.76,8.76,6.18,2.2],[0.82,8.71,8.71,6.29,2.2],[2.18,8.66,8.61,6.39,2.2],[3.54,8.6,8.48,6.5,2.2],[4.89,8.55,8.27,6.59,2.2],[6.25,8.53,7.92,6.67,2.2],[7.61,8.52,7.49,6.74,2.2],[8.97,8.5,7.11,6.8,2.2],[10.33,8.5,6.82,6.83,2.22],[11.69,8.5,6.58,6.85,2.25],[13.05,8.47,6.36,6.87,2.28],[14.41,8.34,6.14,6.92,2.31],[15.77,8.12,5.92,6.98,2.34],[17.13,7.87,5.67,7.06,2.36],[18.49,7.63,5.43,7.16,2.39],[19.85,7.37,5.27,7.27,2.42],[21.21,7.05,5.19,7.4,2.44],[22.57,6.73,5.14,7.54,2.47],[23.93,6.42,5.1,7.69,2.5],[25.29,6.12,5.07,7.85,2.53],[26.65,5.84,5.05,8.02,2.56],[28.01,5.57,5.03,8.19,2.59],[29.37,5.34,4.99,8.34,2.6],[30.73,5.14,4.93,8.49,2.6],[32.09,4.96,4.86,8.64,2.6],[33.45,4.81,4.79,8.76,2.6],[34.81,4.68,4.68,8.85,2.6],[36.17,4.58,4.58,8.93,2.6],[37.53,4.47,4.47,8.98,2.6],[38.89,4.36,4.36,9,2.6],[40.25,4.24,4.24,8.97,2.58],[41.61,4.12,4.12,8.9,2.55],[42.96,4,4,8.8,2.52],[44.32,3.87,3.87,8.67,2.49],[45.68,3.74,3.74,8.51,2.47],[47.04,3.6,3.6,8.32,2.44],[48.4,3.46,3.46,8.1,2.41],[49.76,3.32,3.32,7.86,2.38],[51.12,3.17,3.17,7.6,2.35],[52.48,3.02,3.02,7.28,2.32],[53.84,2.86,2.85,6.89,2.29],[55.2,2.69,2.66,6.41,2.26],[56.56,2.51,2.43,5.81,2.21],[57.92,2.33,2.18,5.1,2.17],[59.28,2.13,1.86,4.17,2.11],[60.64,1.91,1.34,2.83,2.02],[62,1.75,0.45,1,2]]]],"hand":[[[[-4,0,6.5,6.5,6.17,2,0],[-3,0,6.5,6.5,6.17,2,0],[-2,0,6.5,6.5,6.17,2,0],[-1,0,6.9,6.9,6.55,2,0],[0,0,7.83,7.83,7.44,2,0],[1,0,8.61,8.61,8.17,2,0],[2,0,9.26,9.26,8.79,2,0],[3,0,9.81,9.81,9.32,2,0],[4,0,10.29,10.29,9.77,2,0],[5,0,10.69,10.69,10.15,2,0],[6,0,11.03,11.03,10.48,2,0],[7,0,11.31,11.31,10.75,2,0],[8,0,11.55,11.55,10.97,2,0],[9,0,11.73,11.73,11.14,2,0],[10,0,11.86,11.86,11.27,2,0],[11,0,11.95,11.95,11.35,2,0],[12,0,11.99,11.99,11.39,2,0],[13,0,11.99,11.99,11.39,2,0],[14,0,11.95,11.95,11.35,2,0],[15,0,11.86,11.86,11.27,2,0],[16,0,11.73,11.73,11.14,2,0],[17,0,11.55,11.55,10.97,2,0],[18,0,11.31,11.31,10.75,2,0],[19,0,11.03,11.03,10.48,2,0],[20,0,10.69,10.69,10.15,2,0],[21,0,10.29,10.29,9.77,2,0],[22,0,9.81,9.81,9.32,2,0],[23,0,9.26,9.26,8.79,2,0],[24,0,8.61,8.61,8.17,2,0],[25,0,7.83,7.83,7.44,2,0],[26,0,6.9,6.9,6.55,2,0],[27,0,5.73,5.73,5.44,2,0],[28,0,4.11,4.11,3.91,2,0],[29,0,0.3,0.3,0.28,2,0],[30,0,0.3,0.3,0.28,2,0],[31,0,0.3,0.3,0.28,2,0],[32,0,0.3,0.3,0.28,2,0]],[[-4,0,6.5,6.5,6.17,2,0],[-3,0,6.5,6.5,6.17,2,0],[-2,0,6.5,6.5,6.17,2,0],[-1,0,6.9,6.9,6.55,2,0],[0,0,7.83,7.83,7.44,2,0],[1,0,8.61,8.61,8.17,2,0],[2,0,9.26,9.26,8.79,2,0],[3,0,9.81,9.81,9.32,2,0],[4,0,10.29,10.29,9.77,2,0],[5,0,10.69,10.69,10.15,2,0],[6,0,11.03,11.03,10.48,2,0],[7,0,11.31,11.31,10.75,2,0],[8,0,11.55,11.55,10.97,2,0],[9,0,11.73,11.73,11.14,2,0],[10,0,11.86,11.86,11.27,2,0],[11,0,11.95,11.95,11.35,2,0],[12,0,11.99,11.99,11.39,2,0],[13,0,11.99,11.99,11.39,2,0],[14,0,11.95,11.95,11.35,2,0],[15,0,11.86,11.86,11.27,2,0],[16,0,11.73,11.73,11.14,2,0],[17,0,11.55,11.55,10.97,2,0],[18,0,11.31,11.31,10.75,2,0],[19,0,11.03,11.03,10.48,2,0],[20,0,10.69,10.69,10.15,2,0],[21,0,10.29,10.29,9.77,2,0],[22,0,9.81,9.81,9.32,2,0],[23,0,9.26,9.26,8.79,2,0],[24,0,8.61,8.61,8.17,2,0],[25,0,7.83,7.83,7.44,2,0],[26,0,6.9,6.9,6.55,2,0],[27,0,5.73,5.73,5.44,2,0],[28,0,4.11,4.11,3.91,2,0],[29,0,0.3,0.3,0.28,2,0],[30,0,0.3,0.3,0.28,2,0],[31,0,0.3,0.3,0.28,2,0],[32,0,0.3,0.3,0.28,2,0]]],[[[-4,0,6.5,6.5,6.17,2,0],[-3,0,6.5,6.5,6.17,2,0],[-2,0,6.5,6.5,6.17,2,0],[-1,0,6.9,6.9,6.55,2,0],[0,0,7.83,7.83,7.44,2,0],[1,0,8.61,8.61,8.17,2,0],[2,0,9.26,9.26,8.79,2,0],[3,0,9.81,9.81,9.32,2,0],[4,0,10.29,10.29,9.77,2,0],[5,0,10.69,10.69,10.15,2,0],[6,0,11.03,11.03,10.48,2,0],[7,0,11.31,11.31,10.75,2,0],[8,0,11.55,11.55,10.97,2,0],[9,0,11.73,11.73,11.14,2,0],[10,0,11.86,11.86,11.27,2,0],[11,0,11.95,11.95,11.35,2,0],[12,0,11.99,11.99,11.39,2,0],[13,0,11.99,11.99,11.39,2,0],[14,0,11.95,11.95,11.35,2,0],[15,0,11.86,11.86,11.27,2,0],[16,0,11.73,11.73,11.14,2,0],[17,0,11.55,11.55,10.97,2,0],[18,0,11.31,11.31,10.75,2,0],[19,0,11.03,11.03,10.48,2,0],[20,0,10.69,10.69,10.15,2,0],[21,0,10.29,10.29,9.77,2,0],[22,0,9.81,9.81,9.32,2,0],[23,0,9.26,9.26,8.79,2,0],[24,0,8.61,8.61,8.17,2,0],[25,0,7.83,7.83,7.44,2,0],[26,0,6.9,6.9,6.55,2,0],[27,0,5.73,5.73,5.44,2,0],[28,0,4.11,4.11,3.91,2,0],[29,0,0.3,0.3,0.28,2,0],[30,0,0.3,0.3,0.28,2,0],[31,0,0.3,0.3,0.28,2,0],[32,0,0.3,0.3,0.28,2,0]],[[-4,0,6.5,6.5,6.17,2,0],[-3,0,6.5,6.5,6.17,2,0],[-2,0,6.5,6.5,6.17,2,0],[-1,0,6.9,6.9,6.55,2,0],[0,0,7.83,7.83,7.44,2,0],[1,0,8.61,8.61,8.17,2,0],[2,0,9.26,9.26,8.79,2,0],[3,0,9.81,9.81,9.32,2,0],[4,0,10.29,10.29,9.77,2,0],[5,0,10.69,10.69,10.15,2,0],[6,0,11.03,11.03,10.48,2,0],[7,0,11.31,11.31,10.75,2,0],[8,0,11.55,11.55,10.97,2,0],[9,0,11.73,11.73,11.14,2,0],[10,0,11.86,11.86,11.27,2,0],[11,0,11.95,11.95,11.35,2,0],[12,0,11.99,11.99,11.39,2,0],[13,0,11.99,11.99,11.39,2,0],[14,0,11.95,11.95,11.35,2,0],[15,0,11.86,11.86,11.27,2,0],[16,0,11.73,11.73,11.14,2,0],[17,0,11.55,11.55,10.97,2,0],[18,0,11.31,11.31,10.75,2,0],[19,0,11.03,11.03,10.48,2,0],[20,0,10.69,10.69,10.15,2,0],[21,0,10.29,10.29,9.77,2,0],[22,0,9.81,9.81,9.32,2,0],[23,0,9.26,9.26,8.79,2,0],[24,0,8.61,8.61,8.17,2,0],[25,0,7.83,7.83,7.44,2,0],[26,0,6.9,6.9,6.55,2,0],[27,0,5.73,5.73,5.44,2,0],[28,0,4.11,4.11,3.91,2,0],[29,0,0.3,0.3,0.28,2,0],[30,0,0.3,0.3,0.28,2,0],[31,0,0.3,0.3,0.28,2,0],[32,0,0.3,0.3,0.28,2,0]]]]};
   A.limbs = {"leg":{"walk":[[5.78,24.2,5.78,24.2,5.78,24.2,6.1,24.2,7.28,24.2,8.78,24.2,9.16,24.2,8.28,24.19,6.85,23.51,4.97,21.03,2.94,18.06,1.32,16.31,-0.02,15.55,-1.19,15.21,-1.67,15.21,-1.29,15.41,-0.26,15.4,1.27,14.78,3.26,13.57,5.59,12.18,8.14,11.03,11.02,10.65,14.27,7.6,17.09,7,18.86,6.6],[-15.53,16.98,-15.85,16.98,-16.42,16.98,-15.15,16.98,-7.44,16.98,4.97,16.98,13.45,16.98,15.59,16.98,15.55,16.95,15.24,16.87,13.98,16.77,11.19,16.59,7.47,16.24,4.37,15.89,2.72,15.57,2.19,14.85,2.24,13.58,2.54,12.11,2.94,10.86,3.41,10.13,3.97,8.71,4.81,8.51,6.13,7.6,7.63,7,8.89,6.6]],"front":[[-20.33,15.1,-11.2,15.1,-6.63,15.1,-5.72,15.1,-5.72,15.1,-5.72,15.1,-5.72,15.1,-5.72,15.1,-5.72,15.1,-5.73,15.03,-5.76,14.7,-5.65,14.12,-5.11,13.68,-4.15,13.7,-3.21,14.01,-2.66,14.16,-2.47,13.9,-2.5,13.11,-2.64,11.92,-2.85,10.63,-3.1,9.53,-3.51,9.11,-2.06,7,-3.06,6.5,-4.51,6.1],[17.18,15.25,11.98,15.25,4.69,15.25,-0.53,15.25,-1.87,15.25,-1.87,15.25,-1.87,15.25,-0.51,15.25,3.58,15.25,6.32,15.15,3.68,14.74,-0.39,14.1,-2.01,13.71,-2.54,13.77,-3.06,14.07,-3.37,14.2,-3.46,13.9,-3.33,13.06,-3.03,11.87,-2.65,10.61,-2.2,9.51,-1.6,9.1,-0.14,7,1.08,6.5,2.9,6.1]],"run":[[16.15,27.1,16.17,27.1,16.26,27.09,16.55,26.99,17.2,26.61,18.08,25.73,18.46,24.46,17.13,23.23,13.15,22.33,6.69,21.52,-0.82,20.49,-7.56,19.32,-12.37,18.31,-15.08,17.52,-16.17,16.82,-16.19,16.07,-15.52,15.01,-14.37,13.64,-12.86,12.25,-11.04,11.23,-8.95,10.99,-6.7,9.4,-4.47,8,-2.42,7.4,-0.54,7],[18.43,19.09,20.93,19.09,22.37,19.09,21.93,19.09,19.5,19.09,15.95,19.09,12.79,19.09,11.28,19.04,11.75,18.88,13.38,18.52,14.77,17.93,14.79,17.21,13.28,16.54,10.98,16.01,8.86,15.54,7.51,14.94,6.94,13.95,6.91,12.61,7.18,11.22,7.65,10.15,8.37,9.73,9.48,8.32,10.98,8,12.72,7.4,14.52,7]]},"arm":{"walk":[[3.78,8.54,8.11,8.54,13.18,8.54,16.2,8.54,16.18,8.54,14.39,8.54,10.96,8.54,6.87,8.54,4.38,8.54,3.84,8.54,4,8.54,4.14,8.54,4.17,8.54,4.27,8.54,4.4,8.54,4.36,8.54,4.16,8.54,3.94,8.54,3.84,8.51,3.99,8.38,4.4,8.11,4.88,7.84,5.15,7.88,5.19,8.43,5.2,9.44],[-7.02,10.55,-11.54,10.55,-12.67,10.55,-11.35,10.55,-9.98,10.55,-9.21,10.55,-8.71,10.55,-8.22,10.55,-7.7,10.52,-7.23,10.37,-6.9,10.09,-6.69,9.89,-6.48,9.93,-6.3,10.12,-6.24,10.27,-6.31,10.23,-6.45,9.98,-6.61,9.57,-6.74,9.09,-6.81,8.65,-6.79,8.32,-6.68,8.14,-6.62,8.16,-6.79,8.55,-7.25,9.35]],"front":[[-7.75,10.39,-7.59,10.39,-6.44,10.39,-4.51,10.39,-3.01,10.38,-2.36,10.31,-2.08,10.16,-1.89,9.95,-1.75,9.73,-1.64,9.64,-1.54,9.74,-1.45,9.91,-1.44,9.95,-1.61,9.8,-1.95,9.51,-2.38,9.11,-2.83,8.6,-3.32,8.03,-3.86,7.45,-4.43,6.92,-4.95,6.6,-5.31,6.81,-5.41,7.72,-5.4,9.08,-5.46,10.41],[5.9,10.81,5.98,10.81,5.59,10.81,4.17,10.8,2.14,10.74,0.68,10.59,0.04,10.35,-0.32,10.06,-0.67,9.8,-1.01,9.64,-1.32,9.67,-1.54,9.85,-1.66,10.03,-1.67,10.04,-1.57,9.87,-1.36,9.53,-1.08,9.08,-0.79,8.62,-0.55,8.17,-0.33,7.74,-0.11,7.3,0.14,6.84,0.4,6.38,0.59,6.02,0.69,5.81]],"run":[[3.81,12.6,4.29,12.35,4.68,12.1,4.93,11.85,5.21,11.6,5.91,11.35,7.45,11.1,9.93,10.85,13.02,10.61,16.03,10.41,18.21,10.45,19.1,10.83,18.73,10.97,17.43,10.17,15.62,9.05,13.61,8.3,11.57,7.99,9.63,7.88,7.81,7.76,6.17,7.54,4.8,7.26,3.87,6.97,3.4,6.68,3.19,6.39,3.04,6.1],[-8.4,12.6,-11.75,12.35,-14.86,12.1,-17.58,11.85,-19.78,11.6,-21.29,11.35,-22.05,11.1,-22.18,10.85,-21.96,10.61,-21.65,10.41,-21.44,10.45,-21.52,10.83,-21.98,10.97,-22.75,10.17,-23.57,9.05,-24.17,8.3,-24.47,7.99,-24.55,7.88,-24.29,7.76,-23.22,7.54,-21.01,7.26,-18.4,6.97,-16.59,6.68,-15.97,6.39,-15.99,6.1]]}};
-  // (G27: the traced ponytail table A.pony was removed: nothing read it since the tail became a simulated spine)
+  A.pony = {"n":21,"side":{"f":[-50.12,-49.71,-52.8,-55.95,-58.49,-58.84,-57.87,-56.8,-56.53,-56.24,-54.66,-53.81,-54.15,-53.44,-53.35,-54.08,-55.92,-56.42,-55.85,-55.42,-53.15],"u":[32.22,27.51,21.38,15.28,8.78,1.55,-5.63,-12.8,-20.08,-27.35,-34.36,-41.53,-48.8,-56.04,-63.33,-70.53,-77.44,-84.64,-91.89,-99.14,-105.81],"H":[4.59,9.61,11.4,8.98,10.34,11.31,12.24,14.73,16.33,16.11,14.61,15.28,14.33,11.11,10.88,9.51,7.93,6.44,4.01,3.58,2.62]},"front":{"c":[44.64,58.59,60.45,61.9,63.25,64.32,65,65.45,65.72,65.4,63.99,62.3,60.77,59.01,56.45,53.27,49.88,47.67,48.51,50.43,51.58],"u":[41.87,39.68,35.46,31.12,26.76,22.35,17.87,13.38,8.87,4.37,0.03,-4.24,-8.55,-12.8,-16.74,-20.32,-23.77,-27.82,-32.21,-36.41,-40.81],"H":[9.76,10.54,11.39,12.21,13.5,14.79,15.58,16.07,16.38,15.79,13.95,12.81,12.36,12.01,11.46,10.96,11.46,12.29,8.58,5.87,4.73]},"run":{"f":[-59.15,-64.57,-69.59,-73.61,-77.55,-81.96,-86.54,-91.11,-95.63,-100.11,-105.01,-110.18,-114.77,-118.91,-123.12,-127.58,-131.77,-135.71,-140.02,-145.05,-150.35],"c":[44.64,58.59,60.45,61.9,63.25,64.32,65,65.45,65.72,65.4,63.99,62.3,60.77,59.01,56.45,53.27,49.88,47.67,48.51,50.43,51.58],"u":[29.42,24.28,22.52,18.11,13.57,9.79,6.36,2.9,-0.66,-4.3,-6.82,-8.32,-11.69,-15.94,-20.07,-23.76,-27.91,-32.46,-36.39,-38.42,-38.11],"H":[8.59,8.55,10.86,13.59,17.81,22.15,23.42,24.93,24.25,24.82,27.77,24.66,18.61,16.2,15.21,14.33,11.46,8.99,9.39,9.29,5.89]}};
   A.traceInfo = { kFront: 1.1746, kSide: 0.5177, kRun: 0.8159 };
   A.rebuild();
 })();
@@ -2954,7 +2806,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
 (function () {
   'use strict';
   var A = GA.girlA, k;
-  // (G27: these fitted objects still carry some dead keys - see the DEAD list in the defaults - and the stride values here are overridden by the cute walk / run below)
   var cfg = {"stride":348.6617,"strideRun":375,"hipRest":241,"hipW":17,"L1":111,"L2":110,"legReach":0.999,"ankleZ":21,"waistH":292,"shoulderH":350,"neckBaseH":372,"neckTopH":402,"shoulderC":38,"armU":71.0369,"armF":70,"ele":0.15,"headPivot":[-7,0,-41.5],"suSide":0.78,"suFront":1.165,"crown":506.9375,"rho":0.6116,"q1":0.1607,"q2":0.334,"bhs":13.4124,"bto":37.0001,"heelS":-15,"ballS":35,"lift":10.0547,"idleStance":20.5148,"walkStance":18.5,"toeIdle":26,"toeWalk":5,"stanceL":5.75,"stanceR":-2,"toeL":-2.9828,"toeR":-2.2667,"pelvisIdle":249.1198,"bob":4.0328,"walkAlpha0":-2.0152,"walkXoff":-9.6349,"walkLean":-3.2164,"walkYaw":11.3216,"armBetaL":22,"armBetaR":20.5,"armAlphaL":2,"armAlphaR":7,"armGammaL":30.5,"armGammaR":36,"swingFwd":22.4671,"swingBack":25.0136,"gammaWalk0":6.9459,"gammaWalk1":7.816,"runRho":0.36,"runQ1":0.05,"runQ2":0.2,"runLift":52,"runLean":17,"runPelvis":233,"runBob":15,"runArmFwd":52,"runArmBack":-40,"runGammaFwd":95,"runGammaBack":72,"sleeve":[13.5,14.5,0.51],"handScale":1.2562,"ringHead":64,"ringTrunk":48,"ringShoe":24,"fair":{"head":0.9,"trunk":1.4,"shoe":1,"hand":0.7},"legKeysF":[[0,18.9884],[0.2,18.5973],[0.38,17.404],[0.5,14.8642],[0.6,13.7595],[0.72,14.1784],[0.88,11.2208],[1,9.9248]],"armKeysF":[[0,12.8],[0.3,11.6],[0.5,10.6],[0.7,9.5],[0.85,8.4],[1,7.4]],"handScaleF":0.9375};
   for (k in cfg) A.cfg[k] = cfg[k];
   // ---- run (scurry) pose fitted to ref1 at the key phase (trace/fit_run.mjs): keep in sync with the traced run tables
@@ -2964,30 +2815,18 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   //      head nod / tilt, toe push-off and a soft heel strike, longer smoother strides.  stride is also what the timeline uses for the foot contact (girl.STRIDE).
   var walkStyle = {"stride":372,"walkDrop":0,"bob":5.5,"bobH2":0.05,"bobH2ph":0.7,"bobPh":0.27,"hipSway":4,"walkYaw":10,"shoulderCounter":1.9,"swingFwd":29,"swingBack":29,"gammaWalk0":8,"gammaWalk1":28,"handLag":0.42,"headNod":3.4,"headTilt":0.14,"lift":17,"bhs":15,"bto":38,"q1":0.19,"q2":0.31,"walkLean":-2.2,"hemBounce":3.4,"swingTan":1,"swingTan1":1,"liftSkew":0.35};
   for (k in walkStyle) A.cfg[k] = walkStyle[k];
-  // ---- GRACEFUL WALK (round 10, GAIT; round 12: the cute walk below overrides stride (330), lift and swing): long easy stride (380 u per cycle, 2.1 steps/s at V_WALK 400), biomechanical stance (heel strike toes-up 18 deg, flat by 11 %, heel rise
+  // ---- GRACEFUL WALK (round 10, GAIT): long easy stride (380 u per cycle, 2.1 steps/s at V_WALK 400), biomechanical stance (heel strike toes-up 18 deg, flat by 11 %, heel rise
   //      from 36 %, toe-off at 46 deg), stance knee by the knee-target solve (girl_a.js C.kneeK), pointed swing foot with the keyed world-frame swing (C.swE/swZ/swB), upright
   //      torso (no lean), long relaxed arm swing with a SOFT elbow (9 + 9 deg), toe-out ~10 deg standing.  Bare feet: girl_c2_trace.js D.shoe (R10/gait/foot.mjs).
   var walkGrace = {"stride":380,"walkXoff":0,"hsF":73,"rho":0.6,"q1":0.11,"q2":0.36,"bhs":18,"bto":46,"lift":31,"walkLean":0,"walkStance":17,"toeWalk":6,"toeIdle":10,"toeL":-1,"toeR":-1,
     "hipSway":4.6,"walkYaw":11,"shoulderCounter":1.8,"swingFwd":24,"swingBack":26,"gammaWalk0":9,"gammaWalk1":9,"handLag":0.25,"kneeSoft":0,"pelvisSmooth":20,"legReach":1.0};
   for (k in walkGrace) A.cfg[k] = walkGrace[k];
-  // ---- CUTE WALK (round 12, acting brief section 5): lighter and quicker - 330 u per cycle = 2.4 steps/s at V_WALK 400, a light heel contact, soft elbows with trailing
-  //      wrists, a gentle hip sway, the occasional small head tilt.  Passing position: right after toe-off the swing knee turns out (swingKneeOut) so the swing shin never
-  //      crosses the stance shin in the profile silhouette, and the foot is lifted behind with the toe pointed (sole ~9 % of the leg length above the floor at passing).
-  var cuteWalk = {"stride":330,"lift":28,"swZ":[[0.15,0.75],[0.35,1.0],[0.62,0.85],[0.86,0.3]],"swE":[[0,0],[0.25,0.28],[0.5,0.62],[0.75,0.88],[0.9,0.97],[1,1]],"swingKneeOut":70,"swingKneeU":[0.35,0.6],
-    "bhs":11,"hipSway":5.5,"swingFwd":22,"swingBack":22,"gammaWalk0":18,"gammaWalk1":14,"handLag":0.35,"headTilt":0.08};
-  for (k in cuteWalk) { A.cfg[k] = cuteWalk[k]; walkGrace[k] = cuteWalk[k]; }
   // ---- ELEGANT CARTOON RUN (round 10, GAIT; replaces the fitted scurry crouch): stride 620 (3 steps/s at V_RUN 940), stance 34 % (flight 32 %), ball-of-foot landing, heel kicked
   //      up to hip height behind, knee driving through high, bouncy pelvis (226 at mid-stance -> 257 in flight), torso lean ~17-20 deg from the hips, head LEVEL, arms pumping at ~90 deg.
   var runGrace = {"strideRun":580,"runRho":0.325,"runQ1":0.06,"runQ2":0.16,"runXoff":0,"runHsF":75,"runBhs":-12,"runPelvis":240,"runBob":14,
     "runBobK":[[0,-0.65],[0.3,-0.2],[0.65,-0.3],[0.78,0.7],[0.86,1.15],[0.95,0.1]],"runLean":17,"runLeanDeg":14,"runLean0":0.4,"runBendH":45,"runHead":3,"runHeadLevel":1,"runPelvisPitch":-4,
     "runArmA":[44,95],"runArmB":[-40,85],"runShoulderBack":20,"runShoulderFwd":8,"runHemLift":1.2,"runLegK":0.02};
   for (k in runGrace) A.cfg[k] = runGrace[k];
-  // ---- CUTE RUN (round 12, acting brief section 6): upright (6 deg lean, chin level), shorter quicker steps (430 u per cycle = 3.4 steps/s at V_RUN 740), the lower leg flicks
-  //      up behind after toe-off (the heel kick), a moderate knee lift, a short airborne bounce each step; 'flappy' arms: elbows bent ~90 deg, small forearm swings slightly
-  //      across the body, loose hands trailing on the hand spring (runHandFollow).
-  var cuteRun = {"strideRun":430,"runLean":6,"runLeanDeg":5,"runBob":12,"runZ":[[0.14,50],[0.32,118],[0.52,104],[0.72,62],[0.88,40]],"runB":[[0.14,-70],[0.32,-112],[0.52,-80],[0.72,-38],[0.88,-24]],
-    "runArmA":[22,96],"runArmB":[-14,92],"runShoulderBack":8,"runShoulderFwd":4,"runHead":2,"runBendH":40,"runHandFollow":0.75};
-  for (k in cuteRun) A.cfg[k] = cuteRun[k];
 
   // ---- WALK STYLE PRESETS (runtime switch: landingGirlAnimation.scene.girl.setWalkPreset('A'|'B'|'C'|'current'); the stride (372) and the foot contact are the same in all of them)
   //   current = the R8 values; A = 'tall glide' (upright, long extended legs, minimal bob, long relaxed arm swing); B = 'light and lifted' (chest lifted, buoyant push-off bounce, quicker toe-off, soft arms);
@@ -3007,7 +2846,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   // round 10: the graceful walk (walkGrace above) is the default; the R9 presets A/B/C stay selectable for comparison only (they override some of its keys)
   A.walkPresets.current = (function () { var o = wpMake({}), q; for (q in walkGrace) o[q] = walkGrace[q]; return o; })();
   A.setWalkPreset('current');
-  // (G27: the old "hc" hair overrides were removed: none of their keys (tieU, lockN, fineN, core, ...) is read by the hair module any more; tune GA.girlA.hairCfg / DEF)
+  var hc = {"tieU":27,"tiePhi":2.4,"sprout":[-0.2,0.635,0.74],"lockN":8,"lockLen":1.03,"lockW":1.5,"lamK":0.59,"waveK":1,"curlK":1.1,"back":0.16,"backMed":0.21,"bTo":0.36,"medLen":0.9,"fineN":26,"fineLen":0.9,"looseLen":1,"lenSide":0.97,"lenFront":0.87,"widSide":1.07,"widFront":1.45,"runWind":120,"core":1,"coreT0":0.575,"coreT1":0.885,"rootW":7,"ribT0":0.4,"ribT1":0.58};
+  for (k in hc) A.hairCfg[k] = hc[k];
   A.rebuild();
 })();
 
@@ -3030,7 +2870,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
    3 steps (<1 ms), invisible draws of every distinct draw state; true after step 2.
 
    API (SPEC 4.4 + UPDATE v2; extras marked +):
-     GA.fx.gravity = 3000                                   world units / s^2 (used by cubes + dots)
+     GA.fx.gravity = 2400                                   world units / s^2 (used by cubes + dots)
      GA.fx.cubes.reset()  .spawn({x,y,size,t0,vx,vy,spin:[wx,wy,wz],rot0:[rx,ry,rz],z:-1..1,hover:s, +drag, +drift}) -> te   .draw(ctx,t,layer)  .count()  +.clearFrom(t)
           size = edge length in world units (3..30 typical, a few up to ~40). layer 'back' (z<0) | 'front' (z>=0); no layer = both (back first).
           Motion is closed form: for tau=t-t0 < hover the initial velocity is damped by exponential drag (k = drag || 3/hover), gravity is ramped in
@@ -3144,7 +2984,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   }
 
   /* ------------------------------------------------------------------ particle pools (struct of arrays) */
-  var KIN = ['x0', 'y0', 't0', 'vx', 'vy', 'hv', 'kd', 'dh', 'mh', 'wa', 'ww', 'wp', 'te', 'gk', 'fd', 'fl'];          // (round 12: gk = gravity share left by air drag, fd / fl = fade start / length)
+  var KIN = ['x0', 'y0', 't0', 'vx', 'vy', 'hv', 'kd', 'dh', 'mh', 'wa', 'ww', 'wp', 'te'];
   function makePool(extra) {
     var names = KIN.concat(extra);
     var p = { n: 0, cap: 0, a: {}, names: names };
@@ -3184,15 +3024,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     A.wa[i] = h > 0 ? (o.drift !== undefined ? o.drift : 2.5 + size * 0.3) : 0;
     A.ww[i] = 8 + 9 * hash01(seed * 3 + 1);
     A.wp[i] = TAU * hash01(seed * 3 + 2);
-    // round 12: a light fragment (a popped thought) keeps only a share of gravity (strong air drag: it floats down) and can fade out (ink -> grey -> gone)
-    A.gk[i] = o.gk > 0 ? o.gk : 1; A.fd[i] = o.fade > 0 ? o.fade : 1e9; A.fl[i] = o.fadeLen > 0 ? o.fadeLen : 0.5;
     // time after which the particle is below the visible area for good (exact closed form of kin(): hover phase integral + ballistic fall)
-    var gg = FX.gravity * A.gk[i], lim = bottomLimit(size);
+    var gg = FX.gravity, lim = bottomLimit(size);
     var ys = y0 + vy * dh + gg * 0.15 * h * h, b = vy * mh + 0.5 * gg * h, c = ys - lim;
     var te;
     if (c >= 0) te = t0 + h;
     else te = t0 + h + Math.max(0, (-b + Math.sqrt(b * b - 2 * gg * c)) / gg) + 0.05;
-    if (A.fd[i] < 1e8) te = Math.min(te, t0 + A.fd[i] + A.fl[i]);          // faded out: gone
     A.te[i] = te;
     return te;
   }
@@ -3213,24 +3050,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       P = 0.15 * h * h + d * (0.5 * h + 0.5 * d);
     }
     _x = A.x0[i] + A.vx[i] * D + wx;
-    _y = A.y0[i] + A.vy[i] * D + g * A.gk[i] * P + wy;
+    _y = A.y0[i] + A.vy[i] * D + g * P + wy;
   }
-
-  /** round 12, 'bubble' style: the options of a cube / dot that a thought breaks into turned into a light hairline FRAGMENT (a short stroke, a dot or a tiny ring) that
-      pops outward a little, floats on the air (most of gravity taken by drag) and fades out (ink -> grey -> gone) before it reaches the ground: a soap bubble, not rubble */
-  var BUB = { x: 0, y: 0, r: 0, t0: 0, vx: 0, vy: 0, kind: 'tick', z: 0, hover: 0, drag: 0, gk: 0, fade: 0, fadeLen: 0, rot: 0, spin: 0, tone: 0 };
-  FX.bubbleFragment = function (o, cube) {
-    var id = (o.t0 * 1000 + o.x * 7.1 + o.y * 3.7) | 0, q = hash01(id), q2 = hash01(id + 11), q3 = hash01(id + 23);
-    var size = cube ? (o.size || 6) : (o.r || 2.4) * 2;
-    BUB.x = o.x; BUB.y = o.y; BUB.t0 = o.t0; BUB.z = o.z || 0;
-    BUB.kind = cube ? (q < 0.72 ? 'tick' : q < 0.88 ? 'ring' : 'dot') : (o.kind === 'square' || o.kind === 'tick' ? 'tick' : o.kind || 'dot');
-    BUB.r = BUB.kind === 'tick' ? Math.min(7, 2.4 + size * 0.22) : BUB.kind === 'ring' ? Math.min(6, 2 + size * 0.18) : Math.min(3.2, 1 + size * 0.12);
-    BUB.vx = (o.vx || 0) * 0.32; BUB.vy = (o.vy || 0) * 0.32 - 30 * q2;
-    BUB.hover = 1.25 + 0.9 * q3; BUB.drag = 3.2; BUB.gk = 0.06 + 0.04 * q2;
-    BUB.fade = BUB.hover * (0.55 + 0.25 * q); BUB.fadeLen = 0.55;
-    BUB.rot = o.rot !== undefined ? o.rot : TAU * q2; BUB.spin = (q - 0.5) * 3; BUB.tone = 0;
-    return BUB;
-  };
 
   /* ------------------------------------------------------------------ CUBES */
   var cubePool = [makePool(['sz', 'wx', 'wy', 'wz', 'rx', 'ry', 'rz']), makePool(['sz', 'wx', 'wy', 'wz', 'rx', 'ry', 'rz'])]; // [back, front]
@@ -3408,7 +3229,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     return te;
   };
   var TONES = ['', '', ''];   // refreshed from GA.style at every draw
-  var dotLive = new Int8Array(256), dotLiveN = new Int32Array(12);
   function drawDotPool(ctx, t, P, buckets) {
     var n = P.n;
     if (!n) return 0;
@@ -3428,25 +3248,15 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       VXs[m] = _x; VYs[m] = _y; VI[m] = i; m++;
     }
     if (!m) return 0;
-    var KIND = A.kind, TONE = A.tone, ROT = A.rot, SPIN = A.spin, FD = A.fd, FL = A.fl, k, j, x, y, r_, a, c, s, q;
-    var live = dotLive, cnt = dotLiveN;          // round 12: the tone each dot is drawn with this frame (a fading fragment steps from ink to the greys), and the batch counts
-    if (live.length < m) { live = dotLive = new Int8Array(Math.max(256, m * 2)); }
-    for (k = 0; k < 12; k++) cnt[k] = 0;
-    for (k = 0; k < m; k++) {
-      j = VI[k];
-      var tauF = t - T0[j] - FD[j], tn = TONE[j];
-      if (tauF > 0) tn = Math.min(3, tn + 1 + Math.floor(3 * tauF / FL[j]));
-      live[k] = tn;
-      if (tn < 3) cnt[tn * 4 + KIND[j]]++;
-    }
+    var KIND = A.kind, TONE = A.tone, ROT = A.rot, SPIN = A.spin, k, j, x, y, r_, a, c, s, q;
     for (var tone = 0; tone < 3; tone++) {
       for (var kind = 0; kind < 4; kind++) {
-        if (!cnt[tone * 4 + kind]) continue;
+        if (!buckets[tone * 4 + kind]) continue;
         var col = TONES[tone];
         ctx.beginPath();
         for (k = 0; k < m; k++) {
           j = VI[k];
-          if (KIND[j] !== kind || live[k] !== tone) continue;
+          if (KIND[j] !== kind || TONE[j] !== tone) continue;
           x = VXs[k]; y = VYs[k];
           var tau = t - T0[j];
           r_ = SZ[j] * (tau < 0.06 ? 0.3 + 0.7 * (tau / 0.06) : 1);
@@ -3585,14 +3395,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var nc = Math.max(8, Math.round(W / 130)), cx = [], i, v;
     for (i = 0; i < nc; i++) cx.push(rng.range(0, W));
     var y1b = Math.min(H + 70, (S.visBottom !== undefined ? S.visBottom : H) - 90);
-    var y0 = G0 + 3, y1 = Math.max(H - 9, y1b);     // G21: from just below the sole line ... into the faded lower margin of the canvas (no hard edge); none above it, so the floor reads under her
+    var y0 = G0 - 10, y1 = Math.max(H - 9, y1b);     // a little above the feet line ... into the faded lower margin of the canvas (no hard edge)
     for (i = 0; i < n; i++) {
       if (rng.next() < 0.58) x[i] = U.clamp(rng.pick(cx) + rng.gauss() * 130, 4, W - 4);
       else x[i] = rng.range(4, W - 4);
       v = rng.next();
       y[i] = y0 + (y1 - y0) * Math.pow(v, 1.05) + rng.gauss() * 4;
       if (y[i] > y1 + 6) y[i] = y1 - rng.range(0, 6);
-      rng.next();          // (was: 8 % lifted 10-30 above; the draw is kept so the rest of the seeded layout does not change)
+      if (rng.next() < 0.08) y[i] -= rng.range(10, 30);
       var q = rng.next(), r;
       if (q < 0.45) r = rng.range(0.85, 1.35); else if (q < 0.84) r = rng.range(1.35, 2.0); else r = rng.range(2.0, 2.9);
       rx[i] = r * (rng.next() < 0.22 ? rng.range(1.5, 2.6) : 1); // a few little horizontal dashes
@@ -3647,112 +3457,264 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (w > 0.08) { ctx.moveTo(xs[i] + w, ys[i]); ctx.arc(xs[i], ys[i], w, 0, TAU, true); }
     }
   }
-  /* ------------------------------------------------------------------ BALL (round 12: the BOOP) */
-  /* A round thought drawn in the thoughts' hairline style (paper inside, an ink ring, a short spin mark) comes in from the LEFT edge on one true parabola under the page's
-     gravity (opts.gravity, world units / s^2: 3.0 screen heights / s^2 converted with the stage scale), peaks inside the band, boops the top of her head at tHit, rebounds with
-     the site's restitution (never more energy than it came with), lands on the ground to the right, bounces again and leaves through the right edge.  Squash only at the
-     contacts (a stiff spring), the spin mark turns with the flight.  Pure function of t: build() solves the segments once.
-     ball.build({W,H,tHit,target:{x,y} = head top, radius, headAt, gravity}), ball.state(t), ball.draw(ctx,t), ball.pop(t), ball.cancel(t), ball.info. */
+  /* ------------------------------------------------------------------ BALL */
   var ball = (FX.ball = { info: null });
   var B = null;
+  var HIT_DUR = 0.08, SYE = 1.12;
+  var SEAM_N = 84, seamX = new Float32Array(SEAM_N + 2), seamY = new Float32Array(SEAM_N + 2), seamZ = new Float32Array(SEAM_N + 2);
+  var runX = new Float32Array(SEAM_N + 2), runY = new Float32Array(SEAM_N + 2), runW = new Float32Array(SEAM_N + 2);
   var cancelT = Infinity;   // ball.cancel(t): the ball is gone from this time on
   var SCR = { x: 0, y: 0, rot: 0, sx: 1, sy: 1, sa: 0, squash: 0, visible: false, phase: 'fly', vx: 0, vy: 0 };
-  var BALL_E0 = 0.58, BALL_E1 = 0.08, BALL_EMIN = 0.35;          // the site's restitution (navigation-ball.js): e(v) = clamp(E0 - E1 v / H, 0.35, E0), v and H in screen px
-  function restit(vWorld) {
-    var S = GA.stage || {}, sc = S.scale > 0 ? S.scale : 0.5, h = (typeof window !== 'undefined' && window.innerHeight) || 900;
-    return Math.max(BALL_EMIN, Math.min(BALL_E0, BALL_E0 - BALL_E1 * Math.abs(vWorld) * sc / h));
+  var HALF_PI = PI / 2, FLY_DT = 1 / 240, FLY_K = 0.22, BOUNCE_K = 0.12;   // speed stretch: axis ratio 1 + FLY_K at >= 1300 u/s in the lob (sy^2), ~1.25 in the whoosh (kept calm: a ball, not a lemon)
+
+  /** integral of smoothstep(a,b,u) du from 0 to s */
+  function ssInt(a, b, s) {
+    if (s <= a) return 0;
+    if (s >= b) return (b - a) * 0.5 + (s - b);
+    var w = (s - a) / (b - a);
+    return (b - a) * (w * w * w - 0.5 * w * w * w * w);
   }
-  /** segments of the trip: [{t0, x0, y0, vx, vy}] (free flight between contacts) and the contact times */
+  /** angle -> (-pi/2, pi/2]: an ellipse (and the tennis seams) look the same after a half turn */
+  function wrapHalf(a) { a = a % PI; if (a > HALF_PI) a -= PI; else if (a <= -HALF_PI) a += PI; return a; }
+  /** vertical half extent of the ball ellipse (semi axes r*sx, r*sy) rotated by sa */
+  function halfH(r, sx, sy, sa) { var c = Math.cos(sa), s = Math.sin(sa); return r * Math.sqrt(sx * sx * s * s + sy * sy * c * c); }
+  /** velocity driven stretch: the long axis follows the direction of travel (local y axis); 1 below 450 u/s, 1+k at >= 1300 u/s */
+  function stretchOf(speed, k) { return Math.sqrt(1 + k * clamp01((speed - 450) / 850)); }   // = sy; sx = 1 / sy, so the axis ratio is sy^2
+
+  /** THE PARABOLA (QA round 4).  The ball enters just beyond the LEFT screen edge (x = -80, at chest height), flies on ONE exact parabola - constant horizontal speed, constant
+      gravity, y(x) a true quadratic - rises to a clearly visible apex and falls onto the top of her head at descentDeg (default 20 deg), touching it exactly at tHit.  The flight lasts
+      flight seconds (default 1.55).  After the squash it leaves on a SECOND, lower parabola (constant speed to the right, its own gravity) and exits through the RIGHT edge at mid height.
+      Closed form (no tables).  Options: W,H,tHit,target{x,y},radius,headAt(t),entryY (default 400),entryX (-80),descentDeg (20),flight (1.55),exitApexY (86),spin. */
   ball.build = function (o) {
     var S = GA.stage || {};
     cancelT = Infinity;
-    var W = o.W || S.W || 2773, H = o.H || S.H || 780, g = o.gravity > 0 ? o.gravity : 5000;
-    var vt = S.visTop !== undefined ? S.visTop : 0, vb = S.visBottom !== undefined ? S.visBottom : H, gy = S.groundY !== undefined ? S.groundY : 700;
-    var r = Math.max(26, (o.radius || 44) * 0.75), tx = o.target.x, ty = o.target.y - r, tHit = o.tHit;
-    var x0 = -r * 1.2, y0 = Math.min(gy - 2 * r, o.target.y + 230), ya = Math.max(vt + r + 30, o.target.y - 180);          // enters low at the left edge, peaks well inside the band
-    var t1 = Math.sqrt(2 * (y0 - ya) / g), t2 = Math.sqrt(2 * Math.max(10, ty - ya) / g), Tf = t1 + t2, vx = (tx - x0) / Tf, vy0 = -g * t1;
-    var segs = [{ t0: tHit - Tf, x0: x0, y0: y0, vx: vx, vy: vy0 }];
-    // the boop: off the top of her head (normal = up), restitution on the normal component, the sideways speed kept (a light, quick tap)
-    var vin = vy0 + g * Tf, e1 = restit(vin);
-    segs.push({ t0: tHit, x0: tx, y0: ty, vx: vx * 0.55, vy: -e1 * vin });
-    // ... down to the ground on the right, one more bounce, out through the right edge
-    var s1 = segs[1], yg = gy - r, tq = (-s1.vy + Math.sqrt(s1.vy * s1.vy + 2 * g * (yg - s1.y0))) / g, vg = s1.vy + g * tq, e2 = restit(vg);
-    segs.push({ t0: tHit + tq, x0: tx + s1.vx * tq, y0: yg, vx: s1.vx, vy: -e2 * vg });
-    var s2 = segs[2], tq2 = 2 * (-s2.vy) / g, vg2 = -s2.vy, e3 = restit(vg2);
-    segs.push({ t0: s2.t0 + tq2, x0: s2.x0 + s2.vx * tq2, y0: yg, vx: s2.vx, vy: -e3 * vg2 });
-    var last = segs[3], tGone = last.t0 + Math.max(0.1, (W + 2 * r - last.x0) / Math.max(1, last.vx));
-    B = { W: W, H: H, vt: vt, vb: vb, r: r, g: g, tHit: tHit, segs: segs, contacts: [tHit, segs[2].t0, segs[3].t0], vin: [Math.abs(vin), Math.abs(vg), Math.abs(vg2)], tS: segs[0].t0, tGone: tGone, gy: gy, tx: tx, ty: ty };
-    B.headAt = typeof o.headAt === 'function' ? o.headAt : null;
-    ball.info = { tStart: B.tS, tHit: tHit, tGone: tGone, apex: { x: x0 + vx * t1, y: ya, t: B.tS + t1 }, impactSpeed: Math.abs(vin), restitution: [e1, e2, e3], gravity: g, r: r, entry: { x: x0, y: y0 }, vx: vx };
+    var W = o.W || S.W || 2773, H = o.H || S.H || 780;
+    var vt = S.visTop !== undefined ? S.visTop : 0, vb = S.visBottom !== undefined ? S.visBottom : H;
+    var r = Math.max(o.radius || 55, 40), tx = o.target.x, ty = o.target.y, tHit = o.tHit;
+    var x0 = o.entryX !== undefined ? o.entryX : -80, y0 = o.entryY !== undefined ? o.entryY : 400, flight = o.flight || 1.55;
+    var m = Math.tan((o.descentDeg || 20) * PI / 180);               // slope dy/dx at the impact
+    var Lx = tx - x0, vx = Lx / flight, spinD = o.spin !== undefined ? o.spin : 3.2;
+    var rotHit = -0.7;
+    // ---- the parabola y(x) = ya + k (x - xa)^2 through the entry (x0,y0) and the impact (tx,yT) with slope m at the impact.  yT depends on the stretch at the impact -> iterate.
+    var yT = ty - r * 1.1, k = 0, xa = 0, ya = 0, vyI = 0, syI = 1, sxI = 1, saI = 0, pass;
+    for (pass = 0; pass < 4; pass++) {
+      k = (y0 - yT + m * Lx) / (Lx * Lx); xa = tx - m / (2 * k); ya = yT - m * m / (4 * k);
+      vyI = m * vx;
+      syI = stretchOf(Math.hypot(vx, vyI), FLY_K); sxI = 1 / syI; saI = wrapHalf(Math.atan2(vyI, vx) - HALF_PI);
+      yT = ty - halfH(r, sxI, syI, saI);
+    }
+    var gF = 2 * k * vx * vx, tS = tHit - flight;
+    // ---- second parabola after the squash: released at the head, constant vx2 to the right edge, own gravity g2, apex at height exitApexY
+    var yRel = ty - r * SYE, apex2 = Math.min(o.exitApexY !== undefined ? o.exitApexY : 86, yRel - 40), rise2 = yRel - apex2, Ta2 = 0.55;
+    var vx2 = 1000, g2 = 2 * rise2 / (Ta2 * Ta2), vy2 = g2 * Ta2;
+    var P = {
+      W: W, H: H, vt: vt, vb: vb, r: r, tx: tx, ty: ty, tHit: tHit, tS: tS, x0: x0, y0: y0, vx: vx, k: k, xa: xa, ya: ya, gF: gF, spinD: spinD, rotHit: rotHit,
+      yT: yT, syI: syI, sxI: sxI, saI: saI, vyI: vyI, m: m,
+      tRel: tHit + HIT_DUR, yRel: yRel, apex2: apex2, Ta2: Ta2, vx2: vx2, g2: g2, vy2: vy2, tGone: 1e9,
+    };
+    B = P;
+    // when has the ball left the visible region for good (right edge / bottom / top)?
+    var tl = P.tRel, tg = tl + 4;
+    for (var tt = tl + 0.2; tt < tl + 4; tt += 0.004) {
+      evalBall(tt, SCR);
+      if (SCR.x > W + r * 2.2 || SCR.y > vb + r * 2.2 || SCR.y < vt - r * 3) { tg = tt; break; }
+    }
+    P.tGone = tg;
+    P.headAt = typeof o.headAt === 'function' ? o.headAt : null;
+    ball.info = {
+      tStart: tS, tHit: tHit, tRelease: P.tRel, tLaunch: P.tRel, tGone: tg, apex: { x: xa, y: ya, t: tS + (xa - x0) / vx }, bounceApex: { y: apex2, t: P.tRel + Ta2 },
+      impactVy: vyI, impactSpeed: Math.hypot(vx, vyI), duration: tg - tS, r: r, descentDeg: Math.atan(m) * 180 / PI, entry: { x: x0, y: y0 }, vx: vx, gravity: gF, k: k,
+    };
   };
 
   /** evaluate the ball at time t into o (no allocation) */
-  function evalBall(t, o) {
-    var P = B, r = P.r, i = 0, s;
-    while (i < P.segs.length - 1 && t >= P.segs[i + 1].t0) i++;
-    s = P.segs[i];
-    var tau = t - s.t0;
-    o.x = s.x0 + s.vx * tau; o.y = s.y0 + s.vy * tau + 0.5 * P.g * tau * tau; o.vx = s.vx; o.vy = s.vy + P.g * tau;
-    o.rot = 0.012 * (o.x - P.segs[0].x0);          // rolls / spins with the distance travelled
-    // squash at a contact only (held for a moment, then a stiff spring with a small overshoot)
-    var sq = 0;
-    for (var c = 0; c < P.contacts.length; c++) {
-      var dt = t - P.contacts[c];
-      if (dt >= 0 && dt < 0.25) { var s0 = Math.min(0.22, 0.22 * P.vin[c] / 2600); sq += dt < 0.016 ? s0 : s0 * Math.exp(-(dt - 0.016) * 18) * Math.cos((dt - 0.016) * 40); }
+  function evalBall(t, o, dy) {
+    dy = dy || 0;
+    var P = B, r = P.r, x, y, rot, sx = 1, sy = 1, sa = 0, squash = 0, phase, vx = 0, vy = 0, tau = 0;
+    if (t < P.tHit) {
+      phase = 'fly';
+      tau = t - P.tS;
+      x = P.x0 + P.vx * tau; var dxa = x - P.xa;                      // constant horizontal speed ...
+      y = P.ya + P.k * dxa * dxa; vx = P.vx; vy = 2 * P.k * dxa * P.vx;  // ... constant gravity: y(x) is an exact quadratic
+      rot = P.rotHit - P.spinD * (P.tHit - t);
+      var sp = Math.sqrt(vx * vx + vy * vy);
+      sy = stretchOf(sp, FLY_K); sx = 1 / sy;
+      sa = sp > 1 ? wrapHalf(Math.atan2(vy, vx) - HALF_PI) : 0;
+    } else if (t < P.tRel) {
+      phase = 'hit';
+      var h = t - P.tHit;
+      if (h < 0.03) sy = P.syI + (0.38 - P.syI) * easeOutQuad(h / 0.03);
+      else if (h < 0.05) sy = 0.38 + 0.02 * Math.sin(((h - 0.03) / 0.02) * PI);
+      else sy = 0.38 + (SYE - 0.38) * easeInOutQuad((h - 0.05) / 0.03);
+      sx = sy < 1 ? 1 + (1 - sy) * 1.05 : 1 / sy;
+      sa = P.saI * (1 - sstep(0, 0.03, h));
+      // the squash disc sits on the head: follow the head probe (headAt option of build(): the head dips ~80 units and shifts ~40 right within 0.09 s of the hit), else dy
+      var hx = P.tx, hy = P.ty + dy;
+      if (P.headAt) { var hp = P.headAt(t); hx = hp.x; hy = hp.y; }
+      x = hx; y = hy - halfH(r, sx, sy, sa);
+      rot = P.rotHit;
+      squash = clamp01((1 - sy) / 0.62);
+    } else {
+      phase = 'bounce';
+      var tb = t - P.tRel;
+      // second parabola: constant speed to the right, constant gravity g2, apex after Ta2
+      x = P.tx + P.vx2 * tb; y = P.yRel - P.vy2 * tb + 0.5 * P.g2 * tb * tb; vx = P.vx2; vy = -P.vy2 + P.g2 * tb;
+      rot = P.rotHit + 5 * tb + (17 / 3) * (1 - Math.exp(-3 * tb));
+      var spd = Math.sqrt(vx * vx + vy * vy), q0 = clamp01((Math.hypot(P.vx2, P.vy2) - 450) / 850);
+      var osc = Math.exp(-6 * tb) * Math.cos(TAU * 2.6 * tb), qn = clamp01((spd - 450) / 850);
+      sy = 1 + (SYE - 1 - BOUNCE_K * q0) * osc + BOUNCE_K * qn;
+      // anticipation squash at the apex just before the whoosh
+      sx = 1 / Math.max(0.6, sy);
+      sa = wrapHalf(Math.atan2(vy, vx) - HALF_PI) * sstep(0, 0.06, tb);
+      var fol = 1 - sstep(0, 0.12, tb), dyw = dy * fol, dxw = 0;       // follow the head while it springs back
+      if (P.headAt && tb < 0.12) { var hq = P.headAt(t); dyw = (hq.y - P.ty) * fol; dxw = (hq.x - P.tx) * fol; }
+      x += dxw;
+      y = tb < 0.3 ? Math.min(y + dyw, P.ty + dyw - halfH(r, sx, sy, sa)) : y;      // never sink into the head while it springs back
+      if (t > P.tGone) phase = 'gone';
     }
-    o.sy = 1 - sq; o.sx = 1 / o.sy; o.sa = 0; o.squash = Math.max(0, sq);
-    o.y += r * sq;          // the squashed ball keeps its bottom on what it hit
-    if (i === 1 && tau < 0.12 && P.headAt) { var hp = P.headAt(t); o.y += (hp.y - (P.ty + r)) * (1 - tau / 0.12); }          // (rides the head as it gives a little)
-    o.phase = t < P.tS ? 'wait' : t < P.tHit ? 'fly' : t > P.tGone ? 'gone' : 'bounce';
-    o.visible = o.phase !== 'wait' && o.phase !== 'gone' && o.x > -r * 2 && o.x < P.W + r * 2 && o.y > P.vt - r * 2 && o.y < P.vb + r * 2;
+    o.x = x; o.y = y; o.rot = rot; o.sx = sx; o.sy = sy; o.sa = sa; o.squash = squash; o.phase = phase; o.vx = vx; o.vy = vy;
+    o.visible = phase !== 'gone' && x > -r * 2 && x < P.W + r * 2 && y > P.vt - r * 2 && y < P.vb + r * 2 && !(phase === 'fly' && tau < 0);
     if (t >= cancelT) { o.visible = false; o.phase = 'gone'; }
     return o;
   }
 
-  ball.state = function (t) {
+  ball.state = function (t, dy) {
     var o = { x: 0, y: 0, rot: 0, sx: 1, sy: 1, sa: 0, squash: 0, visible: false, phase: 'gone', vx: 0, vy: 0 };
     if (!B) return o;
-    return evalBall(t, o);
+    return evalBall(t, o, dy);
   };
-  ball.arc = function (t) { if (!B) return { x: 0, y: 0 }; var s = evalBall(Math.min(t, B.tHit - 1e-6), { x: 0, y: 0 }); return { x: s.x, y: s.y }; };
+  /** pure path of the approach (debug): centre position for any t before the hit, ignoring squash */
+  ball.arc = function (t) {
+    if (!B) return { x: 0, y: 0 };
+    var s = evalBall(Math.min(t, B.tHit - 1e-6), { x: 0, y: 0 });
+    return { x: s.x, y: s.y };
+  };
+  /** the old dashed 'future path' guide pre-announced the hit and was removed; kept as a no-op so existing callers do not break */
   ball.hint = function () {};
   ball.reset = function () { cancelT = Infinity; };
-  /** the ball disappears from time t on (earliest call wins; build() clears it) */
+  /** the ball disappears from time t on (earliest call wins; build() clears it). state() / draw() are still pure functions of (t, cancel time). */
   ball.cancel = function (t) { if (B && t < cancelT) cancelT = t; };
-  /** cancel(t) + the ball pops like a bubble into a few light hairline fragments at its position at time t */
-  ball.pop = function (t) {
+  /** cancel(t) + the ball bursts into small black cubes and dots at its position at time t (they fall out of the stage like all other cubes) */
+  var popRng = null;
+  ball.pop = function (t, dy) {
     if (!B || !(t < cancelT)) return false;
-    var o = evalBall(t, SCR), x = o.x, y = o.y, r = B.r, i;
+    var o = evalBall(t, SCR, dy), x = o.x, y = o.y, r = B.r, vis = o.visible, bvx = o.vx, bvy = o.vy, i;
     cancelT = t;
-    if (!o.visible) return false;
-    var rng = U.rng(4711 + Math.round(t * 1000)), kinds = ['tick', 'tick', 'ring', 'dot'];
-    for (i = 0; i < 18; i++) {
-      var a = rng.range(0, TAU), rr = r * Math.sqrt(rng.next());
-      dots.spawn(FX.bubbleFragment({ x: x + Math.cos(a) * rr, y: y + Math.sin(a) * rr, r: 2 + 2 * rng.next(), t0: t + rng.range(0, 0.03), vx: Math.cos(a) * rng.range(120, 360) + o.vx * 0.2, vy: Math.sin(a) * rng.range(120, 360) + o.vy * 0.2, kind: kinds[rng.int(0, 3)], z: rng.range(-0.4, 1) }, false));
+    if (!vis) return false;
+    var rng = U.rng(4711 + Math.round(t * 1000));
+    var nC = 20, nD = 44, spread = r * 0.9;
+    var bs = Math.min(1, Math.hypot(bvx, bvy) / 1800);                 // fast ball: the debris keeps part of its momentum
+    for (i = 0; i < nC; i++) {
+      var ang = rng.range(0, TAU), rad = spread * Math.sqrt(rng.next()), dir = ang + rng.range(-0.35, 0.35);
+      var sz = i < 3 ? rng.range(14, 24) : 4 + 11 * Math.pow(rng.next(), 1.5);
+      var sp = rng.range(420, 1050) * (1.2 - 0.55 * sz / 24);
+      cubes.spawn({
+        x: x + Math.cos(ang) * rad, y: y + Math.sin(ang) * rad, size: sz, t0: t + rng.range(0, 0.025),
+        vx: Math.cos(dir) * sp + bvx * 0.3 * bs, vy: Math.sin(dir) * sp - rng.range(80, 320) + bvy * 0.3 * bs,
+        spin: [rng.range(-1, 1) * 12, rng.range(-1, 1) * 12, rng.range(-1, 1) * 9],
+        rot0: [rng.range(0, TAU), rng.range(0, TAU), rng.range(0, TAU)],
+        z: rng.range(-0.4, 1), hover: rng.range(0.14, 0.42),
+      });
+    }
+    var kinds = ['dot', 'dot', 'dot', 'ring', 'square', 'tick', 'dot', 'tick', 'tick'];
+    for (i = 0; i < nD; i++) {
+      var a2 = rng.range(0, TAU), r2 = spread * 1.05 * Math.sqrt(rng.next()), d2 = a2 + rng.range(-0.5, 0.5), sp2 = rng.range(300, 1250);
+      var kd = kinds[rng.int(0, kinds.length - 1)];
+      dots.spawn({
+        x: x + Math.cos(a2) * r2, y: y + Math.sin(a2) * r2, r: kd === 'tick' ? 3 + 3.6 * rng.next() : 1 + 3.4 * Math.pow(rng.next(), 1.8), t0: t + rng.range(0, 0.04),
+        vx: Math.cos(d2) * sp2 + bvx * 0.25 * bs, vy: Math.sin(d2) * sp2 - rng.range(0, 240) + bvy * 0.25 * bs, kind: kd,
+        z: rng.range(-0.4, 1), hover: rng.range(0.1, 0.38), tone: rng.next() < 0.15 ? 1 : 0, rot: Math.atan2(Math.sin(d2), Math.cos(d2)), spin: 0,
+      });
     }
     return true;
   };
 
-  ball.draw = function (ctx, t) {
+  /** tennis-ball seam: the classic baseball/tennis curve on the unit sphere
+        x=(1-k)cos t + k cos 3t,  y=(1-k)sin t - k sin 3t,  z=2 sqrt(k(1-k)) sin 2t
+      spun / tilted in 3D; the front half is drawn as tapering white ribbons clipped to the disc (so seams slide over the horizon). */
+  var SEAM_K = 0.27, SEAM_Z = 2 * Math.sqrt(SEAM_K * (1 - SEAM_K));
+  function drawSeams(ctx, r, rot) {
+    var al = rot * 0.85, be = 0.8 + 0.25 * Math.sin(rot * 0.37), ga = 0.5 + rot * 0.2;
+    var ca = Math.cos(al), sa = Math.sin(al), cb = Math.cos(be), sb = Math.sin(be), cg = Math.cos(ga), sg = Math.sin(ga);
+    var k, tt, X, Y, Z, t, kk = SEAM_K;
+    for (k = 0; k < SEAM_N; k++) {
+      tt = (k / SEAM_N) * TAU;
+      X = (1 - kk) * Math.cos(tt) + kk * Math.cos(3 * tt);
+      Z = -((1 - kk) * Math.sin(tt) - kk * Math.sin(3 * tt));
+      Y = SEAM_Z * Math.sin(2 * tt);                                   // polar axis = screen Y before rotation
+      t = X * ca + Z * sa; Z = -X * sa + Z * ca; X = t;                // spin about the polar axis
+      t = Y * cb - Z * sb; Z = Y * sb + Z * cb; Y = t;                 // tilt
+      t = X * cg - Y * sg; Y = X * sg + Y * cg; X = t;                 // roll
+      seamX[k] = X * r; seamY[k] = Y * r; seamZ[k] = Z;
+    }
+    var start = -1;
+    for (k = 0; k < SEAM_N; k++) if (seamZ[k] <= 0) { start = k; break; }
+    if (start < 0) return;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(0, 0, r - 0.01, 0, TAU); ctx.clip();
+    ctx.fillStyle = ST.PAPER; ctx.globalAlpha *= 0.8;
+    var m = 1, wmax = r * 0.065, c, idx, vis;       // slot 0 is reserved for the extrapolated start point
+    for (c = 1; c <= SEAM_N + 1; c++) {
+      idx = (start + c) % SEAM_N; vis = seamZ[idx] > 0 && c <= SEAM_N;
+      if (vis) {
+        runX[m] = seamX[idx]; runY[m] = seamY[idx];
+        runW[m] = wmax * (0.1 + 0.9 * Math.pow(clamp01(seamZ[idx] / 0.5), 0.65));
+        m++;
+      }
+      if ((!vis || c === SEAM_N + 1) && m > 1) {
+        if (m > 3) {
+          // extend both ends past the horizon (the clip trims them) so a seam never stops inside the disc
+          runX[0] = runX[1] - 1.8 * (runX[2] - runX[1]); runY[0] = runY[1] - 1.8 * (runY[2] - runY[1]); runW[0] = runW[1];
+          runX[m] = runX[m - 1] + 1.8 * (runX[m - 1] - runX[m - 2]); runY[m] = runY[m - 1] + 1.8 * (runY[m - 1] - runY[m - 2]); runW[m] = runW[m - 1];
+          ribbonPath(ctx, runX, runY, runW, m + 1); ctx.fill();
+        }
+        m = 1;
+      }
+    }
+    ctx.restore();
+  }
+
+  ball.draw = function (ctx, t, dy) {
     if (!B || t >= cancelT) return;
-    var o = evalBall(t, SCR);
+    var o = evalBall(t, SCR, dy), r = B.r;
     if (!o.visible) return;
-    var h = Math.max(0, B.gy - o.y - B.r), sc = 1 / (1 + h / 260);          // a faint ground shadow: smaller and fainter the higher it flies
-    FX.shadow(ctx, { x: o.x, y: B.gy + 4, w: B.r * 2.4 * sc, h: B.r * 0.42 * sc, alpha: 0.14 * sc });
-    ball.drawPose(ctx, o.x, o.y, B.r, o.rot, o.sx, o.sy, o.sa, 0);
+    // faint ground shadow: the lob's height cue (shrinks and fades with height; follows the ball along the ground; gone at the impact, back as the ball sails off to the right)
+    var gy = (GA.stage && GA.stage.groundY !== undefined ? GA.stage.groundY : 700) + 4, hgt = Math.max(0, gy - o.y), sc = 0.3 + 0.7 * Math.exp(-hgt / 520);
+    var sal = o.phase === 'fly' ? sstep(r * 1.4, r * 4.5, o.x) * (1 - sstep(B.tHit - 0.05, B.tHit, t)) : o.phase === 'bounce' ? sstep(B.tx + 150, B.tx + 420, o.x) * (1 - sstep(B.W - 5 * r, B.W - 1.5 * r, o.x)) : 0;   // never cut by a screen edge
+    if (sal > 0.01) FX.shadow(ctx, { x: o.x, y: gy, w: r * 2.8 * sc, h: r * 0.5 * sc, alpha: 0.2 * sc * sal });
+    // cartoon speed streaks trailing the ball while it is fast (plunge, boing, whoosh): three tapered ink needles opposite to the velocity
+    var spd = Math.hypot(o.vx, o.vy);
+    if (o.phase !== 'hit' && spd > 750) {
+      var al2 = clamp01((spd - 750) / 650) * 0.9 * (1 - sstep(B.W, B.W + 1.8 * r, o.x)), dxn = o.vx / spd, dyn = o.vy / spd, nxn = -dyn, nyn = dxn, L = Math.min(110, spd * 0.085);
+      if (dxn > 0.2) L = Math.min(L, Math.max(0, (o.x - dxn * r * 1.5 - 12) / dxn));        // short needles exactly along the tangent, never cut by the left screen edge
+      if (L < 12) al2 = 0;
+      if (al2 > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = al2; ctx.fillStyle = ST.INK; ctx.beginPath();
+      for (var li = -1; li <= 1; li++) {
+        var off = li * r * 0.62, len = li === 0 ? L : L * 0.66, wd = li === 0 ? 5 : 3.8;
+        var bx = o.x - dxn * r * (1.3 + 0.12 * (li & 1)) + nxn * off, by = o.y - dyn * r * (1.3 + 0.12 * (li & 1)) + nyn * off;
+        ctx.moveTo(bx + nxn * wd * 0.5, by + nyn * wd * 0.5);
+        ctx.lineTo(bx - dxn * len, by - dyn * len);
+        ctx.lineTo(bx - nxn * wd * 0.5, by - nyn * wd * 0.5);
+        ctx.closePath();
+      }
+      ctx.fill();
+      ctx.restore();
+      }
+    }
+    ball.drawPose(ctx, o.x, o.y, r, o.rot, o.sx, o.sy, o.sa, o.phase === 'bounce' ? 2.6 : 0);
   };
-  /** the boop ball at an arbitrary pose (also used by the GPU warm-up): a paper disc, an ink hairline ring, a short spin mark and a dot, like the thoughts */
-  ball.drawPose = function (ctx, x, y, r, rot, sx, sy, sa) {
-    var S = GA.stage || {}, lw = Math.max(1.3 / (S.scale > 0 ? S.scale : 0.5), 1.1 / (S.px > 0 ? S.px : 1));          // 1.3 CSS px, never below 1.1 device px
+  /** draw the ball body + seams at an arbitrary pose (used by draw(); handy for tests) */
+  ball.drawPose = function (ctx, x, y, r, rot, sx, sy, sa, rim) {
     ctx.save();
     ctx.translate(x, y);
     if (sa) ctx.rotate(sa);
     ctx.scale(sx, sy);
-    ctx.fillStyle = ST.PAPER; ctx.strokeStyle = ST.INK; ctx.lineWidth = lw; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill(); ctx.stroke();
-    ctx.rotate(rot || 0);
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.62, -0.5, 0.9); ctx.stroke();
-    ctx.fillStyle = ST.INK; ctx.beginPath(); ctx.arc(-r * 0.28, -r * 0.3, Math.max(lw, r * 0.07), 0, TAU); ctx.fill();
+    if (rim > 0) { ctx.fillStyle = ST.PAPER; ctx.beginPath(); ctx.arc(0, 0, r + rim, 0, TAU); ctx.fill(); }   // crisp paper rim: the black ball stays readable over the black cubes
+    ctx.fillStyle = ST.INK;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
+    drawSeams(ctx, r, rot);
     ctx.restore();
   };
 
@@ -3807,90 +3769,76 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
 
 
 /* ===== timeline.js ===== */
-/* Timeline (round 12: the ACTING SCRIPT of the brief "she enjoys the chaos of her own brain") + the '+' reaction clips - all PURE functions of time; the scene integrates them.
+/* Timeline (baseline loop = scenario A; ROUND 10: the thinking phase lasts ~20 s, the loop ~38 s) + reaction clips (scenarios B/C/D/E) — all PURE functions of time; the scene integrates them.
    GA.timeline.build(W, {stride, strideRun}) -> T
-     T.duration, T.cues        loop length (s, ~29) and named loop-local times
+     T.duration, T.cues        loop length (s) and named loop-local times
      T.poseAt(tl)              baseline girl pose at loop-local time tl (also valid for tl<0 : hair pre-roll)
      T.intensity(tl)           0..1 thinking energy (wind on hair)
      T.reaction(kind, cap, rt) -> controls for the reaction clip `kind` ('stand' | 'walk' | 'walkHop' | 'duck'), rt = seconds since the press;
                                cap = state captured at the press {x, yaw, speed, pose0, tl0}. Returns {pose (everything except x/phase), speed, run, stride, done, exited}
-     T.thoughtPlan             the thought cloud's schedule for this script (beats in k = seconds after cues.thinkStart, see GA.thoughts build({plan}))
-   The script (k = seconds after thinkStart): 0 entrance (walk in from fully off-screen right, a curious glance up half way), 1 arrive and settle (a rise on to the toes, the heels
-   settle with a soft knee bend, hands loosely together), 2 turn and hello (the head leads, a tiny hop on the last quarter, a bright little wave at ~2.2 Hz, a happy bounce),
-   3 the first idea (look up, up on the toes, hands clasped under the chin 'ooh!', a gasp-hop when the first big idea appears), 4 playing (poke a floating piece, tap a bulb
-   on tiptoe so it lights, point and giggle, sway with the orbit, a tapping toe), 5 conducting the swirl, then 'mind blown' (fingertips to the temples, chin up, then a burst up
-   and out with a hop as the fireworks go off), 6 a giddy twirl on the toes, a happy wobble, a laugh, 7 the boop (a round thought bounces in and boops the top of her head:
-   a tiny squash, a comic freeze, a giggle; all the thoughts pop like soap bubbles and she catches a falling bit), 8 afterglow (a pat on the head, a happy shrug, a hop round
-   to profile, skips into the walk, two glances back, the second with a tiny wave), 9 peek-a-boo from the LEFT edge (where she left), then empty, loop.
-   Emotional range: curious, delighted, playful, giddy, cheeky.  Hands touch the head only in mind-blown, the head pat and the giggle (each <= 0.35 s), never with the chin down.
-   Gestures in front of the body are staged at three-quarter yaw (0.45-0.7) so they read in silhouette.  Hops use the page's one gravity (3.0 screen heights / s^2). */
+   Constants: V_WALK/V_RUN world units per second; M_RIGHT/M_LEFT distance beyond the screen edge at which she is completely out of sight. */
 (function () {
   var GA = (window.__landingGirl = window.__landingGirl || {});
   var U = GA.util;
 
-  var V_WALK = 400; // the cute walk: 0.8 body heights per second (2.4 steps/s with the rig's 330 u stride)
-  var V_RUN = 740; // round 12: a light, quick, girlish run (3.4 steps/s with the 430 u stride), not a sprint
-  var M_RIGHT = 260; // root x beyond the right edge where she is completely out of sight (round 12: the first frame is empty, she walks in)
+  var V_WALK = 400; // relaxed child's walk = 0.8 body heights per second (round 10 GAIT: 2.1 steps/s with the rig's 380 u stride)
+  var V_RUN = 940; // comedic scurry
+  var M_RIGHT = 120; // root x beyond the right edge where the nose is just off-screen (she enters at once: no dead time)
   var M_LEFT = 200; // root x beyond the left edge where the ponytail has completely left
-  var M_PARK = 260; // parking spot off the right edge (hidden)
-  var PEEK_DX = 4; // peek root x beyond the screen edge (hips, skirt and legs stay hidden at every moment of the slide-in / duck)
-
-  /** the page's one gravity in world units per s^2 (3.0 screen heights per s^2, converted with the stage scale): hops, the boop ball and the navigation ball fall alike */
-  function gWorld() {
-    var S = GA.stage || {}, h = (typeof window !== 'undefined' && window.innerHeight) || 900;
-    return Math.max(1500, Math.min(12000, 3.0 * h / (S.scale > 0 ? S.scale : 0.5)));
-  }
+  var M_PARK = 260; // parking spot off the right edge (peek start / hidden)
+  var PEEK_DX = 4; // peek root x beyond the right edge (rig geometry: with the root at W+4 hips, skirt and legs stay hidden at every moment of the slide-in / duck, no overshoot past W)
+  var PEEK_LEAN = 1.5; // torso lean while peeking (~45 deg)
 
   function build(W, opts) {
     opts = opts || {};
     var G = GA.stage.groundY;
-    var STRIDE = opts.stride || 330;
-    var STRIDE_RUN = opts.strideRun || 430;
+    var STRIDE = opts.stride || 410;
+    var STRIDE_RUN = opts.strideRun || 340;
     var xStop = W * 0.5;
     var xStart = W + M_RIGHT;
-    var gW = gWorld();
     var c = {};
 
-    // ---- beat 0: walk in from the right edge (already at full walking speed, fully off screen at t = 0)
-    var dDec = 230, dAcc = 190;
+    // ---- 1. walk in from the right edge (already at full walking speed at t=0) ----
+    var dDec = 190, dAcc = 190;
     var inD = xStart - xStop;
     var tDec = (2 * dDec) / V_WALK;
     var inCruise = (inD - dDec) / V_WALK;
     c.walkInEnd = inCruise + tDec;
     c.inCruise = inCruise;
-    // ---- beats 1 + 2: settle, turn, hello
-    var a0 = c.walkInEnd;
-    c.turnFront0 = a0 + 0.55;          // the settle has 0.55 s (G2: at least 0.35 s between the stop and the turn)
-    c.turnFront1 = c.turnFront0 + 0.9;
-    c.helloEnd = c.turnFront1 + 1.25;
-    // ---- beats 3-7: the thinking performance (k = seconds after thinkStart; the thought cloud uses the same k)
-    var K0 = c.turnFront1 + 1.35;
-    c.thinkStart = K0;
-    c.dots = K0 + 0.15;               // the first thought dot
-    c.swirlStart = K0 + 0.55;         // the big dot launches the first arc
-    var K_HIT = 10.6;                 // the boop
-    c.tHit = K0 + K_HIT;
-    c.ballIn = c.tHit - 0.95;
-    c.swirlFull = K0 + K_HIT - 2.6;   // (the cloud is complete ~8 s in; the module's acts then run at their own pace: kScale 1)
-    c.owStart = Infinity;             // (no impact ticks: they read as hurt)
-    c.scratch1 = c.tHit + 1.0; c.shake1 = c.tHit + 1.6;          // (old cue names kept for phaseName)
-    // ---- beat 8: afterglow, turn to profile with a hop, skip away to the left
-    c.pat0 = c.tHit + 1.1;
-    c.shrug0 = c.tHit + 1.55;
-    c.turnLeft0 = c.tHit + 2.2;
-    c.turnLeft1 = c.turnLeft0 + 0.7;
-    c.walkOut0 = c.turnLeft1 - 0.15;
+    // ---- 2. turn to the front, think ~10 s ----
+    c.turnFront0 = c.walkInEnd + 0.12;
+    c.turnFront1 = c.turnFront0 + 1.05;
+    c.thinkStart = c.turnFront1;
+    c.dots = c.turnFront1 + 0.2; // thought dots rise
+    c.swirlStart = c.dots + 0.9; // big dot launches the first arc
+    c.swirlFull = c.swirlStart + 16.6; // the cloud is complete here (round 10: the thought process is 10 s LONGER, ~20 s in total)
+    c.tHit = c.turnFront1 + 20.3; // ball bonks her head (≈20 s of thinking; was 10.3)
+    c.ballIn = c.tHit - 1.55; // ball enters the screen
+    // round-10 acts of the (now ~20 s) thought process, seconds after turnFront1: I spark 0-5.5, II ideas multiply 5.5-12, III overload 12-17.7, IV funnel tightens + ball 17.7-20.3
+    c.actII = c.turnFront1 + 5.5;
+    c.actIII = c.turnFront1 + 12.0;
+    c.actIV = c.tHit - 2.6;
+    // ---- 3. reaction ----
+    c.owStart = c.tHit + 0.03;
+    c.scratch0 = c.tHit + 0.85; // hand drifts up after the stagger
+    c.scratch1 = c.tHit + 2.2;
+    c.shake0 = c.tHit + 2.25;
+    c.shake1 = c.shake0 + 1.15;
+    c.turnLeft0 = c.shake1 - 0.1;
+    c.turnLeft1 = c.turnLeft0 + 0.95;
+    // ---- 4. walk away (walk, never run) out of the left edge ----
+    c.walkOut0 = c.turnLeft1 - 0.2;
     var tAcc = (2 * dAcc) / V_WALK;
-    var outD = xStop + M_LEFT;
+    var outD = xStop + M_LEFT; // distance to x = -M_LEFT
     c.walkOutEnd = c.walkOut0 + tAcc + (outD - dAcc) / V_WALK;
-    // ---- beat 9: peek-a-boo from the LEFT edge (where she left), duck out, empty, loop
-    c.peek0 = c.walkOutEnd + 0.6;
-    c.peekIn1 = c.peek0 + 0.55;
-    c.peekOut0 = c.peekIn1 + 0.95;
-    c.peekOut1 = c.peekOut0 + 0.4;
-    c.teleport = c.peekOut1 + 0.1;    // she is off-screen left: hair reset, re-parked off-screen right for the next walk-in
-    c.rebuild = c.peekOut1 + 0.3;     // nothing on screen: modules are rebuilt here (no visible hitch)
-    c.loopEnd = c.peekOut1 + 1.3;     // >= 1.2 s of empty page: the next walk-in reads as a new moment
+    // ---- 5. immediate peek from the right edge, withdraw, 1 s empty, loop ----
+    c.teleport = c.walkOutEnd + 0.08; // she is off-screen left: hair sim reset, she is re-parked off-screen right
+    c.peek0 = c.walkOutEnd + 0.4;
+    c.peekIn1 = c.peek0 + 0.5;
+    c.peekOut0 = c.peekIn1 + 1.5; // beats: look into the scene, double-take at the viewer, hold, shy duck-out
+    c.peekOut1 = c.peekOut0 + 0.55;
+    c.rebuild = c.peekOut1 + 0.25; // nothing on screen: modules are rebuilt here (no visible hitch)
+    c.loopEnd = c.peekOut1 + 0.85;
     var duration = c.loopEnd;
 
     function distIn(t) {
@@ -3917,48 +3865,34 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (tau >= tAcc) return V_WALK;
       return V_WALK * 0.5 * (1 - Math.cos((Math.PI * tau) / tAcc));
     }
-    var amountOf = function (v) { return U.smoothstep(0.01, 0.3, v / V_WALK); }; // full stride until she is nearly stopped
-    // the steps SHRINK as she slows to a stop and GROW as she sets off; round 12 (G2): the stride factor changes only at a footfall (it is held for a whole step), so a
-    // planted foot never slides because the stride changed under it
-    var kWalkV = function (v) { return U.lerp(0.5, 1, U.smoothstep(0.05, 0.75, v / V_WALK)); };
-    var PH_N = 320, decPh = [0], accPh = [0], decK = [1], accK = [1], pi, kHold, phPrev, vD, vA;
-    kHold = 1; phPrev = 0;
+    var amountOf = function (v) { return U.smoothstep(0.01, 0.3, v / V_WALK); }; // full stride until she is nearly stopped (less foot skating)
+    // round 11: the steps SHRINK as she slows to a stop and GROW as she sets off (a real stop is a few short, quick steps; a constant stride at a falling speed is a wide-legged crawl).
+    // phase = integral of speed / (STRIDE x kWalk(speed)); the rig scales its foot travel by the same factor (pose.gait.stride), so the planted feet still do not slide.
+    var kWalk = function (v) { return U.lerp(0.5, 1, U.smoothstep(0.05, 0.75, v / V_WALK)); };
+    var PH_N = 160, decPh = [0], accPh = [0], pi;
     for (pi = 1; pi <= PH_N; pi++) {
-      vD = V_WALK * 0.5 * (1 + Math.cos((Math.PI * (pi - 0.5)) / PH_N));
-      var phD = (V_WALK * inCruise) / STRIDE + decPh[pi - 1];
-      if (Math.floor(2 * phD + 0.1) !== Math.floor(2 * phPrev + 0.1)) kHold = kWalkV(vD);          // a new step starts: take the stride for the speed now
-      phPrev = phD;
-      decK.push(kHold); decPh.push(decPh[pi - 1] + (vD / (STRIDE * kHold)) * (tDec / PH_N));
-    }
-    kHold = kWalkV(0); phPrev = 0.25;
-    for (pi = 1; pi <= PH_N; pi++) {
-      vA = V_WALK * 0.5 * (1 - Math.cos((Math.PI * (pi - 0.5)) / PH_N));
-      var phA = 0.25 + accPh[pi - 1];
-      if (Math.floor(2 * phA + 0.1) !== Math.floor(2 * phPrev + 0.1)) kHold = kWalkV(vA);
-      phPrev = phA;
-      accK.push(kHold); accPh.push(accPh[pi - 1] + (vA / (STRIDE * kHold)) * (tAcc / PH_N));
+      var vD = V_WALK * 0.5 * (1 + Math.cos((Math.PI * (pi - 0.5)) / PH_N)), vA = V_WALK * 0.5 * (1 - Math.cos((Math.PI * (pi - 0.5)) / PH_N));
+      decPh.push(decPh[pi - 1] + (vD / (STRIDE * kWalk(vD))) * (tDec / PH_N));
+      accPh.push(accPh[pi - 1] + (vA / (STRIDE * kWalk(vA))) * (tAcc / PH_N));
     }
     function tab(a, u) { var f = U.clamp(u) * PH_N, i = Math.min(PH_N - 1, Math.floor(f)); return a[i] + (a[i + 1] - a[i]) * (f - i); }
-    function tabK(a, u) { return a[Math.min(PH_N, Math.max(1, Math.ceil(U.clamp(u) * PH_N)))]; }
     function phaseIn(t) {
       if (t <= inCruise) return (V_WALK * t) / STRIDE;
       if (t >= c.walkInEnd) return (V_WALK * inCruise) / STRIDE + decPh[PH_N];
       return (V_WALK * inCruise) / STRIDE + tab(decPh, (t - inCruise) / tDec);
     }
-    function strideKIn(t) { return t <= inCruise ? 1 : t >= c.walkInEnd ? decK[PH_N] : tabK(decK, (t - inCruise) / tDec); }
     function phaseOut(t) {
       var tau = t - c.walkOut0;
       if (tau <= 0) return 0.25;
       if (tau >= tAcc) return 0.25 + accPh[PH_N] + (V_WALK * (tau - tAcc)) / STRIDE;
       return 0.25 + tab(accPh, tau / tAcc);
     }
-    function strideKOut(t) { var tau = t - c.walkOut0; return tau <= 0 ? accK[1] : tau >= tAcc ? 1 : tabK(accK, tau / tAcc); }
     function bump(t, a, b, c1, d) { return U.smoothstep(a, b, t) * (1 - U.smoothstep(c1, d, t)); }
 
-    function turnLeftAt(t, headYawIn, base) {
+    function turnLeftAt(t, headYawIn) {
       var ul = U.clamp((t - c.turnLeft0) / (c.turnLeft1 - c.turnLeft0));
       var lead = -0.55 * Math.sin(Math.PI * Math.min(1, ul * 1.1)) * (1 - U.smoothstep(0.8, 1, ul));
-      return { yaw: base + (1 - U.easeInOutCubic(ul)), headYaw: lead + headYawIn * (1 - U.smoothstep(0, 0.2, ul)), twist: -0.5 * Math.sin(Math.PI * (1 - (1 - ul) * (1 - ul))) };          // (head leads, then the shoulders, then the hips)
+      return { yaw: 1 - U.easeInOutCubic(ul), headYaw: lead + headYawIn * (1 - U.smoothstep(0, 0.2, ul)), twist: -0.5 * Math.sin(Math.PI * (1 - (1 - ul) * (1 - ul))) };          // (head leads, then the shoulders, then the hips)
     }
 
     function intensity(t) {
@@ -3968,408 +3902,370 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     function newPose(t) {
       return {
         x: xStop, y: G, yaw: 0,
-        gait: { amount: 0, phase: 0, speed: 0, run: 0, skip: 0 },
+        gait: { amount: 0, phase: 0, speed: 0, run: 0 },
         headYaw: 0, headPitch: 0, headRoll: 0, lean: 0, peek: 0, flinch: 0, dizzy: 0, bow: 0, twist: 0, chestHand: 0, squash: 0, scratch: 0, scratchT: 0, think: 0, shudder: 0, shudderT: 0, air: 0,
-        startle: 0, spread: 0, poke: 0, clutch: 0, shrug: 0, reach: 0, wave: 0, thinkT: -1,
-        tiptoe: 0, bodyRoll: 0, giggle: 0, toeTap: 0, weight: 0, feet: 0, footUp: 0, hand: [null, null],
+        startle: 0, spread: 0, poke: 0, clutch: 0, shrug: 0, reach: 0, wave: 0, thinkT: -1,          // round 10: startle ticks, open hands, poke at the air, both hands to the head, sheepish shrug, reach down to the console, thinking-script clock (s since turnFront1, -1 = off)
         wind: { x: 0, y: 0 }, t: t,
       };
     }
 
-    // ---- small building blocks of the performance (all smooth envelopes of time)
-    /** a hand target with weight w (see the rig's handIn); null when the weight is negligible */
-    function hand(w, f, at, o) {
-      if (!(w > 0.002)) return null;
-      var h = { w: Math.min(1, w), f: f, at: at };
-      if (o) for (var k in o) h[k] = o[k];
-      return h;
-    }
-    /** puts a hand target on side i (0 = left, 1 = right), blending with what is already there (the heavier one wins the frame, the lighter one fades under it) */
-    function setHand(p, i, h) {
-      if (!h) return;
-      var o = p.hand[i];
-      if (!o || h.w >= o.w) p.hand[i] = h;
-    }
-    /** a hop with the page's gravity: crouch (anticipation), take-off, flight of the right length for the height, landing squash with a little rebound.  Adds to p.y / p.squash / p.air. */
-    function hop(p, t, t0, hgt, crouch) {
-      var T = 2 * Math.sqrt((2 * hgt) / gW), v0 = gW * T / 2, tau = t - t0, ca = crouch === undefined ? 0.16 : crouch;
-      if (tau > -0.16 && tau < 0) p.squash += ca * U.smoothstep(-0.16, -0.05, tau);
-      if (tau >= 0 && tau <= T) { p.y -= v0 * tau - 0.5 * gW * tau * tau; p.air = Math.max(p.air, 0.55 * Math.sin(Math.PI * tau / T)); p.squash -= 0.06 * Math.sin(Math.PI * tau / T); }
-      if (tau > T && tau < T + 0.32) { var l = tau - T; p.squash += (0.14 + 0.03 * hgt / 20) * Math.exp(-l * 14) * Math.cos(l * 20) * U.smoothstep(0, 0.02, l); }
-      return T;
-    }
-    function giggleOn(p, t, a, b, amt) { p.giggle = Math.max(p.giggle, (amt === undefined ? 1 : amt) * bump(t, a, a + 0.08, b - 0.1, b)); }
-
-    // ================= beats 3-8: THE THINKING PERFORMANCE (k = seconds after thinkStart).  Sync points shared with the thought cloud (T.thoughtPlan):
-    //   first dot 0.15, first big idea 0.9 (gasp-hop), the bulb she taps 3.0, fireworks 7.35 (mind blown), the orbits follow her conducting (5.7-6.9) and her twirl (8.25-9.15),
-    //   the boop 10.6 (every thought pops like a soap bubble), she catches a falling bit 11.0-11.5, pats her head 11.7, shrugs 12.15, turns to profile 12.8. =================
-    var cloudOn = true;          // (the scene latches this once per loop, just before her first thought: no cloud = a simple happy idle, no gestures at nothing)
-    var SPIN_YAW0 = 0.9;          // the heading she twirls from (three quarters to the front): her left foot is pinned relative to it from the twirl until the walk
-    var KB = { hero: 0.9, poke: 1.9, tap: 3.0, point0: 3.7, giggle: 4.1, sway0: 4.5, conduct0: 5.7, temples: 7.0, burst: 7.3, twirl0: 8.25, twirl1: 9.15, laugh: 9.9, boop: K_HIT };
-    function happyIdle(p, k) {
-      var s = U.smoothstep(0, 0.6, k);
-      p.yaw = 0.9 - 0.15 * Math.sin(k * 0.4) * s;
-      p.bodyRoll += 0.35 * Math.sin(Math.PI * 2 * 0.4 * k) * s;
-      p.headYaw = (0.25 * Math.sin(k * 0.53) + 0.1 * U.noise1(k * 0.9, 3)) * s; p.headPitch = (0.12 + 0.1 * Math.sin(k * 0.71)) * s; p.headRoll = 0.2 * Math.sin(k * 0.47 + 1) * s;
-      p.tiptoe = Math.max(p.tiptoe, 0.6 * bump(k, 3.0, 3.2, 3.6, 3.9)); p.toeTap = Math.max(p.toeTap, 0.6 * bump(k, 5.0, 5.3, 7.0, 7.4));
-      giggleOn(p, k, 8.2, 8.7, 0.7);
-      p.footYaw = 1; p.footYawW = 1;
-    }
-    function thinkPerf(p, k, t) {
-      if (!cloudOn && k < KB.boop - 0.9) { happyIdle(p, k); return; }
-      var yb = 0.9, w, u, i;
-      // base: a dreamy look around (small, varied head tilts; never a fixed loop)
-      var settle = U.smoothstep(0, 0.6, k);
-      var hy = (0.18 * Math.sin(k * 0.71 + 0.4) + 0.08 * U.noise1(k * 1.1, 5)) * settle, hp = (0.18 + 0.08 * Math.sin(k * 0.66)) * settle, hr = 0.16 * Math.sin(k * 0.53 + 1.3) * settle;
-      var yaw = yb;
-
-      // ---- beat 3: the first idea (0-1.7): a quick look up, up on the toes, hands clasped under the chin at 3/4 ('ooh!'), a gasp-hop when the first big idea appears,
-      //      the head follows the first swirl arm round with delight (a little overshoot on the head spring here)
-      var look = bump(k, 0.05, 0.2, 1.4, 1.75);
-      hp += 0.45 * look; hy += 0.2 * look;
-      var clasp = bump(k, 0.25, 0.6, 1.45, 1.8);
-      yaw = U.lerp(yaw, 0.6, bump(k, 0.15, 0.5, 1.5, 1.85));
-      p.tiptoe = Math.max(p.tiptoe, 0.85 * bump(k, 0.15, 0.32, 1.35, 1.7));
-      setHand(p, 0, hand(clasp, 'head', [30, -5, -68], { pole: [0.2, -1, -1], hd: [0.3, 0.2, 1], fist: 0.55 }));
-      setHand(p, 1, hand(clasp, 'head', [30, 5, -68], { pole: [0.2, 1, -1], hd: [0.3, -0.2, 1], fist: 0.55 }));
-      hop(p, k, KB.hero + 0.05, 14, 0.1);
-      w = bump(k, KB.hero + 0.04, KB.hero + 0.09, KB.hero + 0.16, KB.hero + 0.26);          // the arms flick out and back to the clasp in the gasp-hop
-      setHand(p, 0, hand(w * 0.9, 'chest', [22, -88, 40], { open: 1 })); setHand(p, 1, hand(w * 0.9, 'chest', [22, 88, 40], { open: 1 }));
-      var follow = bump(k, 1.0, 1.15, 1.55, 1.75);          // the head follows the swirl arm in a half circle
-      hy += 0.5 * Math.sin(Math.PI * U.clamp((k - 1.0) / 0.75) - 0.5) * follow; hp += 0.18 * Math.sin(Math.PI * U.clamp((k - 1.0) / 0.75)) * follow;
-
-      // ---- beat 4: playing with the ideas (1.7-5.7)
-      // poke: she leans in at 3/4 and pokes a floating piece with her index finger, pulls back with a tiny shoulder giggle
-      var poke = bump(k, 1.75, 2.0, 2.25, 2.5);
-      yaw = U.lerp(yaw, 0.55, bump(k, 1.6, 1.85, 2.4, 2.7)); p.lean = Math.max(p.lean, 0.32 * poke);
-      setHand(p, 0, hand(poke, 'head', [78 + 10 * Math.sin(Math.PI * U.clamp((k - 1.9) / 0.2)), -38, 12], { point: 1, pole: [0.2, -1, -0.4] }));
-      hy -= 0.3 * poke; hp += 0.2 * poke;
-      giggleOn(p, k, 2.35, 2.85, 0.8);
-      // tap the bulb: up on tiptoe, the hand reaches up beside her head and taps a bulb, which lights; she bounces twice on her toes
-      var reach = bump(k, 2.6, 2.95, 3.1, 3.35);
-      yaw = U.lerp(yaw, 0.6, bump(k, 2.55, 2.8, 3.25, 3.5));
-      p.tiptoe = Math.max(p.tiptoe, bump(k, 2.6, 2.85, 3.15, 3.35));
-      setHand(p, 0, hand(reach, 'head', [42, -34, 86 + 5 * bump(k, 2.95, 3.0, 3.02, 3.07)], { point: 1, pole: [0.1, -1, 0.2], hd: [0.3, -0.2, 1] }));
-      hp += 0.55 * reach; hy += 0.25 * reach;
-      hop(p, k, 3.32, 7, 0.08); hop(p, k, 3.6, 6, 0.08);
-      // point and giggle: she points at one idea, then another across the cloud, the head following; a giggle with alternating head tilts, a hand near the mouth at 3/4
-      var pt = bump(k, 3.6, 3.8, 4.35, 4.55), sweep = U.smoothstep(3.95, 4.2, k);
-      setHand(p, 1, hand(pt, 'head', [U.lerp(95, 70, sweep), U.lerp(40, -70, sweep), U.lerp(28, 48, sweep)], { point: 1, pole: [0, 1, -0.5] }));
-      hy += pt * U.lerp(-0.45, 0.55, sweep); hp += 0.25 * pt;
-      giggleOn(p, k, 4.1, 4.55, 1);
-      var mouth = bump(k, 4.15, 4.25, 4.4, 4.48);          // (hands near the head: <= 0.35 s, chin up)
-      yaw = U.lerp(yaw, 0.6, bump(k, 4.05, 4.2, 4.45, 4.6));
-      setHand(p, 0, hand(mouth, 'head', [56, -14, -42], { fist: 0.7, pole: [0.2, -1, -0.8] }));
-      hp += 0.08 * mouth;
-      // sway in rhythm with the orbit, a pointed toe tapping, hands loose; the head follows a book as it passes
-      var sway = bump(k, 4.5, 4.75, 5.4, 5.75);
-      p.bodyRoll += 0.7 * Math.sin(Math.PI * 2 * 0.85 * (k - 4.5)) * sway; p.toeTap = Math.max(p.toeTap, 0.8 * sway);
-      hy += 0.45 * Math.sin(Math.PI * 2 * 0.42 * (k - 4.5)) * sway; hr += 0.15 * Math.sin(Math.PI * 2 * 0.85 * (k - 4.5) + 0.6) * sway;
-
-      // ---- beat 5: conducting (5.7-6.9), then 'mind blown' (7.0-7.6)
-      var cond = bump(k, 5.6, 5.85, 6.75, 6.95);
-      yaw = U.lerp(yaw, 0.65 + 0.35 * Math.sin(Math.PI * U.clamp((k - 5.7) / 1.2)), cond);
-      var cw = Math.PI * 2 * 1.6 * (k - 5.7);
-      setHand(p, 0, hand(cond, 'chest', [44 + 8 * Math.sin(cw), -122, -62 + 10 * Math.cos(cw)], { open: 0.7, pole: [-0.3, -0.7, -1], hd: [0.3, -1, -0.2] }));
-      setHand(p, 1, hand(cond, 'chest', [44 + 8 * Math.sin(cw + 0.6), 122, -62 + 10 * Math.cos(cw + 0.6)], { open: 0.7, pole: [-0.3, 0.7, -1], hd: [0.3, 1, -0.2] }));
-      hp += 0.22 * cond; hr += 0.12 * Math.sin(cw * 0.5) * cond;
-      var tem = bump(k, 6.95, 7.04, 7.24, 7.3);          // fingertips to the temples, elbows high and out, chin UP, up on the toes (0.25-0.3 s): the only two-hands-at-the-head moment
-      setHand(p, 0, hand(tem, 'head', [10, -50, 10], { point: 0.6, pole: [0.1, -1, 0.7] })); setHand(p, 1, hand(tem, 'head', [10, 50, 10], { point: 0.6, pole: [0.1, 1, 0.7] }));
-      p.tiptoe = Math.max(p.tiptoe, tem); hp += 0.4 * tem; yaw = U.lerp(yaw, 0.95, bump(k, 6.9, 7.0, 7.6, 7.8));
-      var burst = bump(k, 7.26, 7.34, 7.62, 7.85);          // ... then the hands burst outward and upward, fingers spread, a hop as the fireworks go off
-      setHand(p, 0, hand(burst, 'chest', [18, -112, 112], { open: 1, pole: [0, -1, 0.2] })); setHand(p, 1, hand(burst, 'chest', [18, 112, 112], { open: 1, pole: [0, 1, 0.2] }));
-      p.spread = Math.max(p.spread, burst); hp += 0.35 * burst;
-      hop(p, k, KB.burst + 0.04, 18, 0.12);
-      giggleOn(p, k, 7.62, 8.05, 0.9);
-
-      // ---- beat 6: a giddy twirl on the toes (one full turn in 0.9 s), a happy wobble, a laugh (8.1-10.5)
-      var antic = bump(k, 8.05, 8.15, 8.2, 8.3);          // a small counter-turn and dip
-      yaw -= 0.15 * antic; p.squash += 0.1 * antic;
-      var ut = U.clamp((k - KB.twirl0) / (KB.twirl1 - KB.twirl0)), spin = U.easeInOutSine(ut) * 4;
-      var tw = bump(k, KB.twirl0 - 0.15, KB.twirl0, KB.twirl1, KB.twirl1 + 0.25);
-      if (k >= KB.twirl0) yaw = yaw + spin;          // after the twirl every yaw is 4 more (the same view: one turn further round)
-      p.tiptoe = Math.max(p.tiptoe, tw); p.feet = Math.max(p.feet, tw, 0.62 * U.smoothstep(KB.twirl1 - 0.1, KB.twirl1 + 0.1, k));          // (after the twirl the feet stay close together until the first steps of the walk take them apart: no sideways slide)
-      var armsOut = bump(k, KB.twirl0 - 0.2, KB.twirl0, 9.75, 9.95);
-      setHand(p, 0, hand(armsOut * 0.95, 'chest', [10, -132, -46 + 18 * Math.sin(Math.PI * 2 * 1.3 * (k - 9.15)) * U.smoothstep(9.15, 9.3, k)], { open: 0.8, pole: [-0.2, -0.6, -1], hd: [0.1, -1, -0.15] }));
-      setHand(p, 1, hand(armsOut * 0.95, 'chest', [10, 132, -46 - 18 * Math.sin(Math.PI * 2 * 1.3 * (k - 9.15)) * U.smoothstep(9.15, 9.3, k)], { open: 0.8, pole: [-0.2, 0.6, -1], hd: [0.1, 1, -0.15] }));
-      hp += 0.2 * tw;
-      var wob = bump(k, 9.15, 9.3, 9.7, 9.9), wt = k - 9.15;          // two playful, decreasing sways, one foot lifting with a pointed toe, head tilted
-      p.bodyRoll += 0.85 * Math.sin(Math.PI * 2 * 1.3 * wt) * Math.exp(-2.2 * wt) * wob; p.footUp = Math.max(p.footUp, 0.85 * bump(k, 9.25, 9.4, 9.6, 9.8)); hr += 0.25 * wob;
-      var laugh = bump(k, 9.85, 10.0, 10.25, 10.4);          // the laugh: shoulders bob, the head tipped a little back ('that was fun!')
-      giggleOn(p, k, 9.85, 10.4, 1); hp += 0.42 * laugh;
-
-      // ---- beat 7: the boop (the ball comes in from the top left; she looks up at it, curious, not braced)
-      var watch = U.smoothstep(KB.boop - 0.75, KB.boop - 0.45, k) * (1 - U.smoothstep(KB.boop + 0.25, KB.boop + 0.5, k));
-      hy = U.lerp(hy, -0.3 + 0.3 * U.smoothstep(KB.boop - 0.7, KB.boop - 0.05, k), watch); hp = U.lerp(hp, 0.75, watch);
-      var h = k - KB.boop;
-      if (h >= 0) {
-        p.squash += 0.12 * U.smoothstep(0, 0.03, h) * (1 - U.smoothstep(0.08, 0.2, h));          // a tiny squash of head and shoulders (3-4 %) ...
-        hp = U.lerp(hp, 0.8, bump(h, 0, 0.03, 0.2, 0.28)); hr += 0.12 * bump(h, 0, 0.03, 0.2, 0.28);          // ... and a 0.15-0.2 s comic freeze, head tilted up
-        giggleOn(p, k, KB.boop + 0.22, KB.boop + 0.75, 1);          // then a giggle burst with a shoulder shake
-        p.wind.x += 160 * bump(h, 0, 0.04, 0.1, 0.3);
+    // ================= ROUND 10: the ~20 s THINKING PERFORMANCE (k = seconds after turnFront1).  Sync points shared with THOUGHTS (R10/tho/BEATS.json):
+    //   bulbs k 2.4 6.2 9.8 13.4 16.2, fireworks 9.5 12.6 14.1 15.6 16.8, acts I 0 / II 5.5 / III 12.0 / IV 17.7, the ball enters at 18.75 (from the top-left), hit 20.3.
+    //   Act I wonder (looks up at the first dot, temple tap, 'aha' bounce at the first bulb, pokes at a floating piece), II curiosity + delight (slow pursuit of an orbiting piece,
+    //   fingertip tapping, happy bounces at the bulbs, eyes-wide shoulder lift at the first firework, a hop), III comic overload (both hands clutch the head, wobbles, the head
+    //   whips after every firework, a dizzy sway, a hop of excitement), IV the funnel tightens (deer freeze, she spots the ball, alarm grows: hand to the chest, shoulders up,
+    //   a cringe just before the hit).  The rig adds its own think-idle script (thinkT: E3 'aha' perk-up 2.4, E1 weight shift 5.8, E2 toe tap 7.3, E4 glance away 10.9) whenever
+    //   her hands are free.  Everything is a smooth envelope on top of a dreamy base look-around; headYaw > 0 = toward screen-right (her left), headPitch > 0 = up. =================
+    var BULBS = [2.4, 6.2, 9.8, 13.4, 16.2], FIRES = [9.5, 12.6, 14.1, 15.6, 16.8];
+    function thinkPerf(p, k) {
+      var K_HIT = c.tHit - c.turnFront1, K_BALL = c.ballIn - c.turnFront1, i, b, f, w, u;
+      var settle = U.smoothstep(0, 1.2, k);
+      var hy = (0.3 * Math.sin(k * 0.62 + 0.4) + 0.1 * U.noise1(k * 1.3, 5)) * settle;
+      var hp = (0.22 + 0.1 * Math.sin(k * 0.7) + 0.1 * U.noise1(k * 0.9, 3)) * settle;
+      var hr = 0.2 * Math.sin(k * 0.47 + 1.3) * settle;
+      var sq = 0, air = 0, y = 0, fl = 0, dz = 0, ch = 0;
+      function hop(k0, hgt) { // a small happy hop: crouch, up with the knees tucking a little, soft landing
+        u = U.clamp((k - k0) / 0.3);
+        y -= hgt * Math.sin(Math.PI * u);
+        air = Math.max(air, 0.6 * bump(k, k0 - 0.02, k0 + 0.06, k0 + 0.22, k0 + 0.32));
+        sq += 0.25 * bump(k, k0 - 0.14, k0 - 0.03, k0, k0 + 0.05) + 0.3 * bump(k, k0 + 0.27, k0 + 0.34, k0 + 0.38, k0 + 0.6);
       }
-      // she reaches out a hand and catches one falling bit, which fades in her palm
-      var catchW = bump(k, 10.95, 11.15, 11.45, 11.65);
-      setHand(p, 0, hand(catchW, 'chest', [62, -22, -62], { open: 1, hd: [1, 0, 0.15], pole: [-0.2, -1, -0.6] }));
-      hp = U.lerp(hp, -0.05, catchW * 0.7); hy = U.lerp(hy, 0.15, catchW * 0.6);          // (looking at her palm: chin only a little down)
-
-      // ---- beat 8: afterglow - a quick pat on the top of her head (hand flat, chin level), a happy shrug, then the turn to profile
-      var pat = bump(k, 11.7, 11.8, 11.95, 12.05);
-      setHand(p, 1, hand(pat, 'head', [4, 8, 66 + 4 * Math.sin(Math.PI * 2 * 6 * (k - 11.8))], { open: 0.8, hd: [1, 0.1, 0.1], pole: [0.1, 1, 0.5] }));
-      hp = U.lerp(hp, 0.02, pat);
-      var shr = bump(k, 12.15, 12.3, 12.6, 12.8);
-      p.shrug = Math.max(p.shrug, shr); hr += 0.28 * shr; hp = U.lerp(hp, 0.12, shr);
-      hop(p, k, 12.45, 6, 0.08);
-
-      p.yaw = yaw;
-      p.footYaw = k >= KB.twirl0 + 0.45 ? 5 : 1; p.footYawW = 1 - tw;
-      if (k >= 8.0) p.spin = { w: bump(k, 8.0, 8.04, KB.twirl1 + 0.12, KB.twirl1 + 0.25), wd: 1, yaw0: SPIN_YAW0, foot: 0 };          // the twirl turns on the ball of her left foot (it stays put while the body turns round it) ...
-      p.footUp = Math.max(p.footUp, 0.7 * bump(k, 8.02, 8.14, KB.twirl1 + 0.2, KB.twirl1 + 0.36));          // ... and the right one is up off the floor (it would only scrape round), from the dip until the body is back over both feet          // the feet stay planted facing front while the body turns over them; the twirl spins on the toes
-      p.headYaw = U.clamp(hy, -1, 1); p.headPitch = U.clamp(hp, -0.2, 1); p.headRoll = U.clamp(hr, -1, 1);
+      // ---- ACT I (0-5.5): wonder
+      var dotLook = bump(k, 0.25, 0.9, 1.9, 2.5);                       // the first dot rises up-right of her head: she looks up at it, head cocked
+      hy += 0.35 * dotLook; hp += 0.42 * dotLook; hr += 0.22 * dotLook;
+      p.think = bump(k, 0.95, 1.45, 2.0, 2.4);                            // 'hmm': fingertip at the temple, let go for the aha
+      var aha = bump(k, 2.35, 2.5, 2.8, 3.4);                             // the first bulb (2.4): a happy bounce up on to the toes (+ the rig's E3 perk-up)
+      sq -= 0.16 * aha; hp += 0.22 * aha;
+      p.poke = bump(k, 3.0, 3.6, 4.3, 5.0);                               // a hand rises to poke at a floating piece; the head follows the hand
+      hy += 0.3 * p.poke; hp += 0.25 * p.poke;
+      hr -= 0.22 * bump(k, 4.9, 5.3, 5.7, 6.3);                           // the hand drops, the head cocks the other way
+      // ---- ACT II (5.5-12): curiosity and delight
+      var pursuit = U.smoothstep(5.6, 6.6, k) * (1 - U.smoothstep(11.4, 12.2, k));          // slow pursuit of an orbiting piece (one sweep each way in ~3 s)
+      hy += 0.45 * Math.sin((k - 5.6) * 1.0) * pursuit; hp += 0.18 * Math.cos((k - 5.6) * 1.0) * pursuit;
+      p.think = Math.max(p.think, bump(k, 8.5, 9.0, 10.2, 10.7));         // fingertip tapping the temple (after the rig's E2 toe tap at 7.3)
+      for (i = 1; i < BULBS.length; i++) { b = BULBS[i]; w = bump(k, b - 0.05, b + 0.1, b + 0.3, b + 0.8); sq -= 0.14 * w; hp += 0.14 * w; }   // happy little bounces when the bulbs pop
+      w = bump(k, 9.5, 9.65, 10.2, 10.8); fl += 0.35 * bump(k, 9.5, 9.62, 9.85, 10.3); hp += 0.45 * w; hy -= 0.2 * w;   // the first firework: eyes wide, shoulders up, looking up at it
+      hop(9.85, 24); hop(16.25, 26);                                       // hops of excitement at the bulbs 9.8 / 16.2
+      // ---- ACT III (12-17.7): comic overload
+      p.clutch = U.smoothstep(12.0, 12.6, k) * (1 - U.smoothstep(14.5, 15.1, k));          // 'so many ideas!' both hands to the head
+      w = p.clutch * U.smoothstep(12.6, 13.0, k); hr += 0.25 * Math.sin(Math.PI * 2 * 1.3 * (k - 12.6)) * w; hy += 0.12 * Math.sin(Math.PI * 2 * 0.9 * (k - 12.6)) * w;   // little wobbles
+      dz = Math.max(0.3 * bump(k, 12.9, 13.4, 14.2, 14.8), 0.5 * bump(k, 15.1, 15.5, 15.9, 16.4));   // a dizzy sway
+      for (i = 1; i < FIRES.length; i++) { f = FIRES[i]; w = U.smoothstep(f, f + 0.2, k) * (1 - U.smoothstep(f + 0.8, f + 1.3, k)); hy += (i & 1 ? -0.6 : 0.6) * w; hp += 0.4 * w; }   // the head whips after each firework
+      // ---- ACT IV (17.7-20.3): the funnel tightens
+      p.shudder = 0.55 * U.smoothstep(17.75, 17.95, k) * (1 - U.smoothstep(K_BALL + 0.3, K_BALL + 0.6, k)); p.shudderT = Math.max(0, k - 17.8);   // deer freeze (soft: recoil, blink, stillness, hands half-way up) until she spots the ball
+      hr += 0.18 * U.smoothstep(17.9, 18.4, k) * (1 - U.smoothstep(K_BALL + 0.1, K_BALL + 0.3, k));                 // ... head cocked: curious and a little worried
+      var spot = U.smoothstep(K_BALL + 0.1, K_BALL + 0.3, k) * (1 - U.smoothstep(K_HIT - 0.18, K_HIT - 0.04, k));   // she spots the ball coming from the top-left: the head snaps to it and follows it up
+      hy = U.lerp(hy, -0.6, spot); hp = U.lerp(hp, 0.6 + 0.35 * U.smoothstep(K_BALL + 0.3, K_HIT - 0.3, k), spot); hr = U.lerp(hr, -0.15, spot);
+      ch = 1.4 * U.smoothstep(K_BALL + 0.5, K_BALL + 0.85, k) * (1 - U.smoothstep(K_HIT - 0.12, K_HIT, k));        // 'oh no': the hand flies to the mouth
+      sq -= 0.12 * bump(k, K_BALL + 0.45, K_BALL + 0.6, K_BALL + 0.7, K_BALL + 1.0);                                    // ... with a little jolt up on to the toes
+      fl = Math.max(fl, (0.2 * U.smoothstep(K_BALL + 0.9, K_HIT - 0.35, k) + 0.7 * U.smoothstep(K_HIT - 0.25, K_HIT - 0.05, k)) * (1 - U.smoothstep(K_HIT - 0.02, K_HIT + 0.02, k)));   // growing alarm: shoulders up, then the cringe
+      var cringe = U.smoothstep(K_HIT - 0.18, K_HIT - 0.04, k);           // she shuts her eyes, turns away and ducks a little... BONK
+      hy = U.lerp(hy, 0.35, cringe); hp = U.lerp(hp, -0.2, cringe);
+      p.headYaw = U.clamp(hy, -1, 1); p.headPitch = U.clamp(hp, -1, 1); p.headRoll = U.clamp(hr, -1, 1);
+      p.squash += sq; p.air = air; p.y = G + y; p.flinch = Math.max(p.flinch, fl); p.dizzy = Math.max(p.dizzy, dz); p.chestHand = Math.max(p.chestHand, ch);
     }
 
-    /** baseline pose (the acting script) at loop-local time t */
+    /** baseline pose (scenario A) at loop-local time t */
     function poseAt(t) {
       var p = newPose(t);
-      var I = intensity(t), w;
+      var I = intensity(t);
 
-      if (t < c.walkInEnd) { // ---- beat 0: walk in (a curious glance up and to the side half way, as if she heard something)
+      if (t < c.walkInEnd) { // walk in
         var d = distIn(t);
         p.x = xStart - d;
         p.gait.speed = speedIn(t);
         p.gait.amount = amountOf(p.gait.speed);
         p.gait.phase = phaseIn(t);
-        p.gait.stride = STRIDE * strideKIn(t);
-        var gl = bump(t, 1.7, 1.95, 2.35, 2.7);
-        p.headPitch = 0.04 * Math.sin(t * 5.2) + 0.38 * gl; p.headRoll = 0.24 * gl; p.headYaw = 0.25 * gl;
-        // the closing of the walk: the ponytail swings forward past the shoulder as she stops (forward = screen left)
-        p.wind.x = -240 * bump(t, c.walkInEnd - 0.35, c.walkInEnd - 0.1, c.walkInEnd + 0.05, c.walkInEnd + 0.4);
+        p.gait.stride = STRIDE * kWalk(p.gait.speed);
+        p.headPitch = 0.04 * Math.sin(t * 5.2) + 0.5 * bump(t, 1.9, 2.4, 3.0, 3.5); // a quick glance up at the empty centre
         return p;
       }
 
-      if (t < c.walkOut0) { // ---- beats 1-8 on the spot
+      if (t < c.walkOut0) { // stand, turn, think, get hit, react, turn away
         p.x = xStop;
-        var a0 = c.walkInEnd, s = t - a0;
-        // beat 1: a tiny rise on to both toes, the heels settle with a soft knee bend; the hands come together loosely in front
-        p.tiptoe = 0.8 * bump(s, -0.05, 0.12, 0.24, 0.42);
-        p.squash += 0.13 * bump(s, 0.3, 0.42, 0.5, 0.78);
-        p.wind.x = -240 * bump(s, -0.35, -0.1, 0.05, 0.4);
-        var tog = 0.85 * bump(t, a0 + 0.15, a0 + 0.45, c.turnFront0 + 0.45, c.turnFront0 + 0.75);
-        setHand(p, 0, hand(tog, 'chest', [26, -7, -112], { fist: 0.5, hd: [0.4, 0.1, -1] }));
-        setHand(p, 1, hand(tog, 'chest', [26, 7, -112], { fist: 0.5, hd: [0.4, -0.1, -1] }));
-        // beat 2: turn to the front, eyes and head first with a small tilt, then the shoulders, then the hips; a tiny hop on the last quarter
         var u = U.clamp((t - c.turnFront0) / (c.turnFront1 - c.turnFront0));
         p.yaw = U.easeInOutCubic(u);
         p.headYaw = 0.55 * Math.sin(Math.PI * Math.min(1, u * 1.15)) * (1 - U.smoothstep(0.85, 1, u));
-        p.headRoll += 0.16 * Math.sin(Math.PI * u);
         p.twist = 0.5 * Math.sin(Math.PI * (1 - (1 - u) * (1 - u)));          // overlapping action: the shoulders are ahead of the hips during the turn
-        if (u > 0 && u < 1) p.turnStep = { u: u, yaw0: 0, yaw1: 1, w: 1, first: 1 };          // the feet turn in two small steps (each one planted until it steps)
-        hop(p, t, c.turnFront0 + 0.7 * (c.turnFront1 - c.turnFront0), 9, 0.1);
-        // the hello: a bright, small wave (elbow at shoulder height, forearm upright, ~2.7 waves at 2.2 Hz, wrist trailing), leaning toward the waving side with the weight on
-        // the other leg and the free foot pointed, the other hand at the hip; it ends with a happy little bounce and a head tilt
-        var hel = bump(t, c.turnFront1 - 0.25, c.turnFront1 + 0.05, c.helloEnd - 0.2, c.helloEnd + 0.08);
-        p.wave = hel; p.bodyRoll += 0.6 * hel; p.weight = -0.7 * hel; p.toeTap = 0.55 * hel; p.headRoll += 0.2 * hel; p.headPitch += 0.08 * hel;
-        setHand(p, 0, hand(hel, 'pelvis', [-6, -36, 44], { fist: 0.6, pole: [-0.4, -1, 0.1], hd: [0.3, 0.4, -1] }));
-        hop(p, t, c.helloEnd - 0.05, 5, 0.14);
-        if (t >= c.turnFront1) { p.footYaw = 1; p.footYawW = 1; }
-        p.headRoll += 0.25 * bump(t, c.helloEnd - 0.1, c.helloEnd + 0.05, c.helloEnd + 0.3, c.helloEnd + 0.55);
+        // round 11: she turns to the viewer with a quick shy hello (the right hand waves for ~0.8 s as she comes round, head tilted, then she is off into her thoughts)
+        var hello = bump(t, c.turnFront0 + 0.4, c.turnFront0 + 0.72, c.turnFront1 + 0.14, c.turnFront1 + 0.48);
+        p.wave = hello; p.headRoll += 0.2 * hello; p.headPitch += 0.08 * hello;
 
+        var windX = 0;
         if (t >= c.turnFront1) {
-          var k = t - c.thinkStart;
-          p.twist = 0.1 * Math.exp(-3.2 * Math.max(0, t - c.turnFront1)) * Math.sin(Math.PI * 2.2 * (t - c.turnFront1)) * U.smoothstep(c.turnFront1, c.turnFront1 + 0.15, t);          // the shoulders settle with a small damped swing
-          if (k >= -0.3) {
-            var hy0 = p.headYaw, hp0 = p.headPitch, hr0 = p.headRoll, kIn = U.smoothstep(-0.3, 0.1, k);
-            p.thinkT = Math.max(0, k);
-            thinkPerf(p, k, t);
-            p.headYaw = U.lerp(hy0, p.headYaw, kIn); p.headPitch = U.lerp(hp0, p.headPitch, kIn); p.headRoll = U.lerp(hr0, p.headRoll, kIn); p.yaw = U.lerp(1, p.yaw, kIn);
-          }
+          var k = t - c.turnFront1;
+          p.thinkT = k;          // the rig's think-idle script clock (weight shift, toe tap, 'aha' perk-up, glance away: cfg.ideaT, seconds after turnFront1)
+          p.twist = 0.1 * Math.exp(-3.2 * k) * Math.sin(Math.PI * 2.2 * k) * U.smoothstep(0, 0.15, k);          // the shoulders settle with a small damped swing
+          thinkPerf(p, k);        // the 20 s performance (acts I-IV, ends with the cringe at the hit)
         }
 
-        // beat 8 (end): the turn to profile (facing left again, one turn further round after the twirl) with a little hop on it
-        if (t >= c.turnLeft0) {
-          var tl = turnLeftAt(t, p.headYaw, 4), tb = U.smoothstep(c.turnLeft0, c.turnLeft0 + 0.3, t);
-          p.yaw = U.lerp(p.yaw, tl.yaw, U.smoothstep(c.turnLeft0, c.turnLeft0 + 0.12, t)); p.headYaw = tl.headYaw; p.twist = tl.twist; p.headPitch = U.lerp(p.headPitch, 0, tb); p.headRoll = U.lerp(p.headRoll, 0, tb);
-          var ul2 = U.clamp((t - c.turnLeft0) / (c.turnLeft1 - c.turnLeft0));
-          if (ul2 < 1) p.turnStep = { u: ul2, yaw0: 5, yaw1: 4, w: 1 - U.smoothstep(c.walkOut0 - 0.05, c.walkOut0 + 0.1, t), first: 0 };
-          var thl = hop(p, t, c.turnLeft0 + 0.3, 10, 0.12);
-          if (p.spin) p.spin.wd *= 1 - U.smoothstep(c.turnLeft0 + 0.3, c.turnLeft0 + 0.3 + thl, t);          // the body comes back between her feet while she is in the air on that hop (since the twirl it was over her left foot)
+        // impact: squash with hold and elastic recovery (the girl module turns this into a comedic body reaction); round 10: bigger squash and stretch overshoot,
+        // a springy head wobble after the hold, the ponytail whips (wind), then 'seeing stars' = a slow circling of the head while she staggers
+        var h = t - c.tHit;
+        if (h >= 0) {
+          var attack = U.smoothstep(0, 0.07, h);
+          var HOLD = 0.2; // the bottom of the squash is held ~3 frames
+          var rel = h < HOLD ? 0 : 1 - Math.exp(-(h - HOLD) * 4.2) * Math.cos((h - HOLD) * 12);
+          p.squash = h < HOLD ? 1.15 * attack : U.clamp(1.15 * (1 - rel), -0.4, 1.3); // overshoots into a visible stretch (boing) before settling
+          p.dizzy = U.smoothstep(0.12, 0.4, h) * (1 - U.smoothstep(0.9, 1.6, h)); // staggering wobble after the bonk
+          p.shudder = 0.55 * U.smoothstep(0.05, 0.2, h) * (1 - U.smoothstep(0.45, 0.8, h)); // stunned wobble right after the bonk
+          p.shudderT = h;
+          p.headPitch = U.lerp(p.headPitch, -0.55, U.smoothstep(0, 0.1, h) * (1 - U.smoothstep(0.4, 1.0, h)));
+          p.headYaw = U.lerp(p.headYaw, 0, U.smoothstep(0, 0.2, h));
+          p.headRoll = U.lerp(p.headRoll, 0.3, U.smoothstep(0, 0.2, h) * (1 - U.smoothstep(0.9, 1.6, h)));
+          var hw = h - HOLD;
+          if (hw > 0) { var wobE = Math.exp(-3.2 * hw); p.headRoll += 0.32 * wobE * Math.sin(Math.PI * 2 * 5.2 * hw); p.headYaw += 0.14 * wobE * Math.sin(Math.PI * 2 * 4.1 * hw); }
+          var stars = bump(h, 0.35, 0.6, 1.25, 1.65), sa = Math.PI * 2 * 1.25 * (h - 0.35);
+          p.headYaw += 0.3 * Math.sin(sa) * stars; p.headRoll += 0.28 * (Math.cos(sa) - 1) * stars; p.headPitch += 0.12 * Math.sin(sa + 1) * stars;
+          windX += 420 * bump(h, 0, 0.05, 0.12, 0.32) - 320 * bump(h, 0.26, 0.36, 0.46, 0.72);
         }
-        p.wind.x += 200 * I * Math.sin(t * 1.9 + 0.6);
-        p.wind.y += -90 * I * (0.6 + 0.4 * Math.sin(t * 1.3));
+
+        if (t >= c.scratch0 && t < c.scratch1 + 0.45) { // scratching the bonked spot
+          var up = U.easeOutBack(U.clamp((t - c.scratch0) / 0.38), 1.2);
+          var down = 1 - U.smoothstep(0, 1, U.clamp((t - c.scratch1) / 0.4));
+          p.scratch = U.clamp(up * down, 0, 1.05);
+          p.scratchT = t - c.scratch0;
+          p.headRoll = U.lerp(p.headRoll, 0.2 * Math.sin(p.scratchT * 9), 0.5 * p.scratch);
+          p.headPitch = U.lerp(p.headPitch, -0.2, 0.7 * p.scratch);
+        }
+
+        var SH1 = c.shake0 + 0.75;          // round 10: a shorter head shake, then a sheepish shrug before she turns away
+        if (t >= c.shake0 && t < SH1) { // shake the head (no!)
+          var s = (t - c.shake0) / (SH1 - c.shake0);
+          var env = Math.sin(Math.PI * Math.min(1, s * 1.05)) * (1 - 0.25 * s);
+          var kS = U.smoothstep(c.shake0, c.shake0 + 0.18, t); // cross-fade from the scratch head pose (no 1-frame pop)
+          p.headYaw = U.lerp(p.headYaw, 0.95 * env * Math.sin(s * Math.PI * 4.0), kS);
+          p.headRoll = U.lerp(p.headRoll, 0.15 * env * Math.sin(s * Math.PI * 4.0 + 1.4), kS);
+          p.headPitch = U.lerp(p.headPitch, -0.1 * env, kS);
+        }
+        // sheepish shrug ('oops... well.'): shoulders up, palms out, head cocked; the turn away blends it out
+        var shr = bump(t, SH1 - 0.1, SH1 + 0.22, c.turnLeft0 + 0.15, c.turnLeft0 + 0.55);
+        p.shrug = shr; p.headRoll = U.lerp(p.headRoll, 0.3, shr); p.headPitch = U.lerp(p.headPitch, -0.12, shr); p.headYaw = U.lerp(p.headYaw, 0.15, 0.8 * shr);
+
+        if (t >= c.turnLeft0) {
+          var tl = turnLeftAt(t, p.headYaw), tb = U.smoothstep(c.turnLeft0, c.turnLeft0 + 0.3, t);
+          p.yaw = tl.yaw; p.headYaw = tl.headYaw; p.twist = tl.twist; p.headPitch = U.lerp(p.headPitch, 0, tb); p.headRoll = U.lerp(p.headRoll, 0, tb);
+        }
+        p.wind.x = 260 * I * Math.sin(t * 1.9 + 0.6) + windX;
+        p.wind.y = -110 * I * (0.6 + 0.4 * Math.sin(t * 1.3));
         return p;
       }
 
-      if (t < c.walkOutEnd + 0.08) { // ---- beat 8: skip away to the left (2-3 skips into the cute walk), two glances back, the second with a tiny wave
+      if (t < c.walkOutEnd + 0.08) { // walk away to the left edge
         var dO = distOut(t);
         p.x = xStop - dO;
         p.gait.speed = speedOut(t);
         p.gait.amount = amountOf(p.gait.speed);
         p.gait.phase = phaseOut(t);
-        p.gait.stride = STRIDE * strideKOut(t);
-        var tl2 = turnLeftAt(t, 0, 4);
+        p.gait.stride = STRIDE * kWalk(p.gait.speed);
+        var tl2 = turnLeftAt(t, 0);
         p.yaw = tl2.yaw; p.headYaw = tl2.headYaw; p.twist = tl2.twist;
         p.headPitch = 0.03 * Math.sin(t * 5.2);
-        // the skips: a step-hop rhythm (a little hop on every step, the free knee high, arms swinging higher), blending into the walk at a footfall
-        var sk = U.smoothstep(c.walkOut0 + 0.1, c.walkOut0 + 0.35, t) * (1 - U.smoothstep(c.walkOut0 + 1.45, c.walkOut0 + 1.75, t));
-        p.gait.skip = sk;
-        p.feet = 0.62 * (1 - U.smoothstep(c.walkOut0, c.walkOut0 + 0.35, t));
-        var stepU = (2 * p.gait.phase) % 1;
-        p.y -= sk * 15 * Math.pow(Math.max(0, Math.sin(Math.PI * stepU)), 1.3);
-        p.air = Math.max(p.air, 0.25 * sk * Math.max(0, Math.sin(Math.PI * stepU)));
-        // two looks back over the shoulder at the visitor (the head leads the shoulders), the second one with a tiny wave of the fingers
-        var lb1 = bump(t, c.walkOut0 + 1.0, c.walkOut0 + 1.3, c.walkOut0 + 1.8, c.walkOut0 + 2.1), lb2 = bump(t, c.walkOut0 + 2.6, c.walkOut0 + 2.85, c.walkOut0 + 3.35, c.walkOut0 + 3.65);
-        var lb = Math.max(lb1, lb2);
-        p.headYaw = U.clamp(p.headYaw + 1.45 * lb, -1.6, 1.6); p.twist += 0.9 * lb; p.headRoll = 0.18 * lb; p.headPitch += 0.06 * lb;
-        var wv = bump(t, c.walkOut0 + 2.75, c.walkOut0 + 2.9, c.walkOut0 + 3.25, c.walkOut0 + 3.45);
-        setHand(p, 1, hand(wv * 0.9, 'chest', [10, 70, 40 + 10 * Math.sin(Math.PI * 2 * 3.2 * t)], { open: 1, pole: [-0.5, 1, 0] }));
+        // round 11: two looks back over the shoulder at the rubble (a real turn of the head AND the shoulders, ~110 deg in all: the first one long and puzzled with a tiny shrug, 'well, that
+        // happened'; the second one a quick nervous double-check), the head leading the shoulders by ~0.08 s and the pony following
+        var lb1 = bump(t, c.walkOut0 + 0.55, c.walkOut0 + 0.95, c.walkOut0 + 1.55, c.walkOut0 + 1.95), lb2 = bump(t, c.walkOut0 + 2.55, c.walkOut0 + 2.78, c.walkOut0 + 2.98, c.walkOut0 + 3.28);
+        var lb = Math.max(lb1, lb2), lbS = Math.max(bump(t, c.walkOut0 + 0.63, c.walkOut0 + 1.03, c.walkOut0 + 1.5, c.walkOut0 + 1.9), bump(t, c.walkOut0 + 2.62, c.walkOut0 + 2.84, c.walkOut0 + 2.96, c.walkOut0 + 3.2));
+        p.headYaw = U.clamp(p.headYaw + 1.55 * lb, -1.6, 1.6); p.twist += 1.0 * lbS; p.headPitch += -0.12 * lb1 + 0.05 * lb2;
+        p.shrug = 0.5 * bump(t, c.walkOut0 + 1.1, c.walkOut0 + 1.3, c.walkOut0 + 1.5, c.walkOut0 + 1.85);          // ... with a tiny comic shrug ('well, that happened')
+        p.headRoll = 0.2 * p.shrug + 0.18 * lb1;
         return p;
       }
 
-      // ---- beat 9: off-screen beat, then peek-a-boo from the LEFT edge (she faces right: yaw 2)
-      p.x = -M_PARK; p.yaw = 2;
+      // off-screen beat, then peek from the right edge
+      p.x = W + M_PARK;
+      p.yaw = 0;
       if (t >= c.peek0 && t < c.peekOut1 + 0.05) {
-        var X_PEEK = -PEEK_DX;
-        var inK = U.easeInOutCubic(U.clamp((t - c.peek0) / (c.peekIn1 - c.peek0)));          // leans in slowly ...
-        var outK = U.easeInCubic(U.clamp((t - c.peekOut0) / (c.peekOut1 - c.peekOut0)));          // ... a quick duck out
+        var X_PEEK = W + PEEK_DX; // hips+legs stay beyond the edge; the leaning torso shows head + upper torso
+        var inK = U.easeOutCubic(U.clamp((t - c.peek0) / (c.peekIn1 - c.peek0))); // (no overshoot: the lower body must never cross the edge)
+        var outK = U.easeInCubic(U.clamp((t - c.peekOut0) / (c.peekOut1 - c.peekOut0)));
         var vis = inK * (1 - outK);
-        p.x = U.lerp(-M_PARK, X_PEEK, vis);
+        p.x = U.lerp(W + M_PARK, X_PEEK, vis);
         p.peek = U.smoothstep(0, 1, vis);
         var q = t - c.peekIn1;
-        var lk = U.smoothstep(-0.2, 0.15, q) * (1 - U.smoothstep(0.85, 1.0, q));
-        p.headRoll = -0.32 * lk;          // head tilted (cocked toward the viewer)
-        p.headYaw = -0.75 * lk;           // (she faces right: negative = toward the viewer)
-        p.headPitch = 0.12 * lk;
-        p.spread = 0.85 * bump(q, 0.05, 0.12, 0.45, 0.55) * (0.5 + 0.5 * Math.sin(Math.PI * 2 * 4.2 * q));          // a tiny wave of the fingers
-        p.giggle = 0.5 * bump(q, 0.5, 0.6, 0.85, 0.95);
-        p.wind.x = -140 * bump(t, c.peekOut0, c.peekOut0 + 0.1, c.peekOut0 + 0.25, c.peekOut1 + 0.2);          // the tail swings after her as she ducks out
+        var look = U.smoothstep(-0.1, 0.25, q) * (1 - U.smoothstep(1.3, 1.5, q));
+        // beat 1 (0-0.6 s): scans the empty stage; beat 2 (0.6-1.05 s): quick DOUBLE-TAKE toward the viewer with a startle bounce; beat 3: holds the gaze
+        var take = U.easeOutBack(U.clamp((q - 0.6) / 0.22), 1.4) * (1 - U.smoothstep(1.2, 1.5, q));
+        p.headPitch = U.clamp(look * (0.1 + 0.18 * Math.sin(Math.max(0, q) * 3.0)), -1, 1);
+        p.headYaw = U.clamp(look * 0.35 * Math.sin(Math.max(0, q) * 4.2) * (1 - take) + 0.9 * take, -1, 1);
+        p.headRoll = look * 0.14 * Math.sin(Math.max(0, q) * 2.1);
+        p.flinch = Math.max(p.flinch, 0.4 * bump(q, 0.58, 0.68, 0.74, 1.0) + 0.5 * bump(t, c.peekOut0 - 0.05, c.peekOut0 + 0.1, c.peekOut0 + 0.2, c.peekOut0 + 0.4));
+        p.x += 5 * (0.5 - 0.5 * Math.cos(Math.max(0, q) * 2.4)) * look; // a little weight sway while she looks around (outward only: never toward the edge)
       }
       return p;
     }
 
     /** a reaction clip: controls as a pure function of rt (seconds since the press) and the state captured at the press.
-        Everything the baseline had in progress at the press is released smoothly (no one-frame pops).
-        Round 12, beat R: she is DELIGHTED by the '+': a quick look toward it at 3/4, a happy hop with both arms up and the hands open, one clap at 3/4, then the cute run off
-        to the left (the thoughts pop like bubbles).  Walking or peeking: the same feel (a quick hop or clap, then the cute run, or a giggly duck). */
+        Everything the baseline had in progress at the press (scratch arm, squash, stagger, think hand...) is released smoothly (no one-frame pops). */
     function reaction(kind, cap, rt) {
       var p0 = cap.pose0, o = { pose: newPose(p0.t + rt), speed: 0, run: 0, done: false, exited: false };
-      var P = o.pose, i;
-      var rel = function (a) { return 1 - U.smoothstep(0, a, rt); };
+      var P = o.pose;
+      var ease = function (a, b) { return U.easeOutCubic(U.clamp((rt - a) / (b - a))); };
+      var lerpc = function (from, to, a, b) { return U.lerp(from, to, ease(a, b)); };
+      function shudderEnv(a, b, c1, d) { return U.smoothstep(a, b, rt) * (1 - U.smoothstep(c1, d, rt)); }
       // the inherited baseline motion fades out over ~0.3 s instead of vanishing in one frame
-      var r0 = rel(0.3);
-      ['scratch', 'think', 'twist', 'clutch', 'poke', 'shrug', 'reach', 'wave', 'flinch', 'startle', 'spread', 'tiptoe', 'bodyRoll', 'giggle', 'toeTap', 'weight', 'feet', 'footUp', 'chestHand', 'dizzy', 'shudder'].forEach(function (key) { P[key] = (p0[key] || 0) * r0; });
-      P.squash = (p0.squash || 0) * rel(0.22);
-      P.scratchT = (p0.scratchT || 0) + rt; P.shudderT = (p0.shudderT || 0) + rt;
-      P.thinkT = p0.thinkT >= 0 ? p0.thinkT + rt : -1;
-      P.wind.x = (p0.wind && p0.wind.x || 0) * r0; P.wind.y = (p0.wind && p0.wind.y || 0) * r0;
-      for (i = 0; i < 2; i++) { var hh = p0.hand && p0.hand[i]; if (hh && hh.w * r0 > 0.002) { var cpH = {}; for (var kk in hh) cpH[kk] = hh[kk]; cpH.w = hh.w * r0; P.hand[i] = cpH; } }
-      var relA = rel(0.18);
-      P.air = (p0.air || 0) * relA; P.y = G + ((p0.y === undefined ? G : p0.y) - G) * relA;          // a hop in progress at the press comes down instead of snapping to the floor
-      var yaw0 = p0.yaw || 0, yawBase = Math.round(yaw0 / 4) * 4;          // (after the twirl the yaw is one turn further round: stay on the same turn)
+      var rel0 = 1 - U.smoothstep(0, 0.3, rt);
+      P.scratch = (p0.scratch || 0) * rel0; P.scratchT = (p0.scratchT || 0) + rt;
+      P.squash = (p0.squash || 0) * (1 - U.smoothstep(0, 0.22, rt));
+      P.dizzy = (p0.dizzy || 0) * (1 - U.smoothstep(0, 0.4, rt));
+      P.think = (p0.think || 0) * (1 - U.smoothstep(0, 0.25, rt));
+      P.twist = (p0.twist || 0) * (1 - U.smoothstep(0, 0.3, rt));
+      P.clutch = (p0.clutch || 0) * (1 - U.smoothstep(0, 0.25, rt)); P.poke = (p0.poke || 0) * (1 - U.smoothstep(0, 0.25, rt)); P.shrug = (p0.shrug || 0) * rel0; P.reach = (p0.reach || 0) * rel0;
+      P.wind.x = (p0.wind && p0.wind.x || 0) * rel0; P.wind.y = (p0.wind && p0.wind.y || 0) * rel0;
+      // round 11: everything else the baseline had in progress at the press is released the same way (a press during the hello wave, the deer freeze, the hand at the mouth, a hop ...
+      // used to snap those poses off in one frame: the hand jumped ~200 units)
+      P.thinkT = p0.thinkT >= 0 ? p0.thinkT + rt : -1;          // the think-idle script (weight shift, toe tap, 'aha' perk-up) keeps its clock: the look-down fades it out within ~0.2 s instead of switching it off in one frame
+      P.wave = (p0.wave || 0) * (1 - U.smoothstep(0, 0.3, rt));
+      P.shudder = (p0.shudder || 0) * (1 - U.smoothstep(0, 0.2, rt)); P.shudderT = (p0.shudderT || 0) + rt;
+      P.flinch = (p0.flinch || 0) * (1 - U.smoothstep(0, 0.3, rt));
+      P.startle = (p0.startle || 0) * (1 - U.smoothstep(0, 0.2, rt)); P.spread = (p0.spread || 0) * (1 - U.smoothstep(0, 0.25, rt));
 
-      if (kind === 'duck') { // peeking: a giggly little duck back out of sight (no flinch)
-        var startVis = U.clamp((cap.x - (-M_PARK)) / (cap.xPeek - (-M_PARK)), 0, 1.2);
-        var back = U.easeInOutCubic(U.clamp((rt - 0.18) / 0.36));
+      if (kind === 'duck') { // startled peek: a visible flinch, then she slips back out (no cut)
+        var startVis = U.clamp((cap.x - (W + M_PARK)) / (cap.xPeek - (W + M_PARK)), 0, 1.2);
+        var back = U.easeInOutCubic(U.clamp((rt - 0.12) / 0.38));
         var vis = startVis * (1 - back);
-        P.x = U.lerp(-M_PARK, cap.xPeek, vis);
-        P.yaw = 2; P.peek = U.smoothstep(0, 1, vis);
-        P.giggle = bump(rt, 0, 0.06, 0.3, 0.45); P.headRoll = -0.3; P.headPitch = 0.1;
-        P.spread = 0.8 * bump(rt, 0, 0.05, 0.15, 0.25);
+        P.x = U.lerp(W + M_PARK, cap.xPeek, vis);
+        P.yaw = 0; P.peek = U.smoothstep(0, 1, vis);
+        P.flinch = Math.sin(Math.PI * U.clamp(rt / 0.5)) * 0.95;
+        P.headPitch = lerpc(p0.headPitch, -0.4, 0, 0.14);
+        P.headYaw = lerpc(p0.headYaw, 0.3, 0, 0.14);
+        P.shudder = shudderEnv(0.0, 0.08, 0.22, 0.4); P.shudderT = rt;
         o.done = rt > 0.62; o.noMove = true;
         return o;
       }
 
-      var standing = kind === 'stand', walkingIn = kind === 'walkHop';
+      // ================= ROUND 10: the '+' reaction as four overlapping beats (B standing / C walking in / D walking away) =================
+      //   1 LOOK DOWN at the console (0 .. T0, held to TH with a 'huh?' head wobble): the head turns toward the plus and the chin drops, the upper body bows after it,
+      //     one hand rises to the mouth (gasp), the ponytail swings forward (wind pulse).  B: the body turns three-quarter (so the chin-down reads in silhouette).
+      //   2 STARTLED JUMP (TH .. TL): anticipation crouch (TC), take-off stretch, HJ units up with the legs tucked, arms flung up with open spread hands, head snapped
+      //     back, startle ticks over the crown; a soft landing squash with a wobble.  B: she turns to face us while in the air (the flung pose reads frontally).
+      //   3 TURN BACK (TT0 .. TT1): to the escape direction (screen left): head leads, shoulders, hips; a quick glance back over the shoulder at the plus as she goes.
+      //   4 RUN (from TR): coil (lean back + crouch), burst with a comic lean overshoot that settles into the run lean; the head snaps forward after the glance.
+      var standing = kind === 'stand', hop = kind === 'walkHop', away = kind === 'walk';
       var sm = function (a, b) { return U.smoothstep(a, b, rt); };
       var bm = function (a, b, c1, d) { return bump(rt, a, b, c1, d); };
-      // 1 a quick look toward the '+' (below her) at three-quarter yaw
-      var TL0 = 0.32, HOP = standing ? 0.4 : 0.3, HJ = standing ? 46 : 30;
-      var look = U.easeOutCubic(U.clamp(rt / 0.22)) * (1 - sm(HOP - 0.05, HOP + 0.05));
-      if (standing) P.yaw = U.lerp(yaw0, yawBase + 0.6, U.easeOutCubic(U.clamp(rt / 0.25)));
-      else P.yaw = yaw0;
-      P.headYaw = U.lerp(p0.headYaw || 0, walkingIn ? 0.6 : (standing ? -0.35 : 0.9), look);
-      P.headPitch = U.lerp(p0.headPitch || 0, -0.45, look);          // (a glance down at the console; the chin only dips for ~0.3 s)
-      P.headRoll = U.lerp(p0.headRoll || 0, 0.15, look);
-      // 2 a happy hop: both arms up, hands open, body stretched, toes pointed (crouch first)
-      var Th = hop(P, rt, HOP, HJ, 0.18);
-      var up = bm(HOP - 0.04, HOP + 0.04, HOP + Th - 0.02, HOP + Th + 0.12);
-      setHand(P, 0, hand(up, 'chest', [16, -70, 128], { open: 1, pole: [0, -1, 0.3] })); setHand(P, 1, hand(up, 'chest', [16, 70, 128], { open: 1, pole: [0, 1, 0.3] }));
-      P.spread = Math.max(P.spread, up); P.headPitch = U.lerp(P.headPitch, 0.45, up);
-      // 3 one clap at three-quarter view
-      var TC = HOP + Th + 0.12, clap = bm(TC, TC + 0.1, TC + 0.22, TC + 0.34), meet = bm(TC + 0.08, TC + 0.12, TC + 0.14, TC + 0.18);
-      setHand(P, 0, hand(clap, 'chest', [44, -6 - 22 * (1 - meet), -24], { open: 0.9, hd: [0.4, 0.6, 0.7], pole: [0, -1, -0.6] }));
-      setHand(P, 1, hand(clap, 'chest', [44, 6 + 22 * (1 - meet), -24], { open: 0.9, hd: [0.4, -0.6, 0.7], pole: [0, 1, -0.6] }));
-      P.giggle = Math.max(P.giggle, bm(TC + 0.1, TC + 0.18, TC + 0.4, TC + 0.55));
-      P.headPitch = U.lerp(P.headPitch, 0.15, clap);
-      // 4 turn to the left and the cute run (a skip into the first strides, up to speed over ~3 strides)
-      var TR = TC + (standing ? 0.3 : 0.2);
+      var T0 = standing ? 0.40 : 0.36;            // the look is complete
+      var TH = standing ? 0.84 : 0.64;            // the hold ends: the anticipation crouch starts (B: the hold has the reach-down beat)
+      var TC = 0.11, TJ = TH + TC;                // crouch length, take-off
+      var TA = standing ? 0.42 : 0.38, TL = TJ + TA, HJ = standing ? 58 : 48;   // air time, landing, jump height
+      var TT0 = TL + 0.04, TT1 = TT0 + (standing ? 0.40 : 0.20);   // the turn back (B: front -> profile)
+      var TR = standing ? TT1 - 0.06 : TL + 0.22;  // the run starts (speed ramps from here)
+      var TG = standing ? TT1 - 0.12 : TL + 0.1;   // the glance back over the shoulder starts (while she coils; it lasts into the burst: running while looking back)
+
+      var look = ease(0, T0);
+      var holdW = sm(T0 - 0.06, T0 + 0.1) * (1 - sm(TH - 0.08, TH + 0.02)), tw = rt - T0;
+      var wobR = 0.32 * holdW * Math.sin(Math.PI * 2 * 1.9 * tw) * Math.exp(-1.2 * Math.max(0, tw)), wobY = 0.1 * holdW * Math.sin(Math.PI * 2 * 1.4 * tw + 0.5);   // 'huh? what's that?' (a visible head tilt, then a smaller one)
+      var lookRel = 1 - sm(TJ - 0.05, TJ + 0.07);          // the look pose lets go at the take-off
+      var headUp = sm(TJ - 0.03, TJ + 0.1);                 // the head snaps back / up in the jump
+      var landW = sm(TL - 0.05, TL + 0.14);
+      var uA = U.clamp((rt - TJ) / TA), inAir = sm(TJ, TJ + 0.1) * (1 - sm(TL - 0.14, TL - 0.02));
+      var glance = bm(TG, TG + 0.14, TG + 0.26, TG + 0.46);
+      var ut = U.clamp((rt - TT0) / (TT1 - TT0)), turnK = U.easeInOutCubic(ut);
+
+      // ---- beat 1 + 2: look / jump (per scenario, blended from the captured pose)
       if (standing) {
-        var ut = U.clamp((rt - (TR - 0.3)) / 0.32), turnK = U.easeInOutCubic(ut);
-        P.yaw = U.lerp(P.yaw, yawBase, turnK);
-        if (ut > 0 && ut < 1) P.turnStep = { u: ut, yaw0: yawBase + 0.6, yaw1: yawBase, w: 1 - sm(TR - 0.02, TR + 0.1), first: 0 };
-        P.headYaw = U.lerp(P.headYaw, -0.5 * Math.sin(Math.PI * ut), sm(TR - 0.32, TR - 0.22));
-        P.twist += -0.45 * Math.sin(Math.PI * (1 - (1 - ut) * (1 - ut))) * sm(TR - 0.32, TR - 0.25);
+        P.yaw = U.lerp(U.lerp(p0.yaw, 0.45, look), 0.9, sm(TJ, TL - 0.06));   // three-quarter for the look (the head sits forward of the shoulders, chin and neck notch visible), back to (nearly) front in the air
+        P.headYaw = U.lerp(p0.headYaw, -0.5, ease(0, 0.32)) + wobY;
+        P.headYaw = U.lerp(P.headYaw, 0, headUp);
+        P.headPitch = U.lerp(p0.headPitch, -0.85, ease(0.04, 0.36)) - 0.15 * bm(T0 + 0.2, T0 + 0.3, T0 + 0.36, T0 + 0.48);   // (+ a second small double-take nod as the hand reaches)
+        P.headRoll = U.lerp(p0.headRoll, 0.22, look) + wobR;
+        P.bow = (0.8 + 0.1 * sm(T0, TH)) * look * lookRel;
+        P.chestHand = 1.45 * sm(0.06, 0.34) * lookRel;
+        P.reach = sm(T0 + 0.06, T0 + 0.34) * (1 - sm(TH - 0.05, TH + 0.05));   // 'what is THAT?': the free hand reaches down toward the console, then snatches back at the startle
+      } else if (hop) { // C: walking in (profile), the plus is ahead of her, down-left: the head turns toward the viewer and down, the upper body leans in
+        P.yaw = p0.yaw;
+        P.headYaw = U.lerp(p0.headYaw, 0.8, ease(0, 0.3)) + wobY;
+        P.headYaw = U.lerp(P.headYaw, 0, headUp);
+        P.headPitch = U.lerp(p0.headPitch, -1, ease(0.04, 0.34));
+        P.headRoll = U.lerp(p0.headRoll, 0.2, look) + wobR;
+        P.bow = 0.6 * look * lookRel;
+        P.chestHand = 1.35 * sm(0.06, 0.32) * lookRel;
+      } else { // D: walking away (profile), the plus is behind her, down-right: an over-the-shoulder look back (the upper body twists toward the viewer), chin down
+        P.yaw = p0.yaw;
+        P.twist = U.lerp(P.twist, 0.95, ease(0, 0.34));
+        P.twist = U.lerp(P.twist, 0.22, sm(TJ, TL - 0.04));          // she 'jumps out of her skin' and lands nearly straight again
+        P.headYaw = U.lerp(p0.headYaw, 0.95, ease(0, 0.3)) + wobY;
+        P.headYaw = U.lerp(P.headYaw, 0.1, headUp);
+        P.headPitch = U.lerp(p0.headPitch, -0.85, ease(0.04, 0.34));
+        P.headRoll = U.lerp(p0.headRoll, 0.18, look) + wobR;
+        P.bow = 0.35 * look * lookRel;
+        P.chestHand = 1.3 * sm(0.06, 0.32) * lookRel;
       }
-      var g2 = bm(TR + 0.75, TR + 0.9, TR + 1.1, TR + 1.3);          // one happy glance back over the shoulder while she runs
-      P.headYaw = U.lerp(P.headYaw, 1.35, g2); P.twist += 0.7 * g2; P.headRoll = U.lerp(P.headRoll, 0.15, g2);
-      P.lean = 0.25 * sm(TR, TR + 0.4);
-      var vRun = V_RUN * U.easeOutQuad(U.clamp((rt - TR) / 0.75)), vLow = 0;
+      P.headPitch = U.lerp(P.headPitch, 0.55, headUp);              // head snapped back in the air
+      P.headPitch = U.lerp(P.headPitch, 0.08, landW);
+      P.headRoll = U.lerp(P.headRoll, 0, headUp);
+      // the jump: crouch, stretch at the take-off, flight (parabola), landing squash + wobble, open hands + startle ticks
+      P.squash += 0.55 * bm(TH, TJ - 0.02, TJ, TJ + 0.06) - 0.32 * bm(TJ, TJ + 0.06, TJ + 0.2, TJ + 0.34) + 0.6 * bm(TL - 0.03, TL + 0.06, TL + 0.1, TL + 0.3);
+      if (rt > TL + 0.3) P.squash += 0.16 * Math.exp(-6 * (rt - TL - 0.3)) * Math.sin(Math.PI * 2 * 4 * (rt - TL - 0.3));          // the landing wobble
+      P.air = inAir;
+      P.y = G - HJ * 4 * uA * (1 - uA);
+      P.spread = sm(TJ, TJ + 0.12) * (1 - sm(TL, TL + 0.2));
+      P.startle = sm(TJ - 0.02, TJ + 0.06) * (1 - sm(TJ + 0.24, TJ + 0.36));
+      P.flinch = Math.max(P.flinch, 0.7 * bm(TL - 0.02, TL + 0.1, TL + 0.2, TL + 0.5));
+      // round 11: the TAKE - the moment she realises: a sharp recoil (shoulders up, hands drawn in, a little hop back on to her toes) held for ~4 frames right before the crouch
+      var take = bm(TH - 0.2, TH - 0.13, TH - 0.04, TH + 0.03);
+      P.flinch = Math.max(P.flinch, 0.75 * take); P.headPitch += 0.18 * take; P.squash -= 0.12 * take; P.startle = Math.max(P.startle, 0.6 * take);          // landed: shoulders up, hands drawn in as little paws (the startled stare)
+      P.wind.x += -(standing ? 130 : 110) * bm(0.04, 0.2, 0.3, 0.6) + 160 * bm(TJ, TJ + 0.1, TJ + 0.2, TJ + 0.5);    // the ponytail swings forward and hangs over the shoulder, then whips in the jump
+      P.wind.y += (standing ? 170 : 60) * bm(0.1, 0.3, 0.55, 0.85);
+
+      P.chestHand = Math.max(P.chestHand, (p0.chestHand || 0) * (1 - sm(0, 0.35)));          // (a hand at the mouth at the press goes on from there)
+      var relA = 1 - sm(0, 0.18);          // a hop in progress at the press comes down instead of snapping to the floor
+      P.air = Math.max(P.air, (p0.air || 0) * relA); P.y = Math.min(P.y, G + ((p0.y === undefined ? G : p0.y) - G) * relA);
+
+      // ---- beat 3: turn back (B: body front -> profile with the head leading and the shoulders ahead of the hips); the glance back over the shoulder (all)
+      if (standing) {
+        P.yaw = U.lerp(P.yaw, 0, turnK);
+        P.headYaw = U.lerp(P.headYaw, -0.55 * Math.sin(Math.PI * Math.min(1, ut * 1.1)), sm(TT0 - 0.02, TT0 + 0.08));
+        P.twist += -0.5 * Math.sin(Math.PI * (1 - (1 - ut) * (1 - ut))) * sm(TT0 - 0.02, TT0 + 0.05);
+      }
+      P.headYaw = U.lerp(P.headYaw, 1.3, glance);          // round 11: a real look back over the shoulder (head ~70 deg + the shoulders ~25 deg), not a half turn
+      P.headPitch = U.lerp(P.headPitch, -0.3, glance);
+      P.twist += (standing ? 0.5 : 0.6) * glance;
+
+      // ---- beat 4: coil and burst into the run (comic lean overshoot), head snaps forward
+      // round 11: the wind-up leans her back, the burst throws her far forward (~27 deg) and the lean settles (~23 deg) once the speed is there
+      var g2 = bm(TR + 0.8, TR + 0.98, TR + 1.2, TR + 1.42);          // the second look back, over the shoulder, while running flat out
+      P.lean = -0.4 * bm(TR - 0.14, TR - 0.03, TR + 0.03, TR + 0.15) + 0.9 * sm(TR + 0.03, TR + 0.36) + 0.4 * bm(TR + 0.12, TR + 0.3, TR + 0.5, TR + 1.1) - 0.5 * g2;
+      P.headYaw = U.lerp(P.headYaw, 1.45, g2); P.headPitch = U.lerp(P.headPitch, 0.05, g2); P.twist += 0.85 * g2; P.headRoll = U.lerp(P.headRoll, -0.2, g2);
+      P.squash += 0.4 * bm(TR - 0.1, TR, TR + 0.06, TR + 0.18);
+      var vRun = V_RUN * U.easeOutQuad(U.clamp((rt - TR) / 0.62)), vLow = 0;          // round 11: 0.62 s to top speed (was 0.45): the first steps are really short and quick before she is up to speed
       if (standing) o.speed = vRun;
-      else {
-        vLow = U.lerp(cap.speed, 0.35 * V_WALK, sm(0, 0.3)) * (1 - 0.85 * sm(HOP - 0.1, HOP));
+      else { // walking: she slows to a near-stop for the look + hop (the hop is on the spot), then the run
+        vLow = U.lerp(cap.speed, 0.42 * V_WALK, sm(0, 0.3)) * (1 - 0.78 * sm(TH - 0.05, TJ));
         o.speed = Math.max(vLow, vRun);
       }
       o.run = U.smoothstep(0.35, 0.8, o.speed / V_RUN);
-      if (!standing) { var run0 = U.smoothstep(0.35, 0.8, (cap.speed || 0) / V_RUN); o.run = Math.max(0, (o.run - run0) / (1 - run0)); }
-      var spdN = o.speed / V_WALK, amtRun = U.smoothstep(0.01, 0.3, spdN) * sm(TR - 0.02, TR + 0.26);
+      if (!standing) { var run0 = U.smoothstep(0.35, 0.8, (cap.speed || 0) / V_RUN); o.run = Math.max(0, (o.run - run0) / (1 - run0)); }          // (a press while walking at 400 u/s: the run weight starts from 0, not from the 7 % the walking speed already maps to)
+      var spdN = o.speed / V_WALK, amtRun = U.smoothstep(0.01, 0.3, spdN) * sm(TR - 0.02, TR + 0.26);          // the stride builds up over ~0.25 s at the burst (no one-frame leg pop; the rig lifts the swing foot while the amount ramps)
       P.gait.amount = standing ? amtRun : Math.max(amtRun, U.smoothstep(0.01, 0.3, vLow / V_WALK));
       P.gait.run = o.run;
       P.gait.speed = o.speed;
-      P.gait.skip = 0.8 * sm(TR, TR + 0.15) * (1 - sm(TR + 0.45, TR + 0.75)) * (1 - o.run);
-      P.wind.x += 120 * o.run + 140 * bm(HOP, HOP + 0.06, HOP + 0.15, HOP + 0.4); P.wind.y += -40 * o.run;
+      P.wind.x += 140 * o.run; P.wind.y += -40 * o.run;
       o.TR = TR;
       return o;
     }
 
-    // the thought cloud's schedule for this script (k = seconds after thinkStart; kScale 1, see GA.thoughts build({plan, tAct0}))
-    var thoughtPlan = {
-      act: { I: 0, II: 1.7, III: 5.7, IV: 9.4, END: K_HIT },
-      beat: {
-        hero: [KB.hero, 2.25, 3.45, 4.85], heroMate: [2.6, 3.1, 3.9, 5.2], spark: [1.45, 2.05],
-        S: [2.75, 3.25, 4.4, 5.0, 5.55, 6.2], mateLag: [0.3, 0.45],
-        B: [3.6, 6.5], C: [4.6], R: [5.9], X: [6.7],
-        bulb: [KB.tap, 4.2, 6.35, 8.6], fw: [KB.burst + 0.05, KB.burst + 0.25, KB.burst + 0.5], fwExtra: [7.95, 8.5, 9.6],
-        swarm: [6.4, 8.0], swarmGap: [0.4, 0.25], bulbLife: 4.0,
-      },
-      maxItems: 18, noChurn: true, noDarts: true, firstBulb: [0.2, -74],
-      flowBoost: [[KB.conduct0, KB.conduct0 + 1.2, 0.9], [KB.twirl0, KB.twirl1, 1.6]],
-    };
-
     return {
       W: W, duration: duration, cues: c, V_WALK: V_WALK, V_RUN: V_RUN, M_RIGHT: M_RIGHT, M_LEFT: M_LEFT, M_PARK: M_PARK, xStop: xStop, xStart: xStart,
       STRIDE: STRIDE, STRIDE_RUN: STRIDE_RUN, poseAt: poseAt, reaction: reaction, intensity: intensity, newPose: newPose,
-      xPeek: -PEEK_DX, gravity: gW, thoughtPlan: thoughtPlan, beats: KB, setCloud: function (v) { cloudOn = !!v; }, cloudOn: function () { return cloudOn; },
+      xPeek: W + PEEK_DX,
       shadowFor: function (p) {
-        var yf = GA.girlA && GA.girlA.yawFold ? GA.girlA.yawFold(p.yaw) : Math.min(1, Math.max(0, p.yaw));
-        var w = U.lerp(150, 175, yf) + 40 * Math.max(p.gait.amount, p.gait.run) + 30 * p.air;
-        var sq = Math.max(0, p.squash), up = Math.max(0, G - (p.y === undefined ? G : p.y));
-        var hk = 1 / (1 + up / 60);          // the shadow shrinks and fades with the height of a hop
-        return { x: p.x + 8, w: w * (1 + 0.18 * sq) * (0.7 + 0.3 * hk), h: 26 * (1 + 0.1 * sq) * (0.7 + 0.3 * hk), alpha: 0.2 * hk * (1 - 0.97 * Math.min(1, p.peek || 0)) };
+        var w = U.lerp(150, 175, p.yaw) + 40 * Math.max(p.gait.amount, p.gait.run) + 30 * p.air;
+        var sq = Math.max(0, p.squash);
+        return { x: p.x + 8, w: w * (1 + 0.18 * sq) * (1 - 0.25 * p.air), h: 26 * (1 + 0.1 * sq), alpha: 0.2 * (1 - 0.35 * p.air) * (1 - 0.97 * Math.min(1, p.peek || 0)) };
       },
       phaseName: function (t) {
         if (t < c.walkInEnd) return 'walk in';
-        if (t < c.turnFront1) return 'settle + turn to front';
-        if (t < c.thinkStart) return 'hello';
-        if (t < c.thinkStart + 1.7) return 'the first idea';
-        if (t < c.thinkStart + 5.7) return 'playing with ideas';
-        if (t < c.thinkStart + 8.1) return 'conducting + mind blown';
-        if (t < c.ballIn) return 'twirl + wobble + laugh';
-        if (t < c.tHit) return 'the boop is coming';
-        if (t < c.turnLeft0) return 'boop + giggle + afterglow';
-        if (t < c.walkOut0) return 'turn to profile';
-        if (t < c.walkOutEnd) return 'skip + walk out left';
+        if (t < c.turnFront1) return 'turn to front';
+        if (t < c.swirlStart) return 'thought dots';
+        if (t < c.ballIn) return 'thinking: swirl builds';
+        if (t < c.tHit) return 'ball incoming';
+        if (t < c.scratch1) return 'bonk + reaction + shatter';
+        if (t < c.shake1) return 'shake head';
+        if (t < c.walkOut0) return 'turn left';
+        if (t < c.walkOutEnd) return 'walk out left';
         if (t < c.peek0) return 'empty';
-        if (t < c.peekOut1) return 'peek-a-boo from the left';
-        return 'empty';
+        if (t < c.peekOut1) return 'peek from right';
+        return 'empty (1 s)';
       },
     };
   }
@@ -4461,7 +4357,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   var sc = (GA.scene = {
     mode: 'loop', tl: 0, T: null, girl: null, pose: null, R: null, trig: {}, navOpen: false, canvas: null, visible: true, live: true,
     heavyReady: false, playing: false, _raf: 0, _last: 0, _lastRender: 0, acc: 0, debug: false, bg: 'transparent', _errs: {}, reduced: false,
-    ticks: 0, awayAt: 0, resumeTl: 0, impactTicks: false, fresh: false, _snaps: {}, heavyStarted: false, _gov: { dts: [], hist: [], prev: 0, last: -1e9, level: 0 }, _warm: { done: false }, _ri: 0, _par: false,
+    ticks: 0, awayAt: 0, resumeTl: 0, impactTicks: true, fresh: false, _snaps: {}, heavyStarted: false, _gov: { dts: [], hist: [], prev: 0, last: -1e9, level: 0 }, _warm: { done: false }, _ri: 0, _par: false,
   });
 
   function safe(name, fn) {
@@ -4505,12 +4401,11 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     },
     thoughts: function () {
       var W = S.W, H = S.H, c = sc.T.cues, G = sc.geom;
-      if (GA.thoughts) GA.thoughts.build({ W: W, H: H, cx: G.cx, cy: G.cy, rx: G.rx, ry: G.ry, seed: 9, tStart: c.swirlStart, tFull: c.swirlFull, tHit: Infinity, swirl: GA.swirl,
-        plan: sc.T.thoughtPlan, tAct0: c.thinkStart });          // round 12: the cloud's beats follow her script (the bulb she taps, the fireworks of 'mind blown', the orbits she conducts / twirls)
+      if (GA.thoughts) GA.thoughts.build({ W: W, H: H, cx: G.cx, cy: G.cy, rx: G.rx, ry: G.ry, seed: 9, tStart: c.swirlStart, tFull: c.swirlFull, tHit: Infinity, swirl: GA.swirl });
     },
     fx: function (g) {
       var W = S.W, H = S.H, c = sc.T.cues, hit = g.hit;
-      if (GA.fx && GA.fx.ball) GA.fx.ball.build({ W: W, H: H, tHit: c.tHit, target: { x: hit.headTop.x, y: hit.headTop.y }, radius: 44, gravity: sc.T.gravity,
+      if (GA.fx && GA.fx.ball) GA.fx.ball.build({ W: W, H: H, tHit: c.tHit, target: { x: hit.headTop.x, y: hit.headTop.y }, radius: 44,
         headAt: function (t) { var an = sc.girl.anchors(sc.T.poseAt(t)); return { x: an.headTop.x, y: an.headTop.y }; } }); // the squash disc follows the head as it dips
       if (GA.fx && GA.fx.ow && sc.impactTicks) GA.fx.ow.build({ t0: c.owStart, x: hit.headTop.x, y: hit.headTop.y - 6, dir: -1, ticks: true, headCenter: hit.headCenter, headR: hit.headR });
     },
@@ -4609,11 +4504,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     if (!D) return;
     if (o.TR !== undefined && !R.launched && R.rt >= o.TR) { // the take-off: a cloud kicked up behind her heels
       R.launched = true;
-      D.puff(R.x + 40, G - 4, { n: 3, r0: 7, r1: 20, vx: 200, vy: -26, life: 0.7, a: 0.26, spread: 14 });          // (round 12: small and soft)
+      D.puff(R.x + 40, G - 4, { n: 6, r0: 12, r1: 40, vx: 230, vy: -34, life: 0.95, a: 0.6, spread: 22 });
+      D.puff(R.x + 90, G - 2, { n: 4, r0: 8, r1: 28, vx: 360, vy: -20, life: 0.8, a: 0.45, spread: 16 });
     }
     if (R.s2 !== undefined && Math.floor(s2) > Math.floor(R.s2) && (R.kind === 'stand' ? o.speed > 90 : o.run > 0.03)) { // a foot strike: a small puff behind the planted foot
       var an = sc.girl.anchors(p), f = an.footL.y > an.footR.y ? an.footL : an.footR;
-      if (fresh > 1.2) D.puff(f.x + 26, G - 2, { n: 1, r0: 3 * fresh, r1: 9 * fresh, vx: 80 + 120 * sp, vy: -24, life: 0.4, a: 0.2, spread: 5 });          // (round 12: only the first few strides, a whisper)
+      D.puff(f.x + 26, G - 2, { n: 2 + (fresh > 1.2 ? 1 : 0), r0: 5 * fresh, r1: 17 * fresh, vx: 90 + 160 * sp, vy: -34, life: 0.5 + 0.15 * fresh, a: 0.42 * Math.min(1, fresh), spread: 6 });
     }
     R.s2 = s2;
     if (o.TR !== undefined && R.rt > o.TR + 0.12 && R.rt < o.TR + 1.0 && sp > 0.4) { // a few thin speed strokes while she gathers pace
@@ -4628,13 +4524,17 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     if (!D) return;
     if (up > 6) { sc._wasUp = true; if (up > (sc._hopPeak || 0)) sc._hopPeak = up; }
     else if (sc._wasUp && up < 1.2) {
-      if ((sc._hopPeak || 0) > 24) {          // round 12: only the real hops kick up a little dust, and it is soft (the many small happy bounces are clean)
-        var k = Math.min(1.2, 0.4 + (sc._hopPeak || 0) / 80);
-        D.puff(p.x - 46, G - 2, { n: 2, r0: 4 * k, r1: 11 * k, vx: -70 * k, vy: -20, life: 0.5, a: 0.24, spread: 6 });
-        D.puff(p.x + 46, G - 2, { n: 2, r0: 4 * k, r1: 11 * k, vx: 70 * k, vy: -20, life: 0.5, a: 0.24, spread: 6 });
-      }
+      var k = Math.min(1.6, 0.55 + (sc._hopPeak || 0) / 60);
+      D.puff(p.x - 46, G - 2, { n: 3, r0: 5 * k, r1: 15 * k, vx: -80 * k, vy: -24, life: 0.55, a: 0.42, spread: 7 });
+      D.puff(p.x + 46, G - 2, { n: 3, r0: 5 * k, r1: 15 * k, vx: 80 * k, vy: -24, life: 0.55, a: 0.42, spread: 7 });
       sc._wasUp = false; sc._hopPeak = 0;
     }
+    if (sc.mode === 'loop' && !sc._bonkDust && sc.tl >= c.tHit + 0.1 && sc.tl < c.tHit + 0.5) {
+      sc._bonkDust = true;
+      D.puff(p.x - 52, G - 2, { n: 4, r0: 7, r1: 22, vx: -130, vy: -30, life: 0.65, a: 0.45, spread: 8 });
+      D.puff(p.x + 52, G - 2, { n: 4, r0: 7, r1: 22, vx: 130, vy: -30, life: 0.65, a: 0.45, spread: 8 });
+    }
+    if (sc.tl < c.tHit - 1) sc._bonkDust = false;
   }
 
   /** 'seeing stars' after the bonk: three small four-point sparkles circle above her head while she is dazed (round 11) */
@@ -4685,8 +4585,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         sc.trig.hit = true;
         // the eruption starts ~0.15 s AFTER the impact so the ball's bounce reads
         safe('dissolve@hit', function () {
-          if (GA.thoughts && GA.thoughts.dissolveFrom) GA.thoughts.dissolveFrom(c.tHit + 0.04, { speed: 1, stagger: 0.55, style: 'bubble' });          // round 12: every thought pops like a soap bubble
-          if (GA.swirl && GA.swirl.dissolveFrom) GA.swirl.dissolveFrom(c.tHit + 0.04, { speed: 1, stagger: 0.55, style: 'bubble' });
+          if (GA.thoughts && GA.thoughts.dissolveFrom) GA.thoughts.dissolveFrom(c.tHit + 0.04, { speed: 1, stagger: 0.55 });
+          if (GA.swirl && GA.swirl.dissolveFrom) GA.swirl.dissolveFrom(c.tHit + 0.04, { speed: 1, stagger: 0.55 });
         });
       }
       // thoughts/swirl/ball/cubes are finished a few seconds after the hit: hide them until the next loop starts
@@ -4702,14 +4602,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       headSpring(sc.pose, h);
       girl.step(h, sc.pose);
       landingDust(sc.pose, T);
-      if (!sc.trig.cloud && sc.tl >= c.thinkStart - 0.5 && sc.tl < c.thinkStart) { sc.trig.cloud = true; T.setCloud(!!(GA.heavyLoaded && sc.heavyReady)); }          // (one decision per loop: never a switch mid-performance)
-      if (!sc.trig.caught && sc.trig.hit && sc.tl >= c.thinkStart + 10.95 && sc.tl < c.thinkStart + 11.3 && GA.fx && GA.fx.dots) {          // round 12: she catches one falling bit
-        sc.trig.caught = true;
-        safe('catch', function () {
-          var an = girl.anchors(T.poseAt(c.thinkStart + 11.2)), hx = an.handL ? an.handL.x : an.headCenter.x - 60, hy = an.handL ? an.handL.y : an.neck.y + 60;
-          GA.fx.dots.spawn({ x: hx + 8, y: hy - 58, r: 4.2, kind: 'ring', t0: sc.tl, vx: -10, vy: 0, z: 1, hover: 0.6, drag: 6, gk: 0.19, fade: 0.62, fadeLen: 0.36, spin: 0 });
-        });
-      }
       return;
     }
 
@@ -4788,7 +4680,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     if (tl < c.walkInEnd) kind = 'walkHop'; // C: still walking in
     else if (tl < c.walkOut0) kind = 'stand'; // B (and: during ball flight / hit reaction)
     else if (tl < c.walkOutEnd + 0.08) kind = 'walk'; // D: walking away
-    else if (tl >= c.peek0 && tl < c.peekOut1 && p.x > -200) kind = 'duck'; // E: peeking in from the left edge: a giggly duck
+    else if (tl >= c.peek0 && tl < c.peekOut1 && p.x < S.W + 200) kind = 'duck'; // E: startled while peeking
     if (!kind) return true; // E: empty screen — nothing for her to do; the loop simply holds until the menu closes
     sc.R = { kind: kind, rt: 0, x: p.x, phase: p.gait.phase, cap: { x: p.x, yaw: p.yaw, speed: p.gait.speed, pose0: p, tl0: tl, xPeek: T.xPeek } };
     sc.mode = 'react';
@@ -4799,8 +4691,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     safe('interrupt', function () {
       if (sc.live && !wasHit && (kind === 'stand' || kind === 'walk')) {
         var t0 = tl + (kind === 'stand' ? 0.25 : 0);
-        if (GA.thoughts && GA.thoughts.dissolveFrom) GA.thoughts.dissolveFrom(t0, { speed: 1.6, stagger: 0.35, style: 'bubble' });
-        if (GA.swirl && GA.swirl.dissolveFrom) GA.swirl.dissolveFrom(t0, { speed: 1.6, stagger: 0.35, style: 'bubble' });
+        if (GA.thoughts && GA.thoughts.dissolveFrom) GA.thoughts.dissolveFrom(t0, { speed: 1.6, stagger: 0.35 });
+        if (GA.swirl && GA.swirl.dissolveFrom) GA.swirl.dissolveFrom(t0, { speed: 1.6, stagger: 0.35 });
       }
       if (GA.fx && GA.fx.ball && tl < c.tHit) { if (GA.fx.ball.pop) GA.fx.ball.pop(tl); else if (GA.fx.ball.cancel) GA.fx.ball.cancel(tl); }
       if (GA.fx && GA.fx.ow && GA.fx.ow.cancel && tl < c.owStart) GA.fx.ow.cancel();
@@ -4845,14 +4737,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     safe('specks', function () { if (GA.fx && GA.fx.specks) GA.fx.specks.draw(ctx); });
     safe('shadow', function () {
       if (GA.fx && GA.fx.shadow && onScreen && pose.x > -320 && pose.x < W + 320) {
-        // G21: a soft body shadow under the hips (smaller and fainter with the height of a hop), plus a small contact shadow under each foot that fades as the foot
-        // lifts, so double support, a lifted foot and a hop all read on the floor
-        var sh = T.shadowFor(pose), an = girl.anchors(pose), pk = 1 - 0.97 * Math.min(1, pose.peek || 0);
-        GA.fx.shadow(ctx, { x: an.hips.x + 8, y: G + 3, w: sh.w, h: sh.h, alpha: 0.65 * sh.alpha });
-        [an.footL, an.footR].forEach(function (fp) {
-          var lift = Math.max(0, G - fp.y), k = Math.max(0, 1 - lift / 36);
-          if (k > 0) GA.fx.shadow(ctx, { x: fp.x, y: G + 2, w: 74 * (0.8 + 0.2 * k), h: 13 * (0.8 + 0.2 * k), alpha: 0.2 * k * k * pk });
-        });
+        var sh = T.shadowFor(pose);
+        GA.fx.shadow(ctx, { x: sh.x, y: G + 4, w: sh.w, h: sh.h, alpha: sh.alpha });
       }
     });
     safe('dust', function () { if (GA.dust) GA.dust.draw(ctx); });
@@ -4869,7 +4755,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     safe('cubes.front', function () { if (heavy && GA.fx && GA.fx.cubes) { GA.fx.cubes.draw(ctx, t, 'front'); GA.fx.dots.draw(ctx, t, 'front'); } });
     safe('ball', function () { if (heavy && GA.fx && GA.fx.ball) GA.fx.ball.draw(ctx, t); });
     safe('impact', function () { if (heavy && sc.impactTicks && GA.fx && GA.fx.ow) GA.fx.ow.draw(ctx, t); });
-    // (round 12: no 'seeing stars' after the boop - they read as hurt)
+    safe('stars', function () { if (onScreen) drawStars(ctx, pose, t); });
     if (sc.debug) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = '#d00'; ctx.font = 'bold 14px monospace';
@@ -4903,12 +4789,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // sharpness first: never go below 1 device pixel per CSS pixel (a standard 1080p screen stays crisp) unless the machine is really struggling
     if (med < 30) nq = Math.max(nq, Math.min(q, 1 / Math.max(1, S.dpr / q)));
     var now = window.performance.now();
-    // round 12 (G23): the governor also steps back UP once the frames have been comfortably fast for a while (one hitch no longer makes the canvas soft for good)
-    if (nq >= q - 0.01 && q < 1 && med < ref * 1.08 && now - g.last > 6000) {
-      g.last = now; g.level = Math.max(0, g.level - 1); g.hist.length = 0;
-      if (S.setQuality(Math.min(1, q / 0.88))) { if (sc.heavyReady && sc.live) sc.rescaleModules(); return true; }
-      return false;
-    }
     if (nq < q - 0.01 && now - g.last > 2000) {
       g.last = now; g.level++;
       g.hist.length = 0;
@@ -5077,24 +4957,17 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   var landing = document.getElementById('landing') || root.closest('section');
   var titleEl = document.querySelector('.site-name');
   var booted = false, canvas = null;
-  // the thought cloud lives in its own script (~660 KB of source).  Round 12 (G26): it is requested after the first paint, in an idle moment (it is not needed before
-  // her first thought, ~7 s in), and not at all when the visitor has asked to save data (she then plays a simple happy idle instead of gesturing at nothing)
-  var me0 = document.currentScript, thoughtsSrc = (me0 && me0.src ? me0.src.replace(/[^\/]*$/, '') : 'scripts/') + 'landing-girl-thoughts.js';
-  var saveData = !!(navigator.connection && navigator.connection.saveData);
-  function loadThoughts() {
-    if (GA.heavyLoaded || GA._heavyRequested || saveData) return;
+  // the thought cloud lives in its own script (~660 KB of source): it is requested right now, in parallel with this script's start-up, and is not needed before the first thought (~5 s in)
+  (function loadThoughts() {
+    if (GA.heavyLoaded || GA._heavyRequested) return;
     GA._heavyRequested = true;
-    var el = document.createElement('script');
-    el.src = thoughtsSrc;
+    var me = document.currentScript, el = document.createElement('script');
+    el.src = (me && me.src ? me.src.replace(/[^\/]*$/, '') : 'scripts/') + 'landing-girl-thoughts.js';
     el.async = true;
     el.onerror = function () { GA._heavyFailed = true; };
     document.head.appendChild(el);
-  }
-  if (saveData) GA._heavyFailed = true;
-  else window.requestAnimationFrame(function () { window.requestAnimationFrame(function () {
-    if (window.requestIdleCallback) window.requestIdleCallback(loadThoughts, { timeout: 1200 }); else window.setTimeout(loadThoughts, 300);
-  }); });
-  var FIRST_LOOK = 0.3; // seconds into the walk-in at which the very first frame starts (round 12, G10: she is still fully off-screen and walks in at once: a clean entrance)
+  })();
+  var FIRST_LOOK = 0.8; // seconds into the walk-in at which the very first frame starts (at 400 u/s she is then ~200 u inside the right edge, not outside it)
 
   // The contract exists immediately (before the boot) so the nav script can always call it.
   function press() { return booted ? scene.press() : false; }
@@ -5202,9 +5075,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       });
     }
     document.addEventListener('visibilitychange', function () { if (!document.hidden) scene._last = 0; });
-    // a project opened over the landing covers it completely: stop drawing underneath, and carry on from the same moment once it has closed
-    document.addEventListener('harini:project-open', function () { if (!reduced.matches) scene.pause(); });
-    document.addEventListener('harini:project-closed', function () { if (scene.visible && !reduced.matches) scene.play(); });
 
     // navigation console: react the instant '+' is activated; stay away while the menu is open, come back when it closes
     window.addEventListener('landing-nav-plus-opened', press);

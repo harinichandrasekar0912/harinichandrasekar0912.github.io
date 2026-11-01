@@ -1,7 +1,4 @@
 (function () {
-  // the folder this file was loaded from ("scripts/", or "scripts/min/" for the minified copy): the playable pieces sit next to it in play/
-  var SCRIPT_DIR = (document.currentScript && document.currentScript.src ? document.currentScript.src.replace(/[^\/]*$/, "") : "") || "scripts/";
-
   // Paste your secure form endpoint here.
   // Example: Formspree/Basin/Getform endpoint.
   // Do not put Gmail passwords, SMTP credentials, or private API keys in frontend code.
@@ -283,27 +280,6 @@
     });
   }
 
-  /*
-    While the navigation ball is out of sight, the page jumps to its destination in about half a second (navigation-ball.js sends
-    harini:camera-move). Scroll-linked work is skipped during that jump and done once at the end, so the jump never stutters.
-  */
-  var cameraMoving = false;
-  var cameraMoveEndCallbacks = [];
-
-  function onCameraMoveEnd(callback) {
-    cameraMoveEndCallbacks.push(callback);
-  }
-
-  document.addEventListener("harini:camera-move", function (event) {
-    cameraMoving = Boolean(event.detail && event.detail.moving);
-
-    if (!cameraMoving) {
-      cameraMoveEndCallbacks.forEach(function (callback) {
-        callback();
-      });
-    }
-  });
-
   function initArchivePlaceholders() {
     var items = Array.prototype.slice.call(document.querySelectorAll(".archive-item"));
     var container = document.querySelector(".archive-bars");
@@ -434,7 +410,7 @@
     }
 
     function queueUpdate() {
-      if (frame || cameraMoving) {
+      if (frame) {
         return;
       }
 
@@ -445,7 +421,6 @@
     window.addEventListener("scroll", queueUpdate, { passive: true });
     window.addEventListener("resize", queueUpdate, { passive: true });
     window.addEventListener("load", queueUpdate, { once: true });
-    onCameraMoveEnd(queueUpdate);
   }
 
   /*
@@ -532,12 +507,11 @@
     }
 
     function queueUpdate() {
-      if (!frame && !cameraMoving) {
+      if (!frame) {
         frame = window.requestAnimationFrame(update);
       }
     }
 
-    onCameraMoveEnd(queueUpdate);
     measureEdges();
     update();
     window.addEventListener("scroll", queueUpdate, { passive: true });
@@ -577,68 +551,6 @@
     });
   }
 
-  /*
-    The apple in About (scripts/play/apple.js) is not needed for the first screen, so its two scripts are only requested when
-    About comes within 600 px of the screen. Until then (and if they never arrive) the figure is a quiet paper square with its
-    question in it. The shared kit guards against being run twice, so it does not matter if a project has loaded it already.
-  */
-  function loadPlayScript(name) {
-    return new Promise(function (resolve, reject) {
-      var script = document.createElement("script");
-
-      script.src = SCRIPT_DIR + "play/" + name + ".js";
-      script.async = true;
-      script.onload = function () {
-        resolve();
-      };
-      script.onerror = function () {
-        reject(new Error("could not load " + script.src));
-      };
-      document.head.appendChild(script);
-    });
-  }
-
-  function initAboutApple() {
-    var host = document.querySelector("[data-about-apple]");
-    var section = document.getElementById("about");
-    var started = false;
-
-    if (!host || !section) {
-      return;
-    }
-
-    function start() {
-      if (started) {
-        return;
-      }
-
-      started = true;
-      (window.HariniInk ? Promise.resolve() : loadPlayScript("ink-kit")).then(function () {
-        return window.HariniApple ? null : loadPlayScript("apple");
-      }).then(function () {
-        if (window.HariniApple) {
-          window.HariniApple.mount(host);
-        }
-      }).catch(function () {
-        /* the static square stays as it is */
-      });
-    }
-
-    if (!("IntersectionObserver" in window)) {
-      window.addEventListener("load", start, { once: true });
-      return;
-    }
-
-    var observer = new IntersectionObserver(function (entries) {
-      if (entries.some(function (entry) { return entry.isIntersecting; })) {
-        observer.disconnect();
-        start();
-      }
-    }, { rootMargin: "600px" });
-
-    observer.observe(section);
-  }
-
   document.addEventListener("DOMContentLoaded", function () {
     if (window.HariniNavigationBall) {
       window.HariniNavigationBall.init();
@@ -654,6 +566,5 @@
     initViewportEdgeBlur();
     initTileImageFade();
     initImageVignette();
-    initAboutApple();
   });
 })();
