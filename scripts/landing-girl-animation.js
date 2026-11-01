@@ -3990,8 +3990,19 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // ================= beats 3-8: THE THINKING PERFORMANCE (k = seconds after thinkStart).  Sync points shared with the thought cloud (T.thoughtPlan):
     //   first dot 0.15, first big idea 0.9 (gasp-hop), the bulb she taps 3.0, fireworks 7.35 (mind blown), the orbits follow her conducting (5.7-6.9) and her twirl (8.25-9.15),
     //   the boop 10.6 (every thought pops like a soap bubble), she catches a falling bit 11.0-11.5, pats her head 11.7, shrugs 12.15, turns to profile 12.8. =================
+    var cloudOn = true;          // (the scene latches this once per loop, just before her first thought: no cloud = a simple happy idle, no gestures at nothing)
     var KB = { hero: 0.9, poke: 1.9, tap: 3.0, point0: 3.7, giggle: 4.1, sway0: 4.5, conduct0: 5.7, temples: 7.0, burst: 7.3, twirl0: 8.25, twirl1: 9.15, laugh: 9.9, boop: K_HIT };
+    function happyIdle(p, k) {
+      var s = U.smoothstep(0, 0.6, k);
+      p.yaw = 0.9 - 0.15 * Math.sin(k * 0.4) * s;
+      p.bodyRoll += 0.35 * Math.sin(Math.PI * 2 * 0.4 * k) * s;
+      p.headYaw = (0.25 * Math.sin(k * 0.53) + 0.1 * U.noise1(k * 0.9, 3)) * s; p.headPitch = (0.12 + 0.1 * Math.sin(k * 0.71)) * s; p.headRoll = 0.2 * Math.sin(k * 0.47 + 1) * s;
+      p.tiptoe = Math.max(p.tiptoe, 0.6 * bump(k, 3.0, 3.2, 3.6, 3.9)); p.toeTap = Math.max(p.toeTap, 0.6 * bump(k, 5.0, 5.3, 7.0, 7.4));
+      giggleOn(p, k, 8.2, 8.7, 0.7);
+      p.footYaw = 1; p.footYawW = 1;
+    }
     function thinkPerf(p, k, t) {
+      if (!cloudOn && k < KB.boop - 0.9) { happyIdle(p, k); return; }
       var yb = 0.9, w, u, i;
       // base: a dreamy look around (small, varied head tilts; never a fixed loop)
       var settle = U.smoothstep(0, 0.6, k);
@@ -4319,7 +4330,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     return {
       W: W, duration: duration, cues: c, V_WALK: V_WALK, V_RUN: V_RUN, M_RIGHT: M_RIGHT, M_LEFT: M_LEFT, M_PARK: M_PARK, xStop: xStop, xStart: xStart,
       STRIDE: STRIDE, STRIDE_RUN: STRIDE_RUN, poseAt: poseAt, reaction: reaction, intensity: intensity, newPose: newPose,
-      xPeek: -PEEK_DX, gravity: gW, thoughtPlan: thoughtPlan, beats: KB,
+      xPeek: -PEEK_DX, gravity: gW, thoughtPlan: thoughtPlan, beats: KB, setCloud: function (v) { cloudOn = !!v; }, cloudOn: function () { return cloudOn; },
       shadowFor: function (p) {
         var yf = GA.girlA && GA.girlA.yawFold ? GA.girlA.yawFold(p.yaw) : Math.min(1, Math.max(0, p.yaw));
         var w = U.lerp(150, 175, yf) + 40 * Math.max(p.gait.amount, p.gait.run) + 30 * p.air;
@@ -4674,6 +4685,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       headSpring(sc.pose, h);
       girl.step(h, sc.pose);
       landingDust(sc.pose, T);
+      if (!sc.trig.cloud && sc.tl >= c.thinkStart - 0.5 && sc.tl < c.thinkStart) { sc.trig.cloud = true; T.setCloud(!!(GA.heavyLoaded && sc.heavyReady)); }          // (one decision per loop: never a switch mid-performance)
       if (!sc.trig.caught && sc.trig.hit && sc.tl >= c.thinkStart + 10.95 && sc.tl < c.thinkStart + 11.3 && GA.fx && GA.fx.dots) {          // round 12: she catches one falling bit
         sc.trig.caught = true;
         safe('catch', function () {
@@ -5036,16 +5048,23 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   var landing = document.getElementById('landing') || root.closest('section');
   var titleEl = document.querySelector('.site-name');
   var booted = false, canvas = null;
-  // the thought cloud lives in its own script (~660 KB of source): it is requested right now, in parallel with this script's start-up, and is not needed before the first thought (~5 s in)
-  (function loadThoughts() {
-    if (GA.heavyLoaded || GA._heavyRequested) return;
+  // the thought cloud lives in its own script (~660 KB of source).  Round 12 (G26): it is requested after the first paint, in an idle moment (it is not needed before
+  // her first thought, ~7 s in), and not at all when the visitor has asked to save data (she then plays a simple happy idle instead of gesturing at nothing)
+  var me0 = document.currentScript, thoughtsSrc = (me0 && me0.src ? me0.src.replace(/[^\/]*$/, '') : 'scripts/') + 'landing-girl-thoughts.js';
+  var saveData = !!(navigator.connection && navigator.connection.saveData);
+  function loadThoughts() {
+    if (GA.heavyLoaded || GA._heavyRequested || saveData) return;
     GA._heavyRequested = true;
-    var me = document.currentScript, el = document.createElement('script');
-    el.src = (me && me.src ? me.src.replace(/[^\/]*$/, '') : 'scripts/') + 'landing-girl-thoughts.js';
+    var el = document.createElement('script');
+    el.src = thoughtsSrc;
     el.async = true;
     el.onerror = function () { GA._heavyFailed = true; };
     document.head.appendChild(el);
-  })();
+  }
+  if (saveData) GA._heavyFailed = true;
+  else window.requestAnimationFrame(function () { window.requestAnimationFrame(function () {
+    if (window.requestIdleCallback) window.requestIdleCallback(loadThoughts, { timeout: 1200 }); else window.setTimeout(loadThoughts, 300);
+  }); });
   var FIRST_LOOK = 0.3; // seconds into the walk-in at which the very first frame starts (round 12, G10: she is still fully off-screen and walks in at once: a clean entrance)
 
   // The contract exists immediately (before the boot) so the nav script can always call it.
