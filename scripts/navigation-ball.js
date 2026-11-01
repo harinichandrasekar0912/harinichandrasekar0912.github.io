@@ -48,6 +48,11 @@
   const ROLL_SPEED_MIN = 0.22; // rolling speed limits, in viewport widths per second
   const ROLL_SPEED_MAX = 0.6;
   const HOME_SPIN = 9; // rad/s of visible spin on the throw home (it does not roll there)
+  // "the ball": after touchdown, while it bounces and rolls, it can be caught, dragged and thrown (same physics); it bounces off the bottom and the sides of the
+  // screen and lands on the top edges of the pictures; after a while without a touch it rolls away
+  const PLAY_IDLE = 6000; // ms without a touch before it rolls away
+  const PLAY_THROW_MAX = 2.2; // release speed limit, viewport heights per second
+  const PLAY_SAMPLE_MS = 70; // the release velocity is measured over the last ~70 ms of the drag
 
   const SQUASH_MAX = 0.22; // squash at contact only, scaled by the impact speed
   const SQUASH_REFERENCE = 1.4; // impact speed (viewport heights per s) that gives the full squash: about the first impact of a trip
@@ -599,6 +604,7 @@
     let ballTimers = [];
     let scrollLockActive = false;
     let freeBallActive = false; // the last ball is still rolling away after the plus has come back
+    let playOff = null; // removes the catch / throw listeners of the ball in play
     let tripInterrupt = null; // set while a trip holds the input: any wheel, touch, key or click fast-forwards it
     let tripResize = null; // set while a trip runs: a resize ends it in place
     const BALL_IDENTITY = "1, 0, 0, 1, 0, 0";
@@ -854,11 +860,17 @@
         "is-rolling",
         "is-restoring",
         "is-contact-landing",
-        "is-launching"
+        "is-launching",
+        "is-playable",
+        "is-held"
       );
     }
 
     function hideTravelBallImmediately() {
+      if (playOff) {
+        playOff();
+      }
+
       resetBallClasses();
       ball.style.opacity = "0";
       ball.style.setProperty("--ball-lift", "0px");
@@ -1548,6 +1560,7 @@
       let restSince = -1;
       let frameNow = 0;
       let phase = PHASE.PRESS;
+      const play = { on: false, held: false, exiting: false, hopped: false, lastTouch: 0, samples: [], platforms: [], platformsAt: -1e9, offAt: -1 };
 
       if (DEBUG_NAV_BALL_SEQUENCE || DEBUG_PHONE_NAV_BALL) {
         console.table({ targetId: targetId, A: JSON.stringify(A), B: JSON.stringify(B), scrollStart: round(scrollStart), scrollTarget: round(scrollTarget), exit: exit,
@@ -1679,6 +1692,117 @@
         }
       }
 
+      /* the pictures' top edges (document coordinates) and the bottom of the screen: what a thrown ball can land on */
+      function playPlatforms(now) {
+        if (now - play.platformsAt > 250) {
+          play.platformsAt = now;
+          play.platforms = [];
+          const sy = currentScrollY();
+
+          Array.prototype.forEach.call(document.querySelectorAll(".work-tile img, .archive-bar img, .about-portrait img"), function (img) {
+            const rect = img.getBoundingClientRect();
+
+            if (rect.width > 0 && rect.bottom > -H && rect.top < 2 * H) {
+              play.platforms.push({ left: rect.left, right: rect.right, y: rect.top + sy - r });
+            }
+          });
+        }
+
+        const floor = { left: -1e9, right: 1e9, y: currentScrollY() + H - r, floor: true };
+
+        return play.platforms.concat([floor]);
+      }
+
+      function pointerDoc(event) {
+        return { x: event.clientX, y: event.clientY + currentScrollY(), t: performance.now() };
+      }
+
+      function catchBall(event) {
+        if (!landed || play.exiting) {
+          return;
+        }
+
+        event.preventDefault();
+        play.on = true;
+        play.held = true;
+        play.lastTouch = performance.now();
+        play.samples = [pointerDoc(event)];
+        restSince = -1;
+        ball.classList.add("is-held");
+
+        if (ball.setPointerCapture) {
+          try {
+            ball.setPointerCapture(event.pointerId);
+          } catch (error) {
+            /* capture is a nicety */
+          }
+        }
+      }
+
+      function dragBall(event) {
+        const p = pointerDoc(event);
+
+        if (play.held) {
+          play.samples.push(p);
+
+          while (play.samples.length > 2 && p.t - play.samples[0].t > PLAY_SAMPLE_MS) {
+            play.samples.shift();
+          }
+
+          return;
+        }
+
+        // discovery: the first time the pointer comes close, the ball gives a tiny hop (proof that it is alive)
+        if (!play.hopped && landed && body.mode !== "air" && Math.hypot(p.x - body.x, p.y - body.y) < r + 40) {
+          play.hopped = true;
+          body.mode = "air";
+          body.vy = -Math.sqrt(2 * plan.gravity * 16);
+        }
+      }
+
+      function throwBall(event) {
+        if (!play.held) {
+          return;
+        }
+
+        const p = pointerDoc(event), first = play.samples[0] || p, span = Math.max(0.016, (p.t - first.t) / 1000), limit = PLAY_THROW_MAX * H;
+        let vx = (p.x - first.x) / span, vy = (p.y - first.y) / span;
+        const speed = Math.hypot(vx, vy);
+
+        if (speed > limit) {
+          vx *= limit / speed;
+          vy *= limit / speed;
+        }
+
+        play.held = false;
+        play.lastTouch = performance.now();
+        ball.classList.remove("is-held");
+        body.x = p.x;
+        body.y = p.y;
+        body.vx = vx;
+        body.vy = vy;
+        body.omega = vx / r;
+        body.mode = "air";
+        body.platform = null;
+        body.contacts = Math.max(1, body.contacts);
+      }
+
+      function enablePlay() {
+        ball.classList.add("is-playable");
+        ball.addEventListener("pointerdown", catchBall);
+        window.addEventListener("pointermove", dragBall, { passive: true });
+        window.addEventListener("pointerup", throwBall);
+        window.addEventListener("pointercancel", throwBall);
+        playOff = function () {
+          playOff = null;
+          ball.removeEventListener("pointerdown", catchBall);
+          window.removeEventListener("pointermove", dragBall);
+          window.removeEventListener("pointerup", throwBall);
+          window.removeEventListener("pointercancel", throwBall);
+          ball.classList.remove("is-playable", "is-held");
+        };
+      }
+
       function touchdown(event) {
         landed = true;
         tripInterrupt = null;
@@ -1699,6 +1823,7 @@
         body.platform = platforms[0];
         document.documentElement.classList.remove("is-ball-animating");
         unlockUserScroll();
+        enablePlay();
         return true;
       }
 
@@ -1784,8 +1909,64 @@
           simTime = plan.duration + 0.004;
         }
 
-        const events = body.advance(flight, platforms);
+        if (play.on) {
+          const now2 = performance.now();
+
+          platforms = playPlatforms(now2);
+
+          if (!play.held && !play.exiting && now2 - play.lastTouch > PLAY_IDLE) {
+            play.exiting = true;          // a while without a touch: it rolls away towards the nearer edge (the walls let it go)
+            body.contacts = Math.max(1, body.contacts);
+
+            if (body.mode !== "air") {
+              body.mode = "roll";
+              body.vx = (body.x < W / 2 ? -1 : 1) * 0.45 * W;
+              body.omega = body.vx / r;
+            }
+          }
+
+          // the floor is the bottom of the screen: it moves when the page is scrolled
+          const floorY = currentScrollY() + H - r;
+
+          if (body.platform && body.platform.floor && body.mode !== "air" && Math.abs(body.y - floorY) > 0.5) {
+            if (body.y < floorY) {
+              body.mode = "air";
+              body.vy = 0;
+              body.platform = null;
+            } else {
+              body.y = floorY;
+            }
+          }
+        }
+
+        const events = play.held ? [] : body.advance(flight, platforms);
         let keepGoing = true;
+
+        if (play.held) {
+          const last = play.samples[play.samples.length - 1], first = play.samples[0];
+
+          if (last) {
+            const span = Math.max(0.016, (last.t - first.t) / 1000);
+
+            body.vx = (last.x - first.x) / span;
+            body.vy = (last.y - first.y) / span;
+            body.x += (last.x - body.x) * 0.6;
+            body.y += (last.y - body.y) * 0.6;
+          }
+
+          shape.press(0.1);
+        } else if (play.on && !play.exiting) {
+          // the sides of the screen are walls (the top is open: a strong throw leaves and falls back)
+          if (body.x < r && body.vx < 0) {
+            body.x = r;
+            body.vx = -restitution(body.vx, H) * body.vx;
+            body.omega = body.vx / r;
+          } else if (body.x > W - r && body.vx > 0) {
+            body.x = W - r;
+            body.vx = -restitution(body.vx, H) * body.vx;
+            body.omega = body.vx / r;
+          }
+        }
 
         events.forEach(function (event) {
           if (event.type !== "contact" || !keepGoing) {
@@ -1832,10 +2013,17 @@
 
         render(screenX, screenY, body.mode === "air");
 
-        /* gone: rolled out of the screen, scrolled out of view, or fell off the end of its platform below the screen */
-        const gone = landed && (screenX < -r - 2 || screenX > W + r + 2 || screenY > H + r + 2 || screenY < -r - 2);
+        /* gone: rolled out of the screen, scrolled out of view, or fell off the end of its platform below the screen.  In play the screen keeps it (walls and
+           floor); it only goes when it rolls away after a while, or stays out of sight (scrolled away, or thrown high) for more than a second and a half */
+        const outside = screenX < -r - 2 || screenX > W + r + 2 || screenY > H + r + 2 || screenY < -r - 2;
+        let gone = landed && outside;
 
-        if (body.mode === "rest") {
+        if (play.on && !play.exiting) {
+          play.offAt = outside ? (play.offAt < 0 ? now : play.offAt) : -1;
+          gone = play.offAt >= 0 && now - play.offAt > 1500;
+        }
+
+        if (body.mode === "rest" && !play.on) {
           restSince = restSince < 0 ? now : restSince;
         }
 
