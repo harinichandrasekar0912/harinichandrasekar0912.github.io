@@ -76,6 +76,11 @@
     closeButton.tabIndex = -1;
     closeButton.setAttribute("aria-hidden", "true");
 
+    var defaultViewerLabel = viewer.getAttribute("aria-label") || "focused project view";
+    /* everything outside the dialog is made inert while a project is open, so keyboard and screen-reader users stay inside it
+       (the navigation keeps working with the mouse: its plus turns into the visible close mark, see navigation-ball.js) */
+    var outsideViewer = Array.prototype.slice.call(document.querySelectorAll("body > main, body > .skip-link"));
+
     var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     var activeTrigger = null;
     var activeProject = null;
@@ -119,6 +124,79 @@
       return projects.find(function (project) {
         return project.id === id;
       });
+    }
+
+    function setOutsideInert(on) {
+      outsideViewer.forEach(function (element) {
+        element.inert = on;
+
+        if (on) {
+          element.setAttribute("inert", "");
+        } else {
+          element.removeAttribute("inert");
+        }
+      });
+    }
+
+    /* keys typed into a field, or meant for an interactive piece inside a panel (it marks itself with data-panel-interactive),
+       belong to that element, not to the panel stepping */
+    function keyBelongsToTarget(event) {
+      var target = event.target;
+
+      if (!target || target.nodeType !== 1) {
+        return false;
+      }
+
+      if (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) {
+        return true;
+      }
+
+      return Boolean(target.closest && target.closest("[data-panel-interactive]"));
+    }
+
+    /* Tab and Shift+Tab go round the focusable things inside the open dialog only */
+    function focusablesInViewer() {
+      return Array.prototype.slice.call(viewer.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )).filter(function (element) {
+        return element.tabIndex >= 0 && element.getClientRects().length > 0 && !element.closest("[inert]");
+      });
+    }
+
+    function trapTab(event) {
+      var focusables = focusablesInViewer();
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+      var active = document.activeElement;
+
+      if (!first) {
+        event.preventDefault();
+        viewer.focus({ preventScroll: true });
+        return;
+      }
+
+      if (event.shiftKey && (active === first || active === viewer || !viewer.contains(active))) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      } else if (!event.shiftKey && (active === last || !viewer.contains(active))) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    }
+
+    /* one wheel step in px whatever the device reports: Firefox can count in lines (deltaMode 1) or pages (2), and a trackpad's
+       sideways swipe arrives as deltaX */
+    function wheelPixels(event) {
+      var unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewportHeight : 1;
+      var dx = (event.deltaX || 0) * unit;
+      var dy = (event.deltaY || 0) * unit;
+
+      return Math.abs(dx) > Math.abs(dy) ? dx : dy;
+    }
+
+    /* on a phone (one column that scrolls) the keys scroll the story */
+    function scrollStoryBy(amount) {
+      story.scrollTop = clamp(story.scrollTop + amount, 0, story.scrollHeight - story.clientHeight);
     }
 
     function setProgress() {
@@ -463,6 +541,10 @@
       viewer.classList.add("is-active", "is-preparing");
       viewer.classList.remove("is-ready", "is-closing", "is-expanded", "is-landed", "is-shrinking");
       viewer.setAttribute("aria-hidden", "false");
+      viewer.setAttribute("aria-label", "project: " + project.title);
+      setOutsideInert(true);
+      closeButton.tabIndex = 0;
+      closeButton.removeAttribute("aria-hidden");
       document.body.classList.add("is-project-open", "is-project-dark");
       document.body.classList.remove("is-project-closing");
       /* told before the panels are built: whatever the listeners measure is then measured on the small, clean layout */
@@ -913,6 +995,10 @@
 
       viewer.classList.remove("is-active", "is-expanded", "is-ready", "is-closing", "is-preparing", "is-landed", "is-shrinking");
       viewer.setAttribute("aria-hidden", "true");
+      viewer.setAttribute("aria-label", defaultViewerLabel);
+      closeButton.tabIndex = -1;
+      closeButton.setAttribute("aria-hidden", "true");
+      setOutsideInert(false);
       document.body.classList.remove("is-project-open", "is-project-dark", "is-project-closing");
       disconnectPanelObserver();
       frame.style.cssText = "";
@@ -1051,7 +1137,7 @@
       event.preventDefault();
 
       if (!isClosingProject) {
-        queueShift(event.deltaY * 1.15);
+        queueShift(wheelPixels(event) * 1.15);
       }
     }, { passive: false });
 
@@ -1081,36 +1167,64 @@
     }, { passive: false });
 
     document.addEventListener("keydown", function (event) {
+      var key = event.key;
+      var forward = key === "ArrowDown" || key === "ArrowRight";
+      var back = key === "ArrowUp" || key === "ArrowLeft";
+
+      if (!viewer.classList.contains("is-active")) {
+        return;
+      }
+
+      if (key === "Tab") {
+        trapTab(event);
+        return;
+      }
+
       if (!viewer.classList.contains("is-expanded")) {
         return;
       }
 
-      if (event.key === "Escape") {
+      if (keyBelongsToTarget(event)) {
+        if (key === "Escape" && !/^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)) {
+          closeProject();
+        }
+
+        return;
+      }
+
+      if (key === "Escape") {
         closeProject();
+        return;
       }
 
-      if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-        if (isStackedMode()) {
-          return;
-        }
-
-        event.preventDefault();
-
-        if (!isClosingProject) {
-          stepPanel(1);
-        }
+      if (!forward && !back && key !== "PageDown" && key !== "PageUp" && key !== "Home" && key !== "End") {
+        return;
       }
 
-      if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
-        if (isStackedMode()) {
-          return;
+      event.preventDefault();
+
+      if (isClosingProject) {
+        return;
+      }
+
+      if (isStackedMode()) {
+        if (key === "Home") {
+          story.scrollTop = 0;
+        } else if (key === "End") {
+          story.scrollTop = story.scrollHeight;
+        } else {
+          scrollStoryBy((key === "PageDown" || key === "PageUp" ? 0.85 : 0.15) * story.clientHeight * (forward || key === "PageDown" ? 1 : -1));
         }
 
-        event.preventDefault();
+        return;
+      }
 
-        if (!isClosingProject) {
-          stepPanel(-1);
-        }
+      if (key === "Home") {
+        setShift(0, false);
+      } else if (key === "End") {
+        setShift(maxShift, false);
+      } else {
+        stepPanel(forward || key === "PageDown" ? 1 : -1);
       }
     });
 

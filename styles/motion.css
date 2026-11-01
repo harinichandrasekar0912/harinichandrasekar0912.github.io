@@ -139,6 +139,24 @@ html.is-ball-animating {
   --phone-pop-delay: 255ms;
 }
 
+/* three circles (a section is hidden, see navigation-ball.js): the fan closes up and stays centred over the plus */
+.nav-object[data-nav-count="3"] .radial-item-about {
+  --item-x: -112px;
+  --item-y: -100px;
+}
+
+.nav-object[data-nav-count="3"] .radial-item-work {
+  --item-x: 0px;
+  --item-y: -152px;
+}
+
+.nav-object[data-nav-count="3"] .radial-item-contact {
+  --item-x: 112px;
+  --item-y: -100px;
+  --pop-delay: 76ms;
+  --phone-pop-delay: 210ms;
+}
+
 .radial-item button {
   position: relative;
   display: grid;
@@ -1322,6 +1340,21 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 8px);
+}
+
+/* the close button inside the dialog is the keyboard and screen-reader way out; it sits exactly under the navigation's close mark
+   and only shows itself (a white ring) when it has keyboard focus */
+.project-viewer.is-active .project-close:focus-visible {
+  opacity: 1;
+  outline: 1px solid var(--project-line-strong);
+  outline-offset: 6px;
+  transform: translate(-50%, 0);
+}
+
+/* focus has to be visible on the dark stage too: the ink-coloured ring of the page would disappear on #050505 */
+.project-viewer :focus-visible {
+  outline: 1px solid var(--project-line-strong);
+  outline-offset: 4px;
 }
 
 .project-close span {

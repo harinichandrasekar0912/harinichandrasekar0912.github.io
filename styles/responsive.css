@@ -18,7 +18,7 @@
 
 }
 
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   :root {
     --page-x: clamp(1rem, 6vw, 1.5rem);
     --plus-circle-size: 44px;
@@ -139,6 +139,21 @@
   .radial-item-contact {
     --item-x: 100px;
     --item-y: -72px;
+  }
+
+  .nav-object[data-nav-count="3"] .radial-item-about {
+    --item-x: -92px;
+    --item-y: -80px;
+  }
+
+  .nav-object[data-nav-count="3"] .radial-item-work {
+    --item-x: 0px;
+    --item-y: -124px;
+  }
+
+  .nav-object[data-nav-count="3"] .radial-item-contact {
+    --item-x: 92px;
+    --item-y: -80px;
   }
 
   .radial-item button {
@@ -366,44 +381,6 @@
 }
 
 @media (max-width: 767px) and (pointer: coarse) {
-  .nav-object.is-phone-preparing .radial-lines,
-  .nav-object.is-phone-preparing .radial-line,
-  .nav-object.is-phone-preparing .radial-item,
-  .nav-object.is-phone-opening.is-open .radial-item {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .nav-object.is-phone-preparing .radial-item,
-  .nav-object.is-phone-opening.is-open .radial-item {
-    transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(0.92);
-    animation: none;
-  }
-
-  .nav-object.is-phone-preparing .nav-ring circle {
-    stroke-dashoffset: 1;
-    transition: none;
-  }
-
-  .nav-object.is-phone-opening.is-open .radial-menu {
-    pointer-events: none;
-  }
-
-  .nav-object.is-phone-opening.is-open .radial-item {
-    animation: none;
-  }
-
-  .nav-object.is-phone-opening.is-phone-items-ready.is-open .radial-menu {
-    pointer-events: auto;
-  }
-
-  .nav-object.is-phone-opening.is-phone-items-ready.is-open .radial-item {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(1);
-    animation: radialPop 440ms var(--ease-standard) var(--pop-delay, 0ms) both;
-  }
-
   .archive-bars.has-active-archive-item .archive-bar:not(.is-active) {
     opacity: 1;
     transform: none;
@@ -447,44 +424,10 @@
     min-height: clamp(2.5rem, 6vw, 4.5rem);
   }
 
-  .nav-object:not(.is-open):not(.is-phone-opening):not(.is-choosing) .radial-item,
-  .nav-object:not(.is-open):not(.is-phone-opening):not(.is-choosing):hover .radial-item,
-  .nav-object.is-phone-preparing .radial-lines,
-  .nav-object.is-phone-preparing .radial-line,
-  .nav-object.is-phone-preparing .radial-item,
-  .nav-object.is-phone-opening.is-open .radial-item {
+  .nav-object:not(.is-open):not(.is-choosing) .radial-item,
+  .nav-object:not(.is-open):not(.is-choosing):hover .radial-item {
     opacity: 0;
     pointer-events: none;
-  }
-
-  .nav-object.is-phone-preparing .radial-item,
-  .nav-object.is-phone-opening.is-open .radial-item {
-    transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(0.92);
-    animation: none;
-  }
-
-  .nav-object.is-phone-preparing .nav-ring circle {
-    stroke-dashoffset: 1;
-    transition: none;
-  }
-
-  .nav-object.is-phone-opening.is-open .radial-menu {
-    pointer-events: none;
-  }
-
-  .nav-object.is-phone-opening.is-open .radial-item {
-    animation: none;
-  }
-
-  .nav-object.is-phone-opening.is-phone-items-ready.is-open .radial-menu {
-    pointer-events: auto;
-  }
-
-  .nav-object.is-phone-opening.is-phone-items-ready.is-open .radial-item {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(1);
-    animation: radialPop 440ms var(--ease-standard) var(--pop-delay, 0ms) both;
   }
 
   .project-viewer.is-ready .project-panel-copy {

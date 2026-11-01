@@ -5040,6 +5040,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       });
     }
     document.addEventListener('visibilitychange', function () { if (!document.hidden) scene._last = 0; });
+    // a project opened over the landing covers it completely: stop drawing underneath, and carry on from the same moment once it has closed
+    document.addEventListener('harini:project-open', function () { if (!reduced.matches) scene.pause(); });
+    document.addEventListener('harini:project-closed', function () { if (scene.visible && !reduced.matches) scene.play(); });
 
     // navigation console: react the instant '+' is activated; stay away while the menu is open, come back when it closes
     window.addEventListener('landing-nav-plus-opened', press);

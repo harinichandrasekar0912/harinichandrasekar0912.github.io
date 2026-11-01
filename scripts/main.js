@@ -2,8 +2,8 @@
   // Paste your secure form endpoint here.
   // Example: Formspree/Basin/Getform endpoint.
   // Do not put Gmail passwords, SMTP credentials, or private API keys in frontend code.
+  // Formspree delivers to the address set up in the Formspree dashboard, so the recipient is never written in the page.
   const CONTACT_FORM_ENDPOINT = "https://formspree.io/f/mwlpdepp";
-  var CONTACT_FORM_RECIPIENT = "harinispersonalwebsite@gmail.com";
   var CONTACT_FORM_ENDPOINT_PLACEHOLDER = "REPLACE_WITH_YOUR_FORM_ENDPOINT";
   var CONTACT_FORM_ENDPOINT_ALT_PLACEHOLDER = "PASTE_YOUR_FORMSPREE_ENDPOINT_HERE";
 
@@ -125,7 +125,6 @@
       formData.append("reply_to", values.email);
       formData.append("_replyto", values.email);
       formData.append("replyTo", values.email);
-      formData.append("to", CONTACT_FORM_RECIPIENT);
 
       return formData;
     }
@@ -201,7 +200,6 @@
             throw error;
           }
 
-          console.log("Contact form submission succeeded", result);
           return result;
         });
       });
@@ -332,8 +330,20 @@
         clearActive(item);
       });
 
+      /* only keyboard focus enlarges a bar: when a project closes, focus is handed back to the bar it was opened from, and that
+         returned focus must not leave the bar standing out */
       item.addEventListener("focus", function () {
-        setActive(item);
+        var keyboardFocus = true;
+
+        try {
+          keyboardFocus = item.matches(":focus-visible");
+        } catch (error) {
+          keyboardFocus = true;
+        }
+
+        if (keyboardFocus) {
+          setActive(item);
+        }
       });
 
       item.addEventListener("blur", function () {

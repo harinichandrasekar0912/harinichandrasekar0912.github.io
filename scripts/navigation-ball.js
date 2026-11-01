@@ -442,7 +442,6 @@
     const ball = document.querySelector("[data-travel-ball]");
     const ballLabel = document.querySelector("[data-travel-label]");
     const travelShadow = ball ? ball.querySelector(".travel-shadow") : null;
-    const items = Array.prototype.slice.call(document.querySelectorAll("[data-nav-target]"));
     const lines = {
       about: document.querySelector(".radial-line-about"),
       work: document.querySelector(".radial-line-work"),
@@ -451,9 +450,31 @@
     };
     const spokeMasks = {};
 
+    /* A section that is hidden (the archive, until it has real items) gets no circle and no spoke; the other circles close up
+       (styles/motion.css spaces them by data-nav-count). Showing the section again brings its circle back. */
+    const items = Array.prototype.slice.call(document.querySelectorAll("[data-nav-target]")).filter(function (item) {
+      const id = item.getAttribute("data-nav-target");
+      const section = document.getElementById(id);
+
+      if (section && !section.hidden) {
+        return true;
+      }
+
+      item.parentElement.remove();
+
+      if (lines[id]) {
+        lines[id].remove();
+        delete lines[id];
+      }
+
+      return false;
+    });
+
     if (!nav || !core || !spokes || !menu || !ball || !ballLabel || items.length === 0) {
       return;
     }
+
+    nav.dataset.navCount = String(items.length);
 
     const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
     const coarsePointer = window.matchMedia("(pointer: coarse)");
@@ -831,7 +852,7 @@
       SECTION_IDS.forEach(function (id) {
         const section = document.getElementById(id);
 
-        if (!section) {
+        if (!section || section.hidden) {
           return;
         }
 
@@ -1134,6 +1155,9 @@
       nav.classList.add("is-project-close");
       setState(STATES.PLUS_IDLE);
       setMenuA11y(false);
+      /* for keyboard and screen readers the close button inside the dialog takes over (project-viewer.js); this plus stays the mouse target */
+      core.tabIndex = -1;
+      core.setAttribute("aria-hidden", "true");
     }
 
     function beginProjectClose() {
@@ -1148,6 +1172,8 @@
     function exitProjectMode() {
       isProjectMode = false;
       nav.classList.remove("is-project-close", "is-project-closing");
+      core.removeAttribute("tabindex");
+      core.removeAttribute("aria-hidden");
       setMenuA11y(false);
       updateCurrentSection(detectCurrentSection(), true);
     }

@@ -332,9 +332,7 @@ body.is-project-open .viewport-edge-blur {
 }
 
 .landing-media::before,
-.landing-media::after,
-.sketch-line,
-.sketch-point {
+.landing-media::after {
   position: absolute;
   display: block;
   pointer-events: none;
@@ -357,52 +355,6 @@ body.is-project-open .viewport-edge-blur {
   height: 30%;
   border-left: var(--line-thin) solid rgba(21, 20, 18, 0.16);
   border-bottom: var(--line-thin) solid rgba(21, 20, 18, 0.16);
-}
-
-.sketch-line {
-  height: 1px;
-  background: rgba(21, 20, 18, 0.18);
-  transform-origin: left center;
-}
-
-.sketch-line-a {
-  left: 19%;
-  top: 70%;
-  width: 50%;
-  transform: rotate(-10deg);
-}
-
-.sketch-line-b {
-  left: 39%;
-  top: 31%;
-  width: 32%;
-  transform: rotate(28deg);
-}
-
-.sketch-line-c {
-  left: 24%;
-  top: 47%;
-  width: 52%;
-  background: transparent;
-  border-top: 1px dotted rgba(21, 20, 18, 0.14);
-  transform: rotate(3deg);
-}
-
-.sketch-point {
-  width: 5px;
-  height: 5px;
-  border: 1px solid rgba(21, 20, 18, 0.22);
-  border-radius: 50%;
-}
-
-.sketch-point-a {
-  left: 18%;
-  top: 70%;
-}
-
-.sketch-point-b {
-  right: 22%;
-  top: 28%;
 }
 
 .about-section {

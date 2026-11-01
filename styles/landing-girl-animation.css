@@ -55,7 +55,7 @@
 }
 
 /* phones and portrait tablets: a 16:4.5 strip would make her tiny, so give the band more height on narrow screens */
-@media (max-width: 760px), (max-width: 1024px) and (orientation: portrait) {
+@media (max-width: 767px), (max-width: 1024px) and (orientation: portrait) {
   .landing-media {
     aspect-ratio: 16 / 8;
   }
