@@ -6608,8 +6608,16 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   var DOO = { x: 0, y: 0, r: 0, t0: 0, vx: 0, vy: 0, kind: 'dot', z: 0 };
   var JS_ = { tx: 0, ty: 0, ang: 0, e: 0, vx: 0, vy: 0, om: 0 };
 
-  function spawnCube(o) { D.info.cubes++; if (D.cubeAPI) { var te = D.cubeAPI.spawn(o); if (te > D.tEnd) D.tEnd = te; } }
-  function spawnDot(o) { D.info.dots++; if (D.dotAPI) { var te = D.dotAPI.spawn(o); if (te > D.tEnd) D.tEnd = te; } }
+  function spawnCube(o) {
+    D.info.cubes++;
+    if (D.bubble) { if (D.dotAPI && rnd() < 0.4) { var tb = D.dotAPI.spawn(GA.fx.bubbleFragment(o, true)); if (tb > D.tEnd) D.tEnd = tb; } return; }          // round 12: popped like bubbles (fewer, light fragments)
+    if (D.cubeAPI) { var te = D.cubeAPI.spawn(o); if (te > D.tEnd) D.tEnd = te; }
+  }
+  function spawnDot(o) {
+    D.info.dots++;
+    if (D.bubble) { if (D.dotAPI && rnd() < 0.4) { var tb = D.dotAPI.spawn(GA.fx.bubbleFragment(o, false)); if (tb > D.tEnd) D.tEnd = tb; } return; }
+    if (D.dotAPI) { var te = D.dotAPI.spawn(o); if (te > D.tEnd) D.tEnd = te; }
+  }
   /** cube edge length (world units), still random but with CLEARLY visible mid-size cubes: ~50 % dust 3-8, ~30 % small 8-18, ~13 % mid 16-30, ~4-6 % chunky 36-62
       (heavier lines give a few more chunky ones; ~15-20 chunks in a full dissolve; the fx pools hold 1536 per layer) */
   function rndSize(maxS) {
@@ -7201,6 +7209,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     o = o || {};
     var speed = o.speed > 0 ? +o.speed : 1, stagger = o.stagger >= 0 ? +o.stagger : 0.9;
     D = makeD(+t0, speed, stagger, false);
+    D.bubble = o.style === 'bubble' && !!(GA.fx && GA.fx.bubbleFragment);
     G.items = [];
     startDissolve();
     G.info = D.info;
@@ -7574,6 +7583,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
           BEAT = the real pop times: bulb / fw are SYNC POINTS the girl reacts to; info().beats publishes them (loop seconds + k) after any wait / compression. ---- */
   var ACT_OFF = 1.1;
   var ACT = { I: 0, II: 5.5, III: 12.0, IV: 17.7, END: 20.3 };
+  var PLAN = {};          // round 12: build({plan}) - {act, beat (k seconds, unscaled when act.END is given), maxItems, noChurn, flowBoost: [[k0, k1, gain], ...]}
   var BEAT = {
     hero: [1.4, 2.9, 4.15, 5.35], heroMate: [5.7, 6.1, 6.5, 6.9], spark: [4.55, 5.05],
     S: [5.9, 6.58, 7.26, 7.94, 8.62, 9.3, 9.98, 10.66, 11.34], mateLag: [0.32, 0.5],
@@ -7837,6 +7847,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   function flowRate(t) {
     var k = kOf(t), r = 0.52 + 0.36 * sstep(ACT.II - 0.8, ACT.II + 1.8, k) + 0.57 * sstep(ACT.III - 0.6, ACT.III + 3.6, k);   // the acts: I calm (0.52), II lively (0.88), III busy (1.45)
     r *= 1 + CFG.SURGE * sstep(G.tNom - 2.5, G.tNom, t);                             // act IV, the funnel: everything speeds up in the last 2.5 s
+    if (PLAN.flowBoost) for (var bi = 0; bi < PLAN.flowBoost.length; bi++) { var fb = PLAN.flowBoost[bi]; r *= 1 + fb[2] * sstep(fb[0] - 0.25, fb[0] + 0.15, k) * (1 - sstep(fb[1] - 0.15, fb[1] + 0.35, k)); }   // round 12: she conducts / twirls: the orbits follow her
     r *= 1 - 0.5 * sstep(G.tNom, G.tNom + 0.9, t);
     return r;
   }
@@ -7923,6 +7934,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   }
 
   /** the slots of a cast with their prop names resolved (missing / blacklisted names replaced by the next unused piece of the fallback rings) */
+  var ACT_DEF = null, BEAT_DEF = null;
+  function applyPlan(p) {
+    var k;
+    if (!ACT_DEF) { ACT_DEF = {}; for (k in ACT) ACT_DEF[k] = ACT[k]; BEAT_DEF = {}; for (k in BEAT) BEAT_DEF[k] = BEAT[k]; }
+    PLAN = p || {};
+    ACT = {}; for (k in ACT_DEF) ACT[k] = PLAN.act && PLAN.act[k] !== undefined ? PLAN.act[k] : ACT_DEF[k];
+    BEAT = {}; for (k in BEAT_DEF) BEAT[k] = PLAN.beat && PLAN.beat[k] !== undefined ? PLAN.beat[k] : BEAT_DEF[k];
+  }
   function selectCast(W, gen) {
     var cast = CASTS[((gen % CASTS.length) + CASTS.length) % CASTS.length], used = {}, ctr = {}, fb = { D: gen * 5, B: 0, C: 0, R: 0, X: 0, T: 0, M: gen * 3, F: 0, I: 0 }, i, n, j = 0;
     var rng = U.rng(G.seed * 53 + gen * 11 + 7);
@@ -7968,7 +7987,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     function at(list, ks, step) { for (var q2 = 0; q2 < list.length; q2++) list[q2].kt = q2 < ks.length ? ks[q2] : ks[ks.length - 1] + (step || 0.4) * (q2 - ks.length + 1); }
     at(heroes, BEAT.hero, 0.6); at(sups, BEAT.S, 0.68); at(books, BEAT.B, 0.7); at(chai, BEAT.C, 0.7); at(rl, BEAT.R, 0.7); at(xl, BEAT.X, 0.7); at(il, BEAT.bulb, 1.5);
     for (i = 0; i < il.length; i++) { il[i].life = BEAT.bulbLife; il[i].churn = false; }
-    if (il.length) { il[0].rf = 0.44; il[0].th = -62 * Math.PI / 180; il[0].dl = 0; il[0].cw = 1; il[0].size *= 1.35; }                        // the first idea lights up beside her head
+    if (il.length) { il[0].rf = PLAN.firstBulb ? PLAN.firstBulb[0] : 0.44; il[0].th = (PLAN.firstBulb ? PLAN.firstBulb[1] : -62) * Math.PI / 180; il[0].dl = 0; il[0].cw = 1; il[0].size *= 1.35; }          // the first idea lights up beside her head (round 12: right where she taps it)
     var sparks = ml.splice(0, min(2, ml.length)); at(sparks, BEAT.spark, 0.5);
     for (i = 0; i < sparks.length; i++) sparks[i].churn = false;
     function mate(en, lead, k) {                                                                   // a satellite: beside its leader, same depth layer / sense / (later) orbit speed
@@ -8013,6 +8032,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     G.info.cast = cast.name;
     var keepN = clamp(round(seq.length * pow(W / 2773, 0.9)), 14, seq.length);       // narrow stages: fewer pieces (the opening ones always stay)
+    if (PLAN.maxItems > 0) keepN = min(keepN, PLAN.maxItems);                           // round 12: a calmer cloud (about 14-18 visible pieces)
     return { seq: seq.slice(0, keepN), bursts: bursts, twin: twin };
   }
 
@@ -8538,6 +8558,13 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     // cube sites: every ink cell is a candidate; thin to the budget (random, keeps the proportions), skew the sizes (many tiny, a few large)
     var cubeAPI = !dry && GA.fx && GA.fx.cubes && GA.fx.cubes.spawn ? GA.fx.cubes : null, dotAPI = !dry && GA.fx && GA.fx.dots && GA.fx.dots.spawn ? GA.fx.dots : null;
+    if (o.style === 'bubble' && GA.fx && GA.fx.bubbleFragment) {          // round 12: popped like soap bubbles - fewer, lighter pieces, same ink and weight as the drawings
+      var rawDots = dotAPI;
+      cubeAPI = rawDots ? { spawn: function (q) { return rawDots.spawn(GA.fx.bubbleFragment(q, true)); } } : null;
+      dotAPI = rawDots ? { spawn: function (q) { return rawDots.spawn(GA.fx.bubbleFragment(q, false)); } } : null;
+      if (!o.cubes) o.cubes = round(G.capC * 0.35);
+      if (!o.dots) o.dots = round(G.capD * 0.3);
+    }
     var capC = o.cubes || G.capC, capD = o.dots || G.capD, totC = 0, totD = 0;
     for (i = 0; i < part.length; i++) { totC += part[i].ccN; totD += part[i].dsN; }
     var pk = min(1, capC / max(1, totC)), pd = min(1, capD / max(1, totC * (pk * 0.9 + (1 - pk) * 0.3) + totD * 0.5));
@@ -8656,6 +8683,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     o = o || {};
     var t00 = now(), S = GA.stage || {}, W = o.W || S.W || 2773, H = o.H || S.H || 780, groundY = S.groundY || (H - 80);
     var cx = o.cx !== undefined ? o.cx : W / 2, cy = o.cy !== undefined ? o.cy : groundY - 345;
+    applyPlan(o.plan);
     var tStart = o.tStart !== undefined ? o.tStart : 6.0, tFull = o.tFull !== undefined ? o.tFull : 12.8, tHit = o.tHit !== undefined ? o.tHit : Infinity;
     tFull = max(tFull, tStart + 3);
     if (isFinite(tHit)) tHit = max(tHit, tFull + 0.8);
@@ -8683,7 +8711,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     for (i = 0; i < sel.bursts.length; i++) all.push({ en: sel.bursts[i], ts: tOfK(sel.bursts[i].kt), o: 1000 + i });
     for (i = 4; i < cast.length; i++) {                                                                // CHURN: many small pieces live 3-7 s, fade, and a twin pops up elsewhere (a group's satellites a little longer)
       var en2 = cast[i];
-      if (CHURN[en2.k] && en2.churn !== false && (i * 7 + 1) % 3 !== 0) {
+      if (!PLAN.noChurn && CHURN[en2.k] && en2.churn !== false && (i * 7 + 1) % 3 !== 0) {
         var Lf = (en2.churn === 'mate' ? 4.5 : 3.0) + 2.5 * rng.next(), t1 = times[i];
         if (t1 + Lf < G.tNom - 1.4) { en2.life = Lf; var tw = sel.twin(en2); tw.kt = kOf(t1 + Lf - 0.1); all.push({ en: tw, ts: t1 + Lf - 0.1, o: 2000 + i }); }
       }
