@@ -1,4 +1,7 @@
 (function () {
+  // the folder this file was loaded from ("scripts/", or "scripts/min/" for the minified copy): the playable pieces sit next to it in play/
+  var SCRIPT_DIR = (document.currentScript && document.currentScript.src ? document.currentScript.src.replace(/[^\/]*$/, "") : "") || "scripts/";
+
   // Paste your secure form endpoint here.
   // Example: Formspree/Basin/Getform endpoint.
   // Do not put Gmail passwords, SMTP credentials, or private API keys in frontend code.
@@ -583,7 +586,7 @@
     return new Promise(function (resolve, reject) {
       var script = document.createElement("script");
 
-      script.src = "scripts/play/" + name + ".js";
+      script.src = SCRIPT_DIR + "play/" + name + ".js";
       script.async = true;
       script.onload = function () {
         resolve();

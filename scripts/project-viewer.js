@@ -1,4 +1,7 @@
 (function () {
+  // the folder this file was loaded from ("scripts/", or "scripts/min/" for the minified copy): the playable pieces sit next to it in play/
+  var SCRIPT_DIR = (document.currentScript && document.currentScript.src ? document.currentScript.src.replace(/[^\/]*$/, "") : "") || "scripts/";
+
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
   }
@@ -42,7 +45,7 @@
   }
 
   function playScript(name) {
-    return "scripts/play/" + name + ".js";
+    return SCRIPT_DIR + "play/" + name + ".js";
   }
 
   /* a piece always gets the shared kit first */
