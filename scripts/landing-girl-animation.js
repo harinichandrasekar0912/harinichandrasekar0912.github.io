@@ -2001,6 +2001,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       weight: clamp(num(p.weight, 0), -1, 1), feet: clamp(num(p.feet, 0), 0, 1), footUp: clamp(num(p.footUp, 0), 0, 1), skip: clamp(num(g.skip, 0), 0, 1),
       hand: [handIn(p.hand && p.hand[0]), handIn(p.hand && p.hand[1])],
       footYaw: num(p.footYaw, 0), footYawW: clamp(num(p.footYawW, 0), 0, 1),
+      spin: p.spin && (p.spin.w > 0 || p.spin.wd > 0) ? { w: clamp(num(p.spin.w, 0), 0, 1), wd: clamp(num(p.spin.wd, 0), 0, 1), yaw0: num(p.spin.yaw0, 0), foot: p.spin.foot ? 1 : 0 } : null,          // a spin on the ball of one foot (the twirl): that ball stays put while the body turns round it
       footZ: [num(p.footZ && p.footZ[0], 0), num(p.footZ && p.footZ[1], 0)],          // round 12: extra height of each foot above the root's ground (stairs: the treads)          // round 12: the feet stay planted at this heading while the body turns a little over them (gestures at 3/4)
       turnStep: p.turnStep && p.turnStep.w > 0 ? { u: clamp(num(p.turnStep.u, 0), 0, 1), yaw0: num(p.turnStep.yaw0, 0), yaw1: num(p.turnStep.yaw1, 1), w: clamp(num(p.turnStep.w, 1), 0, 1), first: p.turnStep.first ? 1 : 0 } : null,          // round 12: a turn on the spot in two small steps (G3)
       wind: { x: num(w.x, 0), y: num(w.y, 0) }, t: num(p.t, 0),
@@ -2132,6 +2133,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (P.tiptoe > 0) { var ttw = P.tiptoe * (1 - aw); ballPivot(lerp(beta, rad(-26), ttw)); }
       if (P.toeTap > 0 && side > 0) { var tpw = P.toeTap * (1 - aw), tpb = pow(max(0, sin(TAU * 3.0 * t)), 2); f += 16 * tpw; c += 4 * tpw; z += (7 + 9 * tpb) * sqrt(tpw); beta = lerp(beta, rad(-34), tpw); }          // (the lift fades slower than the reach: the foot comes back through the air)
       if (P.footUp > 0 && side > 0) { var fuw = P.footUp * (1 - aw); f -= 12 * fuw; z += 44 * fuw; beta = lerp(beta, rad(-58), fuw); }
+      var fc0 = [f, c];
       if (P.feet > 0) { c *= 1 - 0.72 * P.feet; toe *= 1 - 0.7 * P.feet; f -= 0.85 * C.ballS * P.feet * P.tiptoe * (1 - aw); }          // (spinning on the toes: the balls of the feet come under her, so the spin turns about them)
       // round 12 (G3): turning on the spot in TWO SMALL STEPS - each foot stays planted where it stood (in the world) until its turn comes, then it lifts, swings and plants
       // where it stands after the turn (the other foot meanwhile pivots on its ball); without this the feet slid sideways by c x sin(yaw) with the rotating body
@@ -2161,7 +2163,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
       // toe bend weight (shoeFrame): the forefoot flexes against the ground while the heel rises in stance; it springs straight in the first 12 % of the swing (pointed foot in the air)
       var rhoG = lerp(GW.rho, GR.rho, run), usw = (q - rhoG) / (1 - rhoG), tbG = q < rhoG ? 1 : 1 - sstep(0.05, 0.3, usw) + sstep(0.85, 1, usw);          // (and the toes lift again for the ball landing)
-      legs.push({ side: side, f: f, c: c, z: z, beta: beta, toe: toe, tYaw: tYawX, tb: lerp(1, tbG, aw) * (1 - air) });
+      legs.push({ side: side, f: f, c: c, z: z, beta: beta, toe: toe, tYaw: tYawX, tb: lerp(1, tbG, aw) * (1 - air), dfc: [fc0[0] - f, fc0[1] - c] });
     }
 
     // ---- pelvis: bob limited by leg reach (so legs never over-extend), twist, sway, shiver
@@ -2213,7 +2215,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var knee = ik2(hip, ank, [cos(poleA), sin(poleA), 0], L1, L2);
       var Rf = K.mMul(K.mRz(L.side * L.toe - (L.tYaw || 0)), K.mRy(L.beta));
       var ofoot = v3sub(ank, K.mVec(Rf, 0, 0, C.ankleZ));
-      S.leg.push({ side: L.side, hip: hip, knee: knee, ank: ank, Ff: K.frame(Rf, ofoot), beta: L.beta, tb: L.tb });
+      S.leg.push({ side: L.side, hip: hip, knee: knee, ank: ank, Ff: K.frame(Rf, ofoot), beta: L.beta, tb: L.tb, dfc: L.dfc });
     }
 
     // ---- head angles (relative to the neck)
@@ -2300,6 +2302,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // ---- arms
     S.arm = solveArms(S, P, a, run, air, ph, sq, scr, pitchT, rollT, hunch, 0);
     sleeveFlap(S, run);
+    if (P.spin) {          // the spin's pivot: move the whole figure so the ball of the pivot foot is where it was at the start of the turn (in the projected view)
+      // (and where it was before the feet came together under her: the body moves over the pivot foot, the foot does not slide in under the body)
+      var SL = S.leg[P.spin.foot], SF = SL.Ff, bq0 = SF.R[0] * 35 + SF.o[0], bq1 = SF.R[3] * 35 + SF.o[1], th0 = P.spin.yaw0 * PI / 2, rq0 = bq0 + SL.dfc[0], rq1 = bq1 + SL.dfc[1];
+      // (wd without w: the feet are together after the twirl and the body stays over the pivot foot, whatever the heading, until the hop on the turn to profile)
+      S.ox += P.spin.w * ((bq0 * cos(S.theta) + bq1 * sin(S.theta)) - (rq0 * cos(th0) + rq1 * sin(th0))) - (1 - P.spin.w) * P.spin.wd * (SL.dfc[0] * cos(th0) + SL.dfc[1] * sin(th0));
+    }
     P.shudder = 0;          // (the hair module adds its own 15 Hz tremble for pose.shudder: that would fight the deer freeze; the hair follows the head motion instead)
     return S;
   }
@@ -2740,7 +2748,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     girl.walkPresetName = function () { return A.walkPreset; };
 
     // ---- per-tick memo: step() (x2 per frame), draw() and anchors() are called with the same pose, so the rig is solved once per distinct pose
-    var memoVer = -1, KEYN = 67, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
+    var memoVer = -1, KEYN = 70, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
     function poseKey(p, o) {
       var g = p.gait || {}, w = p.wind || {};
       o[0] = p.x; o[1] = p.y; o[2] = p.yaw; o[3] = g.amount; o[4] = g.phase; o[5] = g.speed; o[6] = g.run; o[7] = p.headYaw; o[8] = p.headPitch; o[9] = p.headRoll; o[10] = p.lean; o[11] = p.squash;
@@ -2752,6 +2760,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         if (hh && hh.w > 0 && hh.at) { o[b0] = hh.w; o[b0 + 1] = hh.at[0]; o[b0 + 2] = hh.at[1]; o[b0 + 3] = hh.at[2]; o[b0 + 4] = (hh.open || 0) + 2 * (hh.point || 0); o[b0 + 5] = hh.f === 'head' ? 1 : hh.f === 'pelvis' ? 3 : 2; o[b0 + 6] = (hh.pole ? hh.pole[0] + 3 * hh.pole[1] + 9 * hh.pole[2] : 0) + (hh.hd ? 27 * hh.hd[0] + 81 * hh.hd[1] + 243 * hh.hd[2] : 0); }
         else { o[b0] = o[b0 + 1] = o[b0 + 2] = o[b0 + 3] = o[b0 + 4] = o[b0 + 5] = o[b0 + 6] = 0; }
       }
+      o[67] = p.spin ? p.spin.w + 2 * (p.spin.wd || 0) : 0; o[68] = p.spin ? p.spin.yaw0 : 0; o[69] = p.spin && p.spin.foot ? 1 : 0;
       o[63] = p.footYaw || 0; o[64] = p.footYawW || 0; o[65] = p.footZ ? p.footZ[0] : 0; o[66] = p.footZ ? p.footZ[1] : 0;
       var ts = p.turnStep; o[58] = ts ? ts.u : -1; o[59] = ts ? ts.yaw0 : 0; o[60] = ts ? ts.yaw1 : 0; o[61] = ts ? ts.w : 0; o[62] = ts && ts.first ? 1 : 0;
     }
@@ -3991,6 +4000,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     //   first dot 0.15, first big idea 0.9 (gasp-hop), the bulb she taps 3.0, fireworks 7.35 (mind blown), the orbits follow her conducting (5.7-6.9) and her twirl (8.25-9.15),
     //   the boop 10.6 (every thought pops like a soap bubble), she catches a falling bit 11.0-11.5, pats her head 11.7, shrugs 12.15, turns to profile 12.8. =================
     var cloudOn = true;          // (the scene latches this once per loop, just before her first thought: no cloud = a simple happy idle, no gestures at nothing)
+    var SPIN_YAW0 = 0.9;          // the heading she twirls from (three quarters to the front): her left foot is pinned relative to it from the twirl until the walk
     var KB = { hero: 0.9, poke: 1.9, tap: 3.0, point0: 3.7, giggle: 4.1, sway0: 4.5, conduct0: 5.7, temples: 7.0, burst: 7.3, twirl0: 8.25, twirl1: 9.15, laugh: 9.9, boop: K_HIT };
     function happyIdle(p, k) {
       var s = U.smoothstep(0, 0.6, k);
@@ -4108,7 +4118,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       hop(p, k, 12.45, 6, 0.08);
 
       p.yaw = yaw;
-      p.footYaw = k >= KB.twirl0 + 0.45 ? 5 : 1; p.footYawW = 1 - tw;          // the feet stay planted facing front while the body turns over them; the twirl spins on the toes
+      p.footYaw = k >= KB.twirl0 + 0.45 ? 5 : 1; p.footYawW = 1 - tw;
+      if (k >= 8.0) p.spin = { w: bump(k, 8.0, 8.04, KB.twirl1 + 0.12, KB.twirl1 + 0.25), wd: 1, yaw0: SPIN_YAW0, foot: 0 };          // the twirl turns on the ball of her left foot (it stays put while the body turns round it) ...
+      p.footUp = Math.max(p.footUp, 0.7 * bump(k, 8.02, 8.14, KB.twirl1 + 0.2, KB.twirl1 + 0.36));          // ... and the right one is up off the floor (it would only scrape round), from the dip until the body is back over both feet          // the feet stay planted facing front while the body turns over them; the twirl spins on the toes
       p.headYaw = U.clamp(hy, -1, 1); p.headPitch = U.clamp(hp, -0.2, 1); p.headRoll = U.clamp(hr, -1, 1);
     }
 
@@ -4175,7 +4187,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
           p.yaw = U.lerp(p.yaw, tl.yaw, U.smoothstep(c.turnLeft0, c.turnLeft0 + 0.12, t)); p.headYaw = tl.headYaw; p.twist = tl.twist; p.headPitch = U.lerp(p.headPitch, 0, tb); p.headRoll = U.lerp(p.headRoll, 0, tb);
           var ul2 = U.clamp((t - c.turnLeft0) / (c.turnLeft1 - c.turnLeft0));
           if (ul2 < 1) p.turnStep = { u: ul2, yaw0: 5, yaw1: 4, w: 1 - U.smoothstep(c.walkOut0 - 0.05, c.walkOut0 + 0.1, t), first: 0 };
-          hop(p, t, c.turnLeft0 + 0.3, 10, 0.12);
+          var thl = hop(p, t, c.turnLeft0 + 0.3, 10, 0.12);
+          if (p.spin) p.spin.wd *= 1 - U.smoothstep(c.turnLeft0 + 0.3, c.turnLeft0 + 0.3 + thl, t);          // the body comes back between her feet while she is in the air on that hop (since the twirl it was over her left foot)
         }
         p.wind.x += 200 * I * Math.sin(t * 1.9 + 0.6);
         p.wind.y += -90 * I * (0.6 + 0.4 * Math.sin(t * 1.3));
