@@ -280,6 +280,27 @@
     });
   }
 
+  /*
+    While the navigation ball is out of sight, the page jumps to its destination in about half a second (navigation-ball.js sends
+    harini:camera-move). Scroll-linked work is skipped during that jump and done once at the end, so the jump never stutters.
+  */
+  var cameraMoving = false;
+  var cameraMoveEndCallbacks = [];
+
+  function onCameraMoveEnd(callback) {
+    cameraMoveEndCallbacks.push(callback);
+  }
+
+  document.addEventListener("harini:camera-move", function (event) {
+    cameraMoving = Boolean(event.detail && event.detail.moving);
+
+    if (!cameraMoving) {
+      cameraMoveEndCallbacks.forEach(function (callback) {
+        callback();
+      });
+    }
+  });
+
   function initArchivePlaceholders() {
     var items = Array.prototype.slice.call(document.querySelectorAll(".archive-item"));
     var container = document.querySelector(".archive-bars");
@@ -410,7 +431,7 @@
     }
 
     function queueUpdate() {
-      if (frame) {
+      if (frame || cameraMoving) {
         return;
       }
 
@@ -421,6 +442,7 @@
     window.addEventListener("scroll", queueUpdate, { passive: true });
     window.addEventListener("resize", queueUpdate, { passive: true });
     window.addEventListener("load", queueUpdate, { once: true });
+    onCameraMoveEnd(queueUpdate);
   }
 
   /*
@@ -507,11 +529,12 @@
     }
 
     function queueUpdate() {
-      if (!frame) {
+      if (!frame && !cameraMoving) {
         frame = window.requestAnimationFrame(update);
       }
     }
 
+    onCameraMoveEnd(queueUpdate);
     measureEdges();
     update();
     window.addEventListener("scroll", queueUpdate, { passive: true });

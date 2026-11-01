@@ -322,17 +322,18 @@ html.is-ball-animating {
   transform: scale(1);
 }
 
+/* the chosen circle fills with ink and condenses to the size of the ball while the ball forms on it (the label is gone in the first ~120 ms) */
 .nav-object.is-choosing .radial-item.is-selected button {
   background: var(--color-ink);
   border-color: transparent;
   color: transparent;
   box-shadow: none;
-  transform: scale(0.72);
+  transform: scale(var(--ball-condense, 0.71));
   transition:
-    background-color 500ms var(--ease-standard),
-    color 500ms var(--ease-standard),
-    border-color 500ms var(--ease-standard),
-    transform 900ms var(--ease-standard);
+    background-color var(--nav-ball-form-duration, 300ms) var(--ease-standard),
+    color 120ms linear,
+    border-color var(--nav-ball-form-duration, 300ms) var(--ease-standard),
+    transform var(--nav-ball-form-duration, 300ms) var(--ease-standard);
 }
 
 .nav-object.is-travelling .nav-core,
@@ -549,6 +550,12 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   display: none !important;
 }
 
+/* while the page jumps under the (out of sight) travelling ball, the picture vignettes are not moved frame by frame (main.js): they are
+   hidden for that half second and put back in place at the end */
+html.is-camera-moving .edge-vignette {
+  visibility: hidden;
+}
+
 .nav-travel-ball {
   --ball-x: 50vw;
   --ball-y: calc(100vh - 42px);
@@ -556,6 +563,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   --ball-scale-x: 1;
   --ball-scale-y: 1;
   --ball-rotation: 0deg;
+  --ball-m: 1, 0, 0, 1, 0, 0; /* squash and stretch, written every frame by navigation-ball.js */
   --ball-sphere-opacity: 0;
   position: fixed;
   left: 0;
@@ -575,7 +583,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
     calc(var(--ball-x) - (var(--ball-size) / 2)),
     calc(var(--ball-y) - (var(--ball-size) / 2) + var(--ball-lift)),
     0
-  ) scale(var(--ball-scale-x), var(--ball-scale-y));
+  ) matrix(var(--ball-m)) scale(var(--ball-scale-x), var(--ball-scale-y));
   will-change: transform, opacity;
   box-shadow: none;
 }
@@ -687,6 +695,24 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   filter: blur(0.25px);
 }
 
+/* the flat ink ball (?ball=ink): ink like the rest of the page, a fixed hairline highlight arc instead of a lit sphere */
+.nav-travel-ball[data-ball-material="ink"]::after {
+  background: var(--color-ink);
+}
+
+.nav-travel-ball[data-ball-material="ink"]::before {
+  right: 17%;
+  top: 15%;
+  width: 46%;
+  height: 46%;
+  border: 1.25px solid transparent;
+  border-top-color: rgba(250, 248, 243, 0.82);
+  border-radius: 50%;
+  background: transparent;
+  filter: none;
+  transform: rotate(18deg);
+}
+
 .travel-label {
   position: relative;
   z-index: 2;
@@ -701,22 +727,26 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   opacity: 0;
 }
 
+/* the spin mark: a short seam that turns with the ball, so the spin of the throw and the roll can be seen (the highlight stays where it is:
+   the light does not spin). The rotation is written every frame, so it has no transition. */
 .travel-roll-detail {
   position: absolute;
-  inset: 9px;
+  inset: 7px;
   z-index: 1;
   border-radius: 50%;
-  border: 0;
+  border: 1px solid transparent;
+  border-top-color: rgba(250, 248, 243, 0.34);
+  border-right-color: rgba(250, 248, 243, 0.16);
   opacity: 0;
   pointer-events: none;
   transform: rotate(var(--ball-rotation));
-  transition:
-    opacity var(--duration-fast) var(--ease-standard),
-    transform var(--duration-fast) linear;
+  transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
+.nav-travel-ball.is-ready .travel-roll-detail,
+.nav-travel-ball.is-moving .travel-roll-detail,
 .nav-travel-ball.is-rolling .travel-roll-detail {
-  opacity: 0;
+  opacity: 1;
 }
 
 .nav-travel-ball.is-forming .travel-roll-detail,
@@ -953,34 +983,21 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   }
 }
 
+/* the light builds up evenly through the whole morph (the circle's ink turns into the lit sphere without a visible switch) */
 @keyframes ballLightBuild {
   0% {
     opacity: 0;
   }
 
-  34% {
-    opacity: 0.01;
-  }
-
-  68% {
-    opacity: 0.3;
-  }
-
   100% {
-    opacity: 0.74;
+    opacity: 0.72;
   }
 }
 
 @keyframes ballSphereReveal {
-  0%,
-  42% {
+  0% {
     opacity: 0;
     transform: scale(0.996);
-  }
-
-  72% {
-    opacity: 0.48;
-    transform: scale(0.998);
   }
 
   100% {

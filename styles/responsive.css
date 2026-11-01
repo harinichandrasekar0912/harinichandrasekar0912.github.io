@@ -161,6 +161,10 @@
     height: var(--navi-circle-size);
   }
 
+  .nav-object {
+    --ball-condense: 0.78; /* 42 px ball / 54 px circle */
+  }
+
   .project-panel {
     grid-template-columns: 1fr;
     justify-content: start;
@@ -228,10 +232,6 @@
 }
 
 @media (max-width: 767px) {
-  :root {
-    --nav-ball-form-duration: 1818ms;
-  }
-
   .section {
     padding-block: clamp(2.75rem, 6vh, 4rem);
   }
