@@ -6973,6 +6973,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   }
 
   var ARM_COLS = ['g3', 'g2', 'g1', 'ink'];   // pale first, dark last
+  var ARM_SC = 0.55;   // round 12 (G11): the arms are drawn at a little over half their old width, so the swirl reads in the same hairline weight as the drawings
   function drawPre(ctx, t, layer) {
     var i, L, back = layer === 'back', C = G.C, ci;
     G.haloF = 1;
@@ -7001,12 +7002,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       for (ci = 0; ci < ARM_COLS.length; ci++) {
         var key = ARM_COLS[ci], any = false;
         ctx.fillStyle = C[key]; ctx.beginPath();
-        for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.sp.col === key && !L.own) { drawRuns(ctx, L, 'back', 1, null, false, true); any = true; } }
+        for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.sp.col === key && !L.own) { drawRuns(ctx, L, 'back', ARM_SC, null, false, true); any = true; } }
         if (any) ctx.fill();
       }
-      for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.own && L.iB >= L.iA) drawRuns(ctx, L, 'back', 1, C[L.col], false, false); }
+      for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.own && L.iB >= L.iA) drawRuns(ctx, L, 'back', ARM_SC, C[L.col], false, false); }
     } else {
-      for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.frontable) drawRuns(ctx, L, 'front', 1, C[L.col], true, false); }
+      for (i = 0; i < G.arms.length; i++) { L = G.arms[i]; if (L.hs > 0 && L.frontable) drawRuns(ctx, L, 'front', ARM_SC, C[L.col], true, false); }
     }
     // tip dots
     for (i = 0; i < G.arms.length; i++) {

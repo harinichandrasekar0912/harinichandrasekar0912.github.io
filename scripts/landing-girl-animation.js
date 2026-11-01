@@ -4880,6 +4880,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // sharpness first: never go below 1 device pixel per CSS pixel (a standard 1080p screen stays crisp) unless the machine is really struggling
     if (med < 30) nq = Math.max(nq, Math.min(q, 1 / Math.max(1, S.dpr / q)));
     var now = window.performance.now();
+    // round 12 (G23): the governor also steps back UP once the frames have been comfortably fast for a while (one hitch no longer makes the canvas soft for good)
+    if (nq >= q - 0.01 && q < 1 && med < ref * 1.08 && now - g.last > 6000) {
+      g.last = now; g.level = Math.max(0, g.level - 1); g.hist.length = 0;
+      if (S.setQuality(Math.min(1, q / 0.88))) { if (sc.heavyReady && sc.live) sc.rescaleModules(); return true; }
+      return false;
+    }
     if (nq < q - 0.01 && now - g.last > 2000) {
       g.last = now; g.level++;
       g.hist.length = 0;
