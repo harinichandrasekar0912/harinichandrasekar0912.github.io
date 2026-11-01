@@ -463,6 +463,156 @@ body.is-project-open .viewport-edge-blur {
   margin: 0;
 }
 
+/* "an apple" (scripts/play/apple.js): a small paper square set with the paragraph about picturing things. Before the script
+   arrives it is only the square with its question in it, so nothing looks broken while it loads. */
+.about-apple {
+  width: min(100%, 264px);
+  margin: 2em auto 1.25em;
+  color: var(--color-ink);
+}
+
+.about-apple-stage {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border: var(--line-thin) solid var(--color-line);
+  background: var(--color-paper);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.about-apple-stage:focus-visible {
+  outline: 1px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
+.about-apple-stage canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* only while there is an apple to spin does a drag on it belong to the drawing instead of the page */
+.about-apple[data-state="clearly"] .about-apple-stage canvas,
+.about-apple[data-state="sort"] .about-apple-stage canvas {
+  touch-action: none;
+  cursor: grab;
+}
+
+.about-apple.is-dragging .about-apple-stage canvas {
+  cursor: grabbing;
+}
+
+.about-apple-question,
+.about-apple-aside,
+.about-apple-word {
+  position: absolute;
+  left: 1.25em;
+  right: 1.25em;
+  margin: 0;
+  text-align: center;
+  text-transform: lowercase;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-standard);
+}
+
+.about-apple-question {
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.about-apple-word {
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-ink);
+  font-size: var(--text-md);
+  letter-spacing: 0.04em;
+}
+
+.about-apple-aside {
+  bottom: 1em;
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+}
+
+.about-apple:not([data-state]) .about-apple-question,
+.about-apple[data-state="ask"] .about-apple-question,
+.about-apple[data-state="not"] .about-apple-word {
+  opacity: 1;
+}
+
+.about-apple[data-state="not"] .about-apple-aside {
+  opacity: 1;
+  transition-delay: 900ms;
+}
+
+/* the answers and the closing line share one place under the square, so swapping them never moves the text below */
+.about-apple-foot {
+  display: grid;
+  margin-top: var(--space-3);
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+}
+
+.about-apple-choices,
+.about-apple-coda {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--duration-medium) var(--ease-standard), visibility 0s linear var(--duration-medium);
+}
+
+.about-apple-choices {
+  gap: 0 0.1em;
+}
+
+.about-apple-coda {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+}
+
+.about-apple[data-state="ask"] .about-apple-choices {
+  visibility: visible;
+  opacity: 1;
+  transition-delay: 0s;
+}
+
+.about-apple[data-state="clearly"] .about-apple-coda,
+.about-apple[data-state="sort"] .about-apple-coda,
+.about-apple[data-state="not"] .about-apple-coda {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity var(--duration-slow) var(--ease-standard) 1.2s, visibility 0s linear 0s;
+}
+
+.about-apple .play-button {
+  padding: 0.35em 0.4em;
+  border-color: transparent;
+  color: var(--color-ink);
+  text-underline-offset: 0.28em;
+}
+
+.about-apple .play-button:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+
+.about-apple-coda .play-button {
+  color: var(--color-ink-soft);
+}
+
+.about-apple-dot {
+  opacity: 0.5;
+}
+
 .work-section {
   min-height: 0;
   padding-block: var(--section-gap-half);

@@ -574,6 +574,68 @@
     });
   }
 
+  /*
+    The apple in About (scripts/play/apple.js) is not needed for the first screen, so its two scripts are only requested when
+    About comes within 600 px of the screen. Until then (and if they never arrive) the figure is a quiet paper square with its
+    question in it. The shared kit guards against being run twice, so it does not matter if a project has loaded it already.
+  */
+  function loadPlayScript(name) {
+    return new Promise(function (resolve, reject) {
+      var script = document.createElement("script");
+
+      script.src = "scripts/play/" + name + ".js";
+      script.async = true;
+      script.onload = function () {
+        resolve();
+      };
+      script.onerror = function () {
+        reject(new Error("could not load " + script.src));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  function initAboutApple() {
+    var host = document.querySelector("[data-about-apple]");
+    var section = document.getElementById("about");
+    var started = false;
+
+    if (!host || !section) {
+      return;
+    }
+
+    function start() {
+      if (started) {
+        return;
+      }
+
+      started = true;
+      (window.HariniInk ? Promise.resolve() : loadPlayScript("ink-kit")).then(function () {
+        return window.HariniApple ? null : loadPlayScript("apple");
+      }).then(function () {
+        if (window.HariniApple) {
+          window.HariniApple.mount(host);
+        }
+      }).catch(function () {
+        /* the static square stays as it is */
+      });
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      window.addEventListener("load", start, { once: true });
+      return;
+    }
+
+    var observer = new IntersectionObserver(function (entries) {
+      if (entries.some(function (entry) { return entry.isIntersecting; })) {
+        observer.disconnect();
+        start();
+      }
+    }, { rootMargin: "600px" });
+
+    observer.observe(section);
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     if (window.HariniNavigationBall) {
       window.HariniNavigationBall.init();
@@ -589,5 +651,6 @@
     initViewportEdgeBlur();
     initTileImageFade();
     initImageVignette();
+    initAboutApple();
   });
 })();
