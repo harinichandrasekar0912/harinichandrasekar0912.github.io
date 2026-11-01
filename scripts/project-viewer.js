@@ -18,6 +18,40 @@
 
   function noop() {}
 
+  /* playable pieces live in their own scripts (scripts/play/), requested only when a project that uses one is about to open */
+  var scriptLoads = {};
+
+  function loadScript(src) {
+    if (!scriptLoads[src]) {
+      scriptLoads[src] = new Promise(function (resolve, reject) {
+        var el = document.createElement("script");
+        el.src = src;
+        el.async = true;
+        el.onload = function () {
+          resolve();
+        };
+        el.onerror = function () {
+          delete scriptLoads[src];
+          reject(new Error("could not load " + src));
+        };
+        document.head.appendChild(el);
+      });
+    }
+
+    return scriptLoads[src];
+  }
+
+  function playScript(name) {
+    return "scripts/play/" + name + ".js";
+  }
+
+  /* a piece always gets the shared kit first */
+  function loadPiece(name) {
+    return loadScript(playScript("ink-kit")).then(function () {
+      return loadScript(playScript(name));
+    });
+  }
+
   function wait(ms) {
     return new Promise(function (resolve) {
       window.setTimeout(resolve, ms);
@@ -106,8 +140,92 @@
 
     window.addEventListener("resize", readViewport, { passive: true });
 
-    function notifyProjectState(name) {
-      document.dispatchEvent(new CustomEvent(name));
+    /* every harini:project-* event says which project it is about (detail.id / detail.project) */
+    function notifyProjectState(name, project) {
+      var p = project || activeProject;
+
+      document.dispatchEvent(new CustomEvent(name, { detail: { id: p ? p.id : null, project: p || null } }));
+    }
+
+    /*
+      Extension points (the playable pieces):
+        window.HariniProjectPanels[type] = { mount(figure, panel, ctx) -> handle, unmount(handle) }   a panel with a "type" gets an empty frame to draw in
+        window.HariniProjectRituals[name] = function (host, ctx) -> Promise   project.ritual runs on the dark stage after the opening flight, before the panels
+      ctx = { project, viewer, story, track, isStackedMode, reducedMotion, imageUrl, refresh, token, next, open, close }.
+      The scripts are loaded from scripts/play/<type or ritual>.js the first time they are needed (warmProject requests them early).
+    */
+    window.HariniProjectPanels = window.HariniProjectPanels || {};
+    window.HariniProjectRituals = window.HariniProjectRituals || {};
+    var mountedPanels = [];
+
+    function pieceContext(project, token) {
+      return {
+        project: project,
+        viewer: viewer,
+        story: story,
+        track: track,
+        isStackedMode: isStackedMode,
+        reducedMotion: reducedMotion.matches,
+        imageUrl: imageUrl,
+        refresh: updateMaxShift,
+        token: token,
+        next: function () {
+          if (!isStackedMode()) {
+            stepPanel(1);
+          }
+        },
+        open: function (id) {
+          openById(id);
+        },
+        close: function () {
+          closeProject();
+        }
+      };
+    }
+
+    function unmountPanels() {
+      mountedPanels.forEach(function (entry) {
+        try {
+          if (entry.def && entry.def.unmount) {
+            entry.def.unmount(entry.handle);
+          }
+        } catch (error) {
+          console.error("Panel unmount failed", error);
+        }
+      });
+      mountedPanels = [];
+    }
+
+    function mountPanels(project, token) {
+      Array.prototype.forEach.call(track.querySelectorAll("[data-panel-type]"), function (article) {
+        var type = article.getAttribute("data-panel-type");
+        var panel = project.panels[Number(article.getAttribute("data-panel-index"))];
+        var figure = article.querySelector("[data-panel-mount]");
+
+        function mount() {
+          var def = window.HariniProjectPanels[type];
+
+          if (token !== openToken || !def || !figure.isConnected) {
+            return;
+          }
+
+          try {
+            mountedPanels.push({ def: def, handle: def.mount(figure, panel, pieceContext(project, token)) });
+          } catch (error) {
+            console.error("Panel mount failed", error);
+          }
+
+          updateMaxShift();
+        }
+
+        if (window.HariniProjectPanels[type]) {
+          mount();
+        } else {
+          loadPiece(panel.script || type).then(mount, function (error) {
+            console.error(error);
+          });
+        }
+      });
     }
 
     function isStackedMode() {
@@ -538,8 +656,9 @@
         shiftFrame = 0;
       }
 
+      unmountPanels();
       viewer.classList.add("is-active", "is-preparing");
-      viewer.classList.remove("is-ready", "is-closing", "is-expanded", "is-landed", "is-shrinking");
+      viewer.classList.remove("is-ready", "is-closing", "is-expanded", "is-landed", "is-shrinking", "is-ritual");
       viewer.setAttribute("aria-hidden", "false");
       viewer.setAttribute("aria-label", "project: " + project.title);
       setOutsideInert(true);
@@ -765,6 +884,24 @@
           Images are requested as the panel nears the screen (see observePanelImages): only the second panel is loaded straight away.
           A frame is "is-loading" until its picture has arrived, so the picture fades in instead of popping in.
         */
+        if (panel.type) {
+          return [
+            '<article class="project-panel project-panel-custom is-' + escapeHtml(panel.type) + '" data-panel-type="' + escapeHtml(panel.type) + '" data-panel-index="' + index + '" style="--ratio:' + (panel.ratio > 0 ? panel.ratio : 1.25).toFixed(3) + '">',
+            '<figure class="project-panel-image project-panel-custom-figure" data-panel-mount></figure>',
+            '<div class="project-panel-copy">',
+            '<p class="project-step">',
+            String(index + 1).padStart(2, "0"),
+            " / ",
+            stepTotal,
+            "</p>",
+            panel.heading ? "<h3>" + escapeHtml(panel.heading) + "</h3>" : "",
+            panel.body ? "<p>" + escapeHtml(panel.body) + "</p>" : "",
+            '<div class="project-panel-extra" data-panel-extra></div>',
+            "</div>",
+            "</article>"
+          ].join("");
+        }
+
         var ratio = panel.ratio > 0 ? panel.ratio : 8 / 7;
         var shape = ratio > 2.2 ? " is-wide" : ratio > 1.45 ? " is-landscape" : "";
         var imageSrc = imageUrl(panel.image || project.image);
@@ -797,6 +934,7 @@
       }).join("");
 
       watchPanelImages();
+      mountPanels(project, openToken);
     }
 
     /* take the "is-loading" mark off a frame as soon as its real picture (not the placeholder) has loaded */
@@ -890,6 +1028,16 @@
 
       warmedProjects[project.id] = true;
 
+      if (project.ritual) {
+        loadPiece(project.ritual).catch(noop);
+      }
+
+      (project.panels || []).forEach(function (panel) {
+        if (panel && panel.type) {
+          loadPiece(panel.script || panel.type).catch(noop);
+        }
+      });
+
       [project.image, project.panels && project.panels[1] && project.panels[1].image].forEach(function (path) {
         if (path) {
           var image = new Image();
@@ -953,9 +1101,12 @@
         filterTo: "grayscale(0)"
       });
 
-      revealTimer = window.setTimeout(function () {
-        revealProjectContent(token);
-      }, reducedMotion.matches ? 1 : isStackedMode() ? 520 : 440);
+      /* a project with a ritual keeps its panels back until the ritual has run (it starts once the picture has landed) */
+      if (!project.ritual) {
+        revealTimer = window.setTimeout(function () {
+          revealProjectContent(token);
+        }, reducedMotion.matches ? 1 : isStackedMode() ? 520 : 440);
+      }
 
       await flight;
 
@@ -971,6 +1122,26 @@
       }
 
       window.clearTimeout(revealTimer);
+
+      if (project.ritual) {
+        viewer.classList.add("is-landed");
+        await waitForLayoutFrames(2);
+
+        if (token !== openToken) {
+          return;
+        }
+
+        removeActiveClone();
+        await runRitual(project, token);
+
+        if (token !== openToken) {
+          return;
+        }
+
+        revealProjectContent(token);
+        return;
+      }
+
       revealProjectContent(token);
       viewer.classList.add("is-landed");
       await waitForLayoutFrames(2);
@@ -980,6 +1151,40 @@
       }
 
       removeActiveClone();
+    }
+
+    /* the ritual gets its own layer on the stage; wheel, touch and keys (except Escape) belong to it while it runs. It never blocks: a failure simply reveals the panels. */
+    function runRitual(project, token) {
+      var host = document.createElement("div");
+
+      host.className = "project-ritual";
+      host.setAttribute("data-panel-interactive", "");
+      viewer.appendChild(host);
+      viewer.classList.add("is-ritual");
+
+      function finish() {
+        viewer.classList.remove("is-ritual");
+
+        if (host.parentNode) {
+          host.parentNode.removeChild(host);
+        }
+      }
+
+      function start() {
+        var ritual = window.HariniProjectRituals[project.ritual];
+
+        if (token !== openToken || typeof ritual !== "function") {
+          return undefined;
+        }
+
+        return ritual(host, pieceContext(project, token));
+      }
+
+      var ready = window.HariniProjectRituals[project.ritual] ? Promise.resolve() : loadPiece(project.ritual);
+
+      return ready.then(start).catch(function (error) {
+        console.error("Ritual failed", error);
+      }).then(finish, finish);
     }
 
     function clearTrack() {
@@ -1004,6 +1209,12 @@
       frame.style.cssText = "";
       hero.style.filter = "";
       applyShift(0);
+      var closedProject = activeProject;
+      unmountPanels();
+      viewer.classList.remove("is-ritual");
+      Array.prototype.forEach.call(viewer.querySelectorAll(".project-ritual"), function (el) {
+        el.parentNode.removeChild(el);
+      });
       activeProject = null;
       closeButton.disabled = false;
       isClosingProject = false;
@@ -1013,7 +1224,7 @@
         trigger.classList.remove("is-project-source");
       }
 
-      notifyProjectState("harini:project-closed");
+      notifyProjectState("harini:project-closed", closedProject);
 
       if (trigger) {
         trigger.focus({ preventScroll: true });
@@ -1130,6 +1341,11 @@
         return;
       }
 
+      if (viewer.classList.contains("is-ritual")) {
+        event.preventDefault();
+        return;
+      }
+
       if (isStackedMode()) {
         return;
       }
@@ -1153,6 +1369,10 @@
       }
 
       if (isStackedMode()) {
+        return;
+      }
+
+      if (viewer.classList.contains("is-ritual")) {
         return;
       }
 
@@ -1197,6 +1417,10 @@
         return;
       }
 
+      if (viewer.classList.contains("is-ritual")) {
+        return;
+      }
+
       if (!forward && !back && key !== "PageDown" && key !== "PageUp" && key !== "Home" && key !== "End") {
         return;
       }
@@ -1236,9 +1460,49 @@
       setViewerVars(activeTrigger);
       updateMaxShift();
     });
+
+    /* opens a project by id from anywhere (a link inside another project, a trigger outside the work list); the flight starts from its own trigger */
+    function openById(id, trigger) {
+      var source = trigger || document.querySelector('[data-project-trigger="' + id + '"]');
+
+      if (!source) {
+        return;
+      }
+
+      if (viewer.classList.contains("is-active")) {
+        var once = function (event) {
+          document.removeEventListener("harini:project-closed", once);
+          window.setTimeout(function () {
+            openProject(source).catch(noop);
+          }, 60);
+        };
+
+        document.addEventListener("harini:project-closed", once);
+        closeProject();
+        return;
+      }
+
+      openProject(source).catch(noop);
+    }
+
+    api.open = openById;
+    api.close = closeProject;
+    api.refresh = updateMaxShift;
+    api.isOpen = function () {
+      return viewer.classList.contains("is-active");
+    };
   }
 
-  window.HariniProjectViewer = {
-    init: init
+  var api = {
+    init: init,
+    imageUrl: imageUrl,
+    open: noop,
+    close: noop,
+    refresh: noop,
+    isOpen: function () {
+      return false;
+    }
   };
+
+  window.HariniProjectViewer = api;
 })();
