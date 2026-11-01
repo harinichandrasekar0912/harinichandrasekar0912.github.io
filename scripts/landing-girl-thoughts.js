@@ -7883,7 +7883,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var q = (t - it.tp) / it.swP + it.swPh; q -= floor(q);
       if (q < it.swD) { var s2 = sin(Math.PI * q / it.swD), f = 1 - it.swA * s2 * s2; x0 = G.cx + (x0 - G.cx) * f; y0 = G.cy + (y0 - G.cy) * f; }
     }
-    if (it.dtA) {                                                                         // a quick flick: a short dart across the cloud and back
+    if (it.dtA && !PLAN.noDarts) {                                                         // a quick flick: a short dart across the cloud and back (round 12: off by plan, it read as a glitch)
       var q2 = (t - it.tp) / it.dtP + it.dtPh; q2 -= floor(q2);
       if (q2 < it.dtD) {
         var s3 = sin(Math.PI * q2 / it.dtD); s3 *= s3;
@@ -7891,7 +7891,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
     }
     var bw = it.wob * (1 + 0.9 * sstep(G.tNom - 2.5, G.tNom, t));                         // bob / wobble: larger for the small pieces, stronger in the crescendo
-    var x = x0 + bw * (10 * sin(0.83 * t + it.p3) + 4 * sin(2.3 * t + it.p5)), y = y0 + bw * (12 * sin(1.17 * t + it.p4) + 5 * sin(2.9 * t + it.p6)), zn = o.zn;
+    var fk = it.fk || (it.fk = 0.72 + 0.56 * ((Math.abs(it.p3 * 7.13 + it.p4 * 3.71) % 1)));          // round 12 (G13): every piece bobs and breathes at its own pace (+-28 %), no synchronised jelly
+    var x = x0 + bw * (10 * sin(0.83 * fk * t + it.p3) + 4 * sin(2.3 * fk * t + it.p5)), y = y0 + bw * (12 * sin(1.17 * fk * t + it.p4) + 5 * sin(2.9 * fk * t + it.p6)), zn = o.zn;
     var age = t - it.tp, dt = t - G.shockT, enter = age < it.enter ? (1 - spring(age, 0.9, 5.5)) * (1 - sstep(it.enter * 0.6, it.enter, age)) : 0, swell = 0;
     if (enter !== 0) { x += (G.hx - x) * it.glide * enter; y += (G.hy - y) * it.glide * enter; }   // glides out of her head on a soft spring
     if (dt > 0) {
@@ -7906,7 +7907,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
     }
     o.x = x; o.y = y; o.zn = zn;
-    o.sc = it.sc0 > 0 && t >= it.t0 ? it.sc0 : (1 + CFG.PERSP * zn) * (1 + it.br * sin(0.9 * t + it.p7)) * (1 + swell) * (1 - CFG.FUNNEL_SHRINK * sstep(G.tNom - 2.6, G.tNom - 0.4, t));   // (act IV: sucked in, a little smaller)
+    o.sc = it.sc0 > 0 && t >= it.t0 ? it.sc0 : (1 + CFG.PERSP * zn) * (1 + it.br * sin(0.9 * (it.fk || 1) * t + it.p7)) * (1 + swell) * (1 - CFG.FUNNEL_SHRINK * sstep(G.tNom - 2.6, G.tNom - 0.4, t));   // (act IV: sucked in, a little smaller)
     o.da = min(1, (1 - CFG.DEPTH_ALPHA * sstep(0.1, -1, zn)) * it.dla * (1 + 0.05 * sin(1.3 * t + it.p6)));   // far = a little lighter; gentle breathing of the alpha
     var ph = R * 0.9;
     o.rx = it.rx0 + it.ax * sin(ph * it.f1 + it.q1);

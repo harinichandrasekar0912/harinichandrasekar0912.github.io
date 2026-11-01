@@ -4323,7 +4323,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         bulb: [KB.tap, 4.2, 6.35, 8.6], fw: [KB.burst + 0.05, KB.burst + 0.25, KB.burst + 0.5], fwExtra: [7.95, 8.5, 9.6],
         swarm: [6.4, 8.0], swarmGap: [0.4, 0.25], bulbLife: 4.0,
       },
-      maxItems: 18, noChurn: true, firstBulb: [0.2, -74],
+      maxItems: 18, noChurn: true, noDarts: true, firstBulb: [0.2, -74],
       flowBoost: [[KB.conduct0, KB.conduct0 + 1.2, 0.9], [KB.twirl0, KB.twirl1, 1.6]],
     };
 
