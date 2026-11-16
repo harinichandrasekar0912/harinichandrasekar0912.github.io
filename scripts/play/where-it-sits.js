@@ -22,12 +22,12 @@
 
   /* r = height / width, k = width factor, wide / tall = start (x, y, depth); related fragments start apart */
   var FRAGMENTS = [
-    { id: "photo", label: "render of the courtyard", cap: "render", r: 0.7, k: 1, wide: [0.13, 0.2, 0.15], tall: [0.26, 0.08, 0.2] },
-    { id: "massing", label: "massing model", cap: "massing model", r: 0.475, k: 1.2, wide: [0.47, 0.1, 0.65], tall: [0.3, 0.46, 0.6] },
-    { id: "note", label: "note: very few access points to the waterfront", cap: "note", r: 0.755, k: 0.8, wide: [0.85, 0.24, 0.35], tall: [0.75, 0.14, 0.45] },
-    { id: "sketch", label: "line drawing of the massing", cap: "drawing", r: 0.99, k: 0.85, wide: [0.25, 0.8, 0.45], tall: [0.72, 0.88, 0.4] },
-    { id: "reference", label: "reference map of the waterfront", cap: "reference", r: 0.92, k: 0.85, wide: [0.58, 0.66, 0.1], tall: [0.73, 0.5, 0.15] },
-    { id: "plan", label: "site plan", cap: "site plan", r: 0.705, k: 1, wide: [0.86, 0.82, 0.55], tall: [0.27, 0.9, 0.55] }
+    { id: "photo", label: "render of the courtyard", cap: "render", r: 0.7, k: 1, wide: [0.13, 0.2, 0.15], tall: [0.18, 0.1, 0.2] },
+    { id: "massing", label: "massing model", cap: "massing model", r: 0.475, k: 1.2, wide: [0.47, 0.1, 0.65], tall: [0.52, 0.36, 0.6] },
+    { id: "note", label: "note: very few access points to the waterfront", cap: "note", text: "Very few access points to the waterfront", r: 0.755, k: 1, wide: [0.85, 0.24, 0.35], tall: [0.7, 0.06, 0.45] },
+    { id: "sketch", label: "line drawing of the massing", cap: "drawing", r: 0.99, k: 0.85, wide: [0.25, 0.8, 0.45], tall: [0.84, 0.62, 0.4] },
+    { id: "reference", label: "reference map of the waterfront", cap: "reference", r: 0.92, k: 0.85, wide: [0.58, 0.66, 0.1], tall: [0.12, 0.56, 0.15] },
+    { id: "plan", label: "site plan", cap: "site plan", r: 0.705, k: 1, wide: [0.86, 0.82, 0.55], tall: [0.4, 0.9, 0.55] }
   ];
 
   /* what belongs together, either way round */
@@ -252,7 +252,10 @@
       b.setAttribute("aria-label", f.label);
       b.setAttribute("aria-describedby", hint.id);
       b.setAttribute("aria-pressed", "false");
-      b.innerHTML = '<img alt="" draggable="false" decoding="async" src="' + src(f.id, ctx.imageUrl) + '"><span class="wis-cap">' + f.cap + "</span>";
+      b.innerHTML = '<img alt="" draggable="false" decoding="async" src="' + src(f.id, ctx.imageUrl) + '">' + (f.text ? '<span class="wis-note">' + f.text + "</span>" : "") + '<span class="wis-cap">' + f.cap + "</span>";          // (a note is set as real text: the scanned handwriting is too small to read on a card)
+      if (f.text) {
+        b.classList.add("wis-card-note");
+      }
       field.appendChild(b);
       b.wisCard = { f: f, el: b, born: 0.85 + i * 0.11, d: 0, td: 0, z: -1, delay: 0 };
       cards.push(b.wisCard);

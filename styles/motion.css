@@ -1652,6 +1652,35 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   transition: filter 900ms var(--ease-standard);
 }
 
+/* the note card: its words are set as text (the scanned note is too small to read at card size); grey until it is linked, then the note's lilac */
+.wis-card-note img {
+  opacity: 0;
+}
+
+.wis-note {
+  position: absolute;
+  inset: 0;
+  padding: 0.7em 0.75em;
+  border-radius: 5px;
+  background: #d4d4d4;
+  color: #1d1b22;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: left;
+  pointer-events: none;
+  transition: background-color 900ms var(--ease-standard);
+}
+
+.project-viewer[data-project-mode="stacked"] .wis-note {
+  padding: 0.5em 0.55em;
+  font-size: 9px;
+  line-height: 1.28;
+}
+
+.wis-card-note.is-linked .wis-note {
+  background: #d9d1e6;
+}
+
 .wis-card.is-linked img {
   filter: grayscale(0);
 }
