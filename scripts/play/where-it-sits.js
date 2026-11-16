@@ -300,6 +300,7 @@
       view.cx = s.w / 2;
       view.cy = s.h * (view.stacked ? 0.44 : 0.42);
       area = freeArea(s.w, s.h);
+      host.style.setProperty("--wis-line-x", view.stacked ? "50%" : Math.round((area.l + area.r) / 2) + "px");          // the line sits under the cards, not under the picture
 
       var base = view.stacked ? clamp(s.w * 0.23, 76, 100) : clamp(s.w * 0.088, 108, 200);          // (big screens: bigger cards, so six fragments do not get lost in the field)
       var tall = area.b - area.t > area.r - area.l;

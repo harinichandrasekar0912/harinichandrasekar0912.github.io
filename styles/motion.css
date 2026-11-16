@@ -1709,7 +1709,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 }
 
 .wis-line {
-  left: 50%;
+  left: var(--wis-line-x, 50%);
   bottom: calc(var(--nav-bottom-buffer) + var(--plus-circle-size) + 22px);
   transform: translateX(-50%);
   white-space: nowrap;
