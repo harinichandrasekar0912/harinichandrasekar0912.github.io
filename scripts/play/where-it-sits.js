@@ -301,7 +301,7 @@
       view.cy = s.h * (view.stacked ? 0.44 : 0.42);
       area = freeArea(s.w, s.h);
 
-      var base = view.stacked ? clamp(s.w * 0.23, 76, 100) : clamp(s.w * 0.088, 108, 140);
+      var base = view.stacked ? clamp(s.w * 0.23, 76, 100) : clamp(s.w * 0.088, 108, 200);          // (big screens: bigger cards, so six fragments do not get lost in the field)
       var tall = area.b - area.t > area.r - area.l;
 
       cards.forEach(function (c) {
@@ -311,6 +311,10 @@
         c.h0 = Math.round(c.w0 * c.f.r);
         c.el.style.width = c.w0 + "px";
         c.el.style.height = c.h0 + "px";
+
+        if (c.f.text) {
+          c.el.querySelector(".wis-note").style.fontSize = clamp(c.w0 * 0.088, 8.5, 15).toFixed(1) + "px";          // the note's words grow with its card
+        }
 
         if (old) {
           c.tx = area.l + ((c.tx - old.l) / Math.max(1, old.r - old.l)) * (area.r - area.l);
