@@ -652,6 +652,11 @@ body.is-project-open .viewport-edge-blur {
   line-height: 1.4;
 }
 
+/* light text is for real (dark) pictures; on the pale placeholder drawing it would vanish, so it is ink there */
+.archive-bar:has(img[src*="placeholder"]) .archive-bar-meta {
+  color: var(--color-ink-soft);
+}
+
 .contact-section {
   position: relative;
   display: grid;
