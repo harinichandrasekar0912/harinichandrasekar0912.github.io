@@ -657,6 +657,11 @@ body.is-project-open .viewport-edge-blur {
   color: var(--color-ink-soft);
 }
 
+/* a contact link waiting for its real address: visible, but not a link yet (main.js) */
+.contact-links a.is-unset {
+  cursor: default;
+}
+
 .contact-section {
   position: relative;
   display: grid;

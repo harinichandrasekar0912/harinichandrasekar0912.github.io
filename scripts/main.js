@@ -551,6 +551,31 @@
     });
   }
 
+  /*
+    A contact link without its real address yet ("#", an empty "mailto:", or marked data-pending, like the CV until its file is in
+    assets/documents/) stays visible but does nothing when clicked: no jump back to the top of the page, no download of an error page.
+  */
+  function initContactLinks() {
+    Array.prototype.forEach.call(document.querySelectorAll(".contact-links a"), function (link) {
+      var href = (link.getAttribute("href") || "").trim();
+
+      function disable() {
+        link.setAttribute("aria-disabled", "true");
+        link.classList.add("is-unset");
+      }
+
+      link.addEventListener("click", function (event) {
+        if (link.getAttribute("aria-disabled") === "true") {
+          event.preventDefault();
+        }
+      });
+
+      if (!href || href === "#" || /^mailto:\s*$/i.test(href) || link.hasAttribute("data-pending")) {
+        disable();
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     if (window.HariniNavigationBall) {
       window.HariniNavigationBall.init();
@@ -566,5 +591,6 @@
     initViewportEdgeBlur();
     initTileImageFade();
     initImageVignette();
+    initContactLinks();
   });
 })();

@@ -110,5 +110,5 @@ When the final domain is ready, add a `CNAME` file at the repository root contai
 
 - Landing video placeholder lives in the HTML/CSS only.
 - The About image and the archive items are local SVG placeholders. The first five works (pause, spatial archive, rainy madras, shade, staircase) carry real project content and images (6 to 12 tiles each).
-- Resume should be placed at `assets/documents/harini-chandrasekar-resume.pdf`.
+- Resume should be placed at `assets/documents/harini-chandrasekar-resume.pdf`. Then remove `data-pending` from the CV link in `index.html` (until then the link shows but does nothing). The other contact links come alive as soon as their real addresses replace `#` / `mailto:`.
 - Contact form is static and shows a placeholder response.
