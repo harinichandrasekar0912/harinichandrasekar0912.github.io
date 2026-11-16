@@ -266,9 +266,9 @@
       var a = view.stacked ? { l: w * 0.05, t: h * 0.1, r: w * 0.95, b: h - 190 } : { l: w * 0.06, t: h * 0.1, r: w * 0.94, b: h - 140 };
       var r = !view.stacked && intro ? intro.getBoundingClientRect() : null;
 
-      if (r && r.width && r.left > w * 0.35 && r.left - 40 - a.l >= 380) {
+      if (r && r.width && r.left > w * 0.35 && r.left - 40 - a.l >= 320) {
         a.r = r.left - 40;
-      } else if (r && r.width && r.right < w * 0.65 && a.r - r.right - 40 >= 380) {
+      } else if (r && r.width && r.right < w * 0.65 && a.r - r.right - 40 >= 320) {
         a.l = r.right + 40;
       }
 
