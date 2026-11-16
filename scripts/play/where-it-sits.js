@@ -204,7 +204,7 @@
   }
 
   /* one run */
-  function run(host, ctx, resolve) {
+  function run(host, ctx, resolve, seen) {
     var Ink = window.HariniInk;
     var tear = Ink.teardown();
     var finished = false;
@@ -546,6 +546,7 @@
 
       var order = 0;
 
+      seen();          // finished, skipped or left alone: it counts as seen (closing the project half way does not)
       drop(drag, false);
       leaving = { at: T, to: panelTwoPoint() };
       host.classList.add("is-leaving");
@@ -722,10 +723,10 @@
       return Promise.resolve();
     }
 
-    memory.set();
-
     return new Promise(function (resolve) {
-      run(host, ctx, resolve);
+      run(host, ctx, resolve, function () {
+        memory.set();
+      });
     });
   };
 })();
