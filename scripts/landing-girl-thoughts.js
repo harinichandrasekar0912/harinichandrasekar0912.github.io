@@ -8809,9 +8809,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     if (it.life < 1e8) al *= 1 - sstep(it.life - 0.45, it.life, it.age);
     if (al <= 0.004) return;
     if (!sp || AT.k !== KA || AT.kd !== KD) { sp = renderSprite(it, t); if (!sp) { drawDirect(ctx, it); return; } }
-    var k = po.sc / sp.sc, w = abs(k - 1) < 0.003 ? sp.W : sp.W * k, h = abs(k - 1) < 0.003 ? sp.H : sp.H * k, dx = round(KA * po.x + TE), dy = round(KD * po.y + TF);
+    var k = po.sc / sp.sc, w = abs(k - 1) < 0.003 ? sp.W : sp.W * k, h = abs(k - 1) < 0.003 ? sp.H : sp.H * k, dx = KA * po.x + TE, dy = KD * po.y + TF;          // sub-pixel placement: a slow orbit glides instead of stepping from pixel to pixel
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = true;
     if (al < 0.999) ctx.globalAlpha *= al;
     ctx.drawImage(AT.cv, sp.x, sp.y, sp.W, sp.H, dx - w / 2, dy - h / 2, w, h);
     ctx.restore();
