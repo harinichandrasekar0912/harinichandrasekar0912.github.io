@@ -2098,6 +2098,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       // stopping / starting: a foot that has to travel between its stride position and the standing position is LIFTED on the way (never dragged along the floor)
       var wmx = max(a, run);
       if (wmx > 0 && wmx < 1) { var trv = min(1, lerp(abs(wf[0]), abs(rf[0]), run) / 36) * 4 * wmx * (1 - wmx); z += C.stepLift * trv; beta -= rad(14) * trv; }
+      if (wmx > 0 && wmx < 1 && q > 0.45 && run < 0.5) { var rem = abs(f) * (1 - sstep(0.18, 0.4, wmx)); z += min(16, 0.55 * rem); beta -= rad(0.25) * min(16, 0.55 * rem); }          // (only once the leading foot is down)          // stopping: the TRAILING foot is lifted while it is drawn in under her (a last little step), never dragged along the floor
       var c = side * lerp(lerp(C.idleStance + (side < 0 ? C.stanceL : C.stanceR), C.walkStance, a), C.walkStance - 2, run);
       var toe = lerp(lerp(rad(C.toeIdle + (side < 0 ? C.toeL : C.toeR)), rad(C.toeWalk), a), rad(4), run);
       var unw = idleA > 0 ? sstep(0.15, 0.75, -side * (wsh + 0.7 * b2 * s2 + 1.3 * e1)) * idleA : 0, unwD = dzy > 0 ? sstep(0.15, 0.9, -side * dS1) * dzy : 0;       // the unloaded foot lifts its heel (idle weight shift / dizzy half-step)
