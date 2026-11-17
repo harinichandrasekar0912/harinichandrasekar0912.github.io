@@ -2742,16 +2742,47 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
     }
     function armRestore(S) { for (var i = 0; i < 2; i++) if (swapE[i]) { S.arm[i].E = swapE[i]; S.arm[i].W = swapW[i]; swapE[i] = null; } }
-    girl.reset = function (s) { anchLast = null; AD[0].on = AD[1].on = false; if (hair) hair.reset(s === undefined ? seed : s); girl.STRIDE = C.stride * sc; girl.STRIDE_RUN = C.strideRun * sc; };
-    girl.step = function (dt, pose) { anchLast = null; var S = solveMemo(pose); armDyn(dt, S); if (hair) hair.step(dt, S, sc); };
+    // ---- the DRESS rides three damped springs driven by the body's motion (the rig itself stays a pure function of the pose): the hem swings forward
+    //      when she stops and back when she sets off, lags behind a turn and flares out in a twirl, lifts when a hop lands; swapped in for the draw like the hands.
+    var DS = { on: false, ox: 0, th: 0, py: 0, vf: 0, vy: 0, vth: 0, x: 0, vx: 0, phi: 0, vphi: 0, fl: 0, vfl: 0 };
+    function wrapPi(a) { a = (a + PI) % TAU; if (a < 0) a += TAU; return a - PI; }
+    function dressDyn(dt, S) {
+      var py = S.oy - S.hipsMid[2];
+      if (!DS.on || !(dt > 0) || Math.abs(S.ox - DS.ox) > 200) { DS.on = true; DS.ox = S.ox; DS.th = S.theta; DS.py = py; DS.vf = DS.vy = DS.vth = 0; DS.x = DS.vx = DS.phi = DS.vphi = DS.fl = DS.vfl = 0; return; }
+      var cth = cos(S.theta), vf = abs(cth) > 0.25 ? -(S.ox - DS.ox) / dt * (cth > 0 ? 1 : -1) : DS.vf * 0.9, vy = (py - DS.py) / dt, vth = wrapPi(S.theta - DS.th) / dt;
+      var af = clamp((vf - DS.vf) / dt, -4000, 4000), ay = clamp((vy - DS.vy) / dt, -9000, 9000), ath = clamp((vth - DS.vth) / dt, -400, 400);
+      DS.ox = S.ox; DS.th = S.theta; DS.py = py; DS.vf = vf; DS.vy = vy; DS.vth = vth;
+      var n = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / n, flT = clamp(0.055 * abs(vth) + 0.00006 * max(0, -ay), 0, 0.55);
+      for (var i = 0; i < n; i++) {
+        DS.vx += (-81 * DS.x - 2 * 0.35 * 9 * DS.vx - 1.9 * af) * h; DS.x += DS.vx * h;
+        DS.vphi += (-100 * DS.phi - 2 * 0.32 * 10 * DS.vphi - ath) * h; DS.phi += DS.vphi * h;
+        DS.vfl += (144 * (flT - DS.fl) - 2 * 0.5 * 12 * DS.vfl) * h; DS.fl += DS.vfl * h;
+      }
+      DS.x = clamp(DS.x, -26, 26); DS.phi = clamp(DS.phi, -0.6, 0.6); DS.fl = clamp(DS.fl, -0.1, 0.6);
+    }
+    var skirtSave = null, skirtDyn = [];
+    function dressApply(S) {
+      if (!DS.on || (abs(DS.x) < 0.05 && abs(DS.phi) < 0.002 && abs(DS.fl) < 0.002)) return;
+      var hm = S.hipsMid, n = S.skirtF.length, cz = cos(0), j;
+      for (j = 0; j < n; j++) {
+        var Fj = S.skirtF[j], tj = SKIRT_NORM ? SKIRT_T[j] : j / max(1, n - 1), w2 = tj * tj, a = DS.phi * w2, ca = cos(a), sa = sin(a), k = 1 + DS.fl * w2, R = Fj.R, o = Fj.o;
+        var R2 = [(ca * R[0] - sa * R[3]) * k, (ca * R[1] - sa * R[4]) * k, ca * R[2] - sa * R[5], (sa * R[0] + ca * R[3]) * k, (sa * R[1] + ca * R[4]) * k, sa * R[2] + ca * R[5], R[6] * k, R[7] * k, R[8]];
+        var dx = o[0] - hm[0], dy = o[1] - hm[1];
+        skirtDyn[j] = { R: R2, o: [hm[0] + ca * dx - sa * dy + DS.x * w2, hm[1] + sa * dx + ca * dy, o[2] + 3 * DS.fl * w2] };
+      }
+      skirtDyn.length = n; skirtSave = S.skirtF; S.skirtF = skirtDyn;
+    }
+    function dressRestore(S) { if (skirtSave) { S.skirtF = skirtSave; skirtSave = null; } }
+    girl.reset = function (s) { anchLast = null; AD[0].on = AD[1].on = false; DS.on = false; if (hair) hair.reset(s === undefined ? seed : s); girl.STRIDE = C.stride * sc; girl.STRIDE_RUN = C.strideRun * sc; };
+    girl.step = function (dt, pose) { anchLast = null; var S = solveMemo(pose); armDyn(dt, S); dressDyn(dt, S); if (hair) hair.step(dt, S, sc); };
     girl.draw = function (ctx, pose) {
       var S = solveMemo(pose), dbg = A.dbg || {};
       ctx.save();
       if (sc !== 1) ctx.scale(sc, sc);
       ctx.fillStyle = GA.style ? GA.style.INK : '#0b0b0c';
-      armApply(S);
+      armApply(S); dressApply(S);
       if (!dbg.noBody) buildPath(ctx, S);
-      armRestore(S);
+      dressRestore(S); armRestore(S);
       if (hair && !dbg.noHair) hair.draw(ctx, S, sc);
       if (S.startle > 0.02 && !dbg.noBody) drawStartle(ctx, S);
       ctx.restore();
