@@ -1668,6 +1668,14 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   filter: grayscale(0);
 }
 
+/* with a mouse, a card answers the pointer before it is picked up (a brighter edge, a soft shadow: "this can be moved") */
+@media (hover: hover) and (pointer: fine) {
+  .wis-card:not(.is-linked):hover {
+    border-color: var(--project-line-strong);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  }
+}
+
 .wis-card.is-lifted {
   border-color: var(--project-line-strong);
   cursor: grabbing;
