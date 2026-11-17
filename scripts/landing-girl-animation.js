@@ -4860,7 +4860,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   // ---------------------------------------------------------------- quality governor
   // Slow machines degrade gracefully, driven by the REAL frame cadence (rAF interval, which includes the raster cost the JS timer cannot see):
   // when the median frame interval stays far above the display's refresh the canvas backing store gets a lower pixel ratio (the picture is
-  // identical, only a little softer). Steps only go down, at most one per 2 s, never while the thoughts are being dissolved.
+  // identical, only a little softer). Steps go down at most one per 2 s (never while the thoughts are being dissolved), and back up after 6 s of comfortably fast frames.
   function govern(ts) {
     var g = sc._gov, d = g.prev ? (ts - g.prev) / (sc._n || 1) : 0, i;          // (drawn on every n-th vsync by pace(): judge the display's own rate, not ours)
     g.prev = ts;
@@ -4883,6 +4883,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // sharpness first: never go below 1 device pixel per CSS pixel (a standard 1080p screen stays crisp) unless the machine is really struggling
     if (med < 30) nq = Math.max(nq, Math.min(q, 1 / Math.max(1, S.dpr / q)));
     var now = window.performance.now();
+    // the governor also steps back UP once the frames have been comfortably fast for a while (one hitch no longer makes the canvas soft for good)
+    if (nq >= q - 0.01 && q < 1 && med < ref * 1.08 && now - g.last > 6000) {
+      g.last = now; g.level = Math.max(0, g.level - 1); g.hist.length = 0;
+      if (S.setQuality(Math.min(1, q / 0.88))) { if (sc.heavyReady && sc.live) sc.rescaleModules(); return true; }
+      return false;
+    }
     if (nq < q - 0.01 && now - g.last > 2000) {
       g.last = now; g.level++;
       g.hist.length = 0;
