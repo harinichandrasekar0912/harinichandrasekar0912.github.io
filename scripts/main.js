@@ -83,14 +83,14 @@
       if (missing.length === 1) {
         if (missing[0] === "name") {
           return {
-            message: "please fill your name.",
+            message: "please fill in your name.",
             fields: missing
           };
         }
 
         if (missing[0] === "email") {
           return {
-            message: "please fill your email.",
+            message: "please fill in your email.",
             fields: missing
           };
         }
@@ -155,11 +155,11 @@
       }
 
       if (status === 403) {
-        return "form access is blocked. please check the form setup.";
+        return "something went wrong. please try again later.";
       }
 
       if (status === 404) {
-        return "form endpoint is incorrect.";
+        return "something went wrong. please try again later.";
       }
 
       if (status >= 500) {
@@ -251,7 +251,7 @@
 
       if (!isEndpointConfigured()) {
         console.warn("Contact form endpoint is missing. Add your secure form endpoint to CONTACT_FORM_ENDPOINT.");
-        showResponse("form backend not connected yet.");
+        showResponse("the form isn't working just yet. please try again later.");
         return;
       }
 
