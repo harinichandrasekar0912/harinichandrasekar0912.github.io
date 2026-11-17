@@ -85,14 +85,14 @@
           heading: "from folders to space",
           body: "It began with four ways of keeping research: loose clutter, a folder tree, a 2D board and a 3D workspace. Folders hide how things relate, and a board keeps everything on one plane. Ten studies tested grids, frames, points and floors. Study 7, a field of dots over a floor, was developed further: the dots give position without enclosing anything, and the floor gives items somewhere to stand.",
           image: "assets/images/work/project-02/panel-02.webp",
-          alt: "Hand-drawn sheet with four ways of keeping research across the top, from loose clutter to a three-dimensional workspace, and ten spatial studies below, with the workspace and study 7 outlined in red.",
+          alt: "Hand-drawn sheet with four ways of keeping research across the top, from loose clutter to a three-dimensional workspace, and ten spatial studies below, with the workspace and Study 7 outlined in red.",
           ratio: 1.295
         },
         {
           heading: "the chosen field",
           body: "Study 7, the dotted matrix and floor, was built as the landing field: white points on black, glowing faintly where the pointer rests. The landing page behaviour is sketched in five stages, from an empty screen to the starting field: empty, dots appear, field forms, gentle sway, inviting.",
           image: "assets/images/work/project-02/panel-03.webp",
-          alt: "Study 7, a hand-drawn dotted matrix and floor outlined in red, beside the built landing page, a near-black screen with a field of white points and the words start with an idea, above a hand-drawn strip of five landing page stages.",
+          alt: "Study 7, a hand-drawn dotted matrix and floor outlined in red, beside the built landing page, a near-black screen with a field of white points and the words \"start with an idea\", above a hand-drawn strip of five landing page stages.",
           ratio: 1.41
         },
         {
@@ -111,7 +111,7 @@
         },
         {
           heading: "user flow and camera model",
-          body: "From opening the site to a project workspace: open site, landing, enter the archive, project, select or create projects, then the project workspace. The camera model: pan looks left or right, tilt looks up or down, forward zoom moves into the archive, and recentre returns to the centre before a transition.",
+          body: "From opening the site to a project workspace: open site, landing, enter the archive, projects page, select or create a project, then the project workspace. The camera model: pan looks left or right, tilt looks up or down, forward zoom moves into the archive, and recentre returns to the centre before a transition.",
           image: "assets/images/work/project-02/panel-06.webp",
           alt: "A hand-drawn row of six screens, from opening the site through the landing field and the projects page to a project workspace, above a hand-drawn diagram of the camera: three steps of recentring and zooming in, a key to pan, tilt, zoom and recentre, and a camera inside a field of dots.",
           ratio: 0.981
@@ -141,7 +141,7 @@
           heading: "search and looking closely",
           body: "The camera travels to the matching item. Four frames: the word typed, two in flight, and the view settled on the match. Below, an image opened in the focus view, with its title, tags and notes, and a massing model turned in the focus view. Three-dimensional material can be opened, rotated and inspected on its own. The images shown are sample material.",
           image: "assets/images/work/project-02/panel-10.webp",
-          alt: "Four screenshots of search, from the word render typed to the view arriving at an apartment render, above two focus views: a masterplan drawing opened large beside a panel with its title, tags and notes, and a white massing model (sample material).",
+          alt: "Four screenshots of search, from the word \"render\" typed to the view arriving at an apartment render, above two focus views: a masterplan drawing opened large beside a panel with its title, tags and notes, and a white massing model (sample material).",
           ratio: 1.346
         },
         {
@@ -174,7 +174,7 @@
         },
         {
           heading: "lakefront and lane",
-          body: "Public care on the lakefront, private coping in the lane. The two sections show what the city provides and what residents do instead: municipal workers sweep and clear the drains, while residents sweep, wade, and lift their things onto high shelves. Both are drawn at the same scale, about 40 m apart along the same walk.",
+          body: "Public care on the lakefront, private coping in the lane. The two sections show what the city provides and what residents do instead: municipal workers sweep and clear the drains, while residents sweep, wade and lift their things onto high shelves. Both are drawn at the same scale, about 40 m apart along the same walk.",
           image: "assets/images/work/project-03/panel-03.webp",
           alt: "A two-part section diagram: the lakefront on the left with a shade tree, solar street light, bench and trench drain, and the lane on the right with a house in section, standing water, a raised plinth and a high shelf, above a table comparing what each side has.",
           ratio: 1.777
@@ -202,7 +202,7 @@
         },
         {
           heading: "surfaces and the drain",
-          body: "Two options for the same wall: a richer Chennai colour with tactile paint, and a muted, more weathered palette. Choices such as which paint had faded, or how high the water stains reach, were compared side by side. Below, the drain before it was reworked, left, and in the final still, right.",
+          body: "Two options for the same wall: a richer Chennai colour with tactile paint, and a muted, more weathered palette. Choices such as which paint had faded, or how high the water stains reached, were compared side by side. Below, the drain before it was reworked, left, and in the final still, right.",
           image: "assets/images/work/project-03/panel-07.webp",
           alt: "A board comparing two surface palettes on the same two views, a richer Chennai colour with tactile paint on the left and a muted, more weathered palette on the right, above an earlier render of the lane drain and the finished backlit still.",
           ratio: 1.126
@@ -211,14 +211,14 @@
           heading: "light tells the story",
           body: "An overcast morning made the lane flat; a low evening sun gave it structure. On the lakefront the sky is open and the light is even; in the lane the sky narrows to a strip, so light arrives in pools, as the plan shows. The colour frames and value curve follow the walk: bright lakefront, dark lane, lighter at the end. The light changes with the place, not the time.",
           image: "assets/images/work/project-03/panel-08.webp",
-          alt: "The lane entry under a flat overcast sky and in low evening sun, above a dark lighting plan showing each pool of light, a row of seven blurred colour frames and a line graph of average value along the walk: 38 percent on the lakefront, 42 percent at the drain, 18 percent in the lane and 25 percent at the far end.",
+          alt: "The lane entry under a flat overcast sky and in low evening sun, above a dark lighting plan showing each pool of light, a row of seven blurred colour frames and a line graph of average value along the walk: 38% on the lakefront, 42% at the drain, 18% in the lane and 25% at the far end.",
           ratio: 1.523
         },
         {
           heading: "locking the look",
           body: "Each round changed one idea at a time. Round 4 (top left) built on the depth version: a refined version, a warm palette and a cool palette, each across four shots. Three versions across every shot: FINAL4, FINAL6 (the middle ground) and FINAL5. The look was locked on FINAL6. Every version was checked in grey values before colour (the drain, bottom left).",
           image: "assets/images/work/project-03/panel-09.webp",
-          alt: "Lighting studies: a board of sixteen small frames from round 4, a posterised study of the backlit drain in a few flat grey values, and a tall board comparing three lighting versions, FINAL4, FINAL6 and FINAL5, across seven shots.",
+          alt: "Lighting studies: a board of sixteen small frames from Round 4, a posterised study of the backlit drain in a few flat grey values, and a tall board comparing three lighting versions, FINAL4, FINAL6 and FINAL5, across seven shots.",
           ratio: 1.498
         },
         {
@@ -258,9 +258,9 @@
         },
         {
           heading: "the plinth plan and five levels",
-          body: "The plinth level plan: the ground floor, around the central courtyard. The courtyard-facing façades are the ones selected for study. Levels 1 to 5 follow in order, two down the right and three along the bottom: the floor plates change shape from level to level around the courtyard.",
+          body: "The plinth-level plan: the ground floor, around the central courtyard. The courtyard-facing façades are the ones selected for study. Levels 1 to 5 follow in order, two down the right and three along the bottom: the floor plates change shape from level to level around the courtyard.",
           image: "assets/images/work/project-04/panel-03.webp",
-          alt: "The plinth level plan of the campus, large at top left, with the floor plans of levels 1 to 5 beside and below it, each wrapped around the courtyard.",
+          alt: "The plinth-level plan of the campus, large at top left, with the floor plans of levels 1 to 5 beside and below it, each wrapped around the courtyard.",
           ratio: 1.307
         },
         {
@@ -274,7 +274,7 @@
           heading: "the rule behind the fins",
           body: "Each floor gets fins along its first 3 m, so there is no harsh sun at eye level; in taller spaces, light comes in high, through the clear glass. More height, more importance. The floors sit at different levels, so the fins do too. Checked against the floor slabs in the Revit model, the fin bands follow the floor plates along 99% of the courtyard glass.",
           image: "assets/images/work/project-04/panel-05.webp",
-          alt: "Three section diagrams of a one, two and three storey space, each with fins on the lowest 3 m, figures at eye level and sun rays stopped by the fins, above an unfolded elevation of the west and north wings showing the fins, the floor plates and the 6 m and 9 m spaces.",
+          alt: "Three section diagrams of a one-, two- and three-storey space, each with fins on the lowest 3 m, figures at eye level and sun rays stopped by the fins, above an unfolded elevation of the west and north wings showing the fins, the floor plates and the 6 m and 9 m spaces.",
           ratio: 1.542
         },
         {
@@ -285,8 +285,8 @@
           ratio: 1.104
         },
         {
-          heading: "same louvre, different job",
-          body: "Chennai is hot and humid all year, with the sun almost overhead (top left: temperature and humidity). Top right: direct beam and diffuse sky over a year, on a surface facing each direction. Below: direct sun on the glass behind the fins, with and without them, storey by storey. The same louvre does a different job on each wing.",
+          heading: "same fin, different job",
+          body: "Chennai is hot and humid all year, with the sun almost overhead (top left: temperature and humidity). Top right: direct beam and diffuse sky over a year, on a surface facing each direction. Below: direct sun on the glass behind the fins, with and without them, storey by storey. The same fin does a different job on each wing.",
           image: "assets/images/work/project-04/panel-07.webp",
           alt: "Across the top, charts of Chennai's monthly temperature range and humidity and a radial chart of sun on surfaces facing each direction. Below, paired bar charts for the north wing and the west wing comparing direct sun on the glass with the fins removed and with the original fins, storey by storey.",
           ratio: 1.351
@@ -307,7 +307,7 @@
         },
         {
           heading: "the fin, resolved",
-          body: "The original fin zones are preserved, each six-metre bay turning its blades together on one actuator, with a fail-safe open position. Above: one zone exploded along the façade normal (curtain wall, slab-edge brackets, tie-bar, actuator, blades), and a close view of the linked blades. Below: the exploded axonometric, and the same blades through 21 April. Preliminary design development, not for fabrication.",
+          body: "The original fin zones are preserved, each six-metre zone turning its blades together on one actuator, with a fail-safe open position. Above: one zone exploded along the façade normal (curtain wall, slab-edge brackets, tie-bar, actuator, blades), and a close view of the linked blades. Below: the exploded axonometric, and the same blades through 21 April. Preliminary design development, not for fabrication.",
           image: "assets/images/work/project-04/panel-10.webp",
           alt: "An exploded view of one control zone and a close render of the linked blades on pivot shafts, above an exploded axonometric line drawing with numbered labels and six frames of the same blades through 21 April.",
           ratio: 1.644
@@ -333,7 +333,7 @@
       title: "staircase",
       image: "assets/images/work/project-05/hero-1600.webp",
       alt: "Render of a semicircular stair of glass treads on one curved steel spine, sweeping up across a plain room with a window wall at dusk.",
-      summary: "Can a semicircular stair work with a single supporting spine and still look light? The initial design uses glass treads supported by a curved steel spine, forming a semicircular stair with an open appearance. The study examined whether the proposed form could carry the required loads. A physical model helped establish the module arrangement, followed by structural analysis and revisions.",
+      summary: "Can a semicircular stair work with a single supporting spine and still look light? The initial design uses glass treads supported by a curved steel spine, forming a semicircular stair with an open appearance. The study examined whether the proposed form could carry the required loads. A physical model helped establish the module arrangement; structural analysis and revisions followed.",
       meta: "structural design, design development · revit, robot structural analysis, python, blender, d5 render · individual, academic project",
       panels: [
         {
@@ -342,7 +342,7 @@
         },
         {
           heading: "first design and physical model",
-          body: "Revit model of the original scheme: glass treads supported by a curved steel spine, forming a semicircular stair with an open appearance. A physical model, built by hand, helped establish the module arrangement, followed by structural analysis and revisions. It is shown from above and from low down.",
+          body: "Revit model of the original scheme: glass treads supported by a curved steel spine, forming a semicircular stair with an open appearance. A physical model, built by hand, helped establish the module arrangement; structural analysis and revisions followed. It is shown from above and from low down.",
           image: "assets/images/work/project-05/panel-02.webp",
           alt: "The first Revit design as a line drawing of glass treads stepping along a curved spine, beside two views of the hand-built model: from above, black rods fanning round a half circle, and from low down, clear treads on dark frames.",
           ratio: 1.528
@@ -356,7 +356,7 @@
         },
         {
           heading: "plan, elevation and section",
-          body: "The plan is half a circle, two metres from the centre. In elevation the spine forms a half-circle and tapers along its length. The section is cut through one typical module, where a tread meets the spine.",
+          body: "The plan is half a circle, two metres from the centre. In elevation the spine forms a half circle and tapers along its length. The section is cut through one typical module, where a tread meets the spine.",
           image: "assets/images/work/project-05/panel-04.webp",
           alt: "Three drawings of the stair: the plan of the half circle with the twenty tread modules and the section marks, the elevation, and the section through one typical module.",
           ratio: 1.01
@@ -370,7 +370,7 @@
         },
         {
           heading: "from model to analysis",
-          body: "The workflow, step by step: every number in the analysis comes from the Revit model, with no geometry retyped. Below, how each module carries its tread (tension and compression), and the movement of the whole stair under a full crowd load as a colour map, not exaggerated: the largest is 4.1 mm, on the outer glass; the spine moves 2.6 mm, against a limit of 19.1 mm.",
+          body: "The workflow, step by step: every dimension in the analysis comes from the Revit model, with no geometry retyped. Below, how each module carries its tread (tension and compression), and the movement of the whole stair under a full crowd load as a colour map, not exaggerated: the largest movement is 4.1 mm, on the outer glass; the spine moves 2.6 mm, against a limit of 19.1 mm.",
           image: "assets/images/work/project-05/panel-06.webp",
           alt: "The eight-step workflow from the Revit model to a checked structure, with the model, the analytical model and the utilisation result; below it, force diagrams for one module and the whole stair, and a colour map of movement under a full crowd load.",
           ratio: 1.22
