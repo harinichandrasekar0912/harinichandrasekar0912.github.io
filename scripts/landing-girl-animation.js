@@ -4302,6 +4302,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       // ---- beat 3: turn back (B: body front -> profile with the head leading and the shoulders ahead of the hips); the glance back over the shoulder (all)
       if (standing) {
         P.yaw = U.lerp(P.yaw, 0, turnK);
+        // planted feet: through the look they keep the heading they had at the press; after the hop the turn into the run is two small steps
+        if (rt < TJ) { P.footYaw = p0.yaw || 1; P.footYawW = 1; }
+        else if (ut > 0 && ut < 1) P.turnStep = { u: ut, yaw0: 0.9, yaw1: 0, w: 1, first: 0 };
         P.headYaw = U.lerp(P.headYaw, -0.55 * Math.sin(Math.PI * Math.min(1, ut * 1.1)), sm(TT0 - 0.02, TT0 + 0.08));
         P.twist += -0.5 * Math.sin(Math.PI * (1 - (1 - ut) * (1 - ut))) * sm(TT0 - 0.02, TT0 + 0.05);
       }
@@ -4709,6 +4712,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         var kRun = U.lerp(0.38, 1, U.smoothstep(0.1, 1, o.speed / T.V_RUN));
         var kw = R.kw === undefined ? (R.kw = (R.cap.pose0.gait && R.cap.pose0.gait.stride > 0 ? R.cap.pose0.gait.stride / T.STRIDE : 1)) : R.kw;          // the walking stride factor the baseline had at the press
         stride *= U.lerp(kw, 1, U.smoothstep(0, 0.5, R.rt)) * (R.kind === 'stand' ? kRun : U.lerp(1, kRun, o.run));
+        // the stride is held through a step and only changes at MID-STANCE (the planted foot right under her, the other one in the air): it never changes under a planted foot
+        if (R.sHeld === undefined || Math.floor(2 * R.phase + 0.46) !== Math.floor(2 * (R.phPrev === undefined ? R.phase : R.phPrev) + 0.46)) R.sHeld = stride;
+        R.phPrev = R.phase;
+        stride = R.sHeld;
         R.x -= o.speed * h;
         R.phase += (o.speed / stride) * h;
         p.x = R.x; p.gait.phase = R.phase; p.gait.stride = stride;
