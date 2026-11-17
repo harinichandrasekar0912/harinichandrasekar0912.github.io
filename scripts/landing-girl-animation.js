@@ -1825,7 +1825,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     runRho: 0.36, runQ1: 0.05, runQ2: 0.2, runLift: 52, runLean: 17, runPelvis: 233, runBob: 15,
     runArmFwd: 52, runArmBack: -40, runGammaFwd: 95, runGammaBack: 72,
     runKick: [-222, 105, -55], runKickU: 0.375, runFwd: [60, 70, 6], runXoff: 0, runPelvisF: 0, runHead: 11, runBendH: 30, runLeanDeg: 18, runLean0: 0.4, idleChest: 5.2, idleSway: 10, idleSwayF: 8, idleRoll: 0.22, idleNod: 0.08, shrugAmp: 4.5, idleBeat: 1, idleScript: 1, ideaT: [5.8, 7.3, 2.4, 10.9], dizzyC: 12, dizzyF: 9, hopAbsorb: 14,
-    thinkHand: [8, -52, 4], thinkPole: [0.1, -1, -0.35], mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], clutchAt: [6, 46, 24], reachAt: [70, 14, -110], reachPole: [0.9, 0.3, -0.2], scratchHz: 6.5, scratchAmp: [8, 11], scratchAt: [0, -18, 51], paw: [18, 135, 16], pelvisSmooth: 20, liftPow: 1.6, swingTan: 1, swingTan1: 1, liftSkew: 0.35, walkDrop: 0, bobH2: 0, bobH2ph: 0, bobPh: 0.27, hipSway: 2.2, shoulderCounter: 1.9, handLag: 0, headNod: 2, headTilt: 0, hemBounce: 0, headMorph: 0, headMorph0: 1, headW: 0.88, freezeBack: 6, bowDeg: 35, twistDeg: 52, chestHand: [18, -9, -20], chestPole: [-0.25, -1, -0.45], stepLift: 11, turnLift: 8, armIdleM: 0.25, armIdleGP: 0.5, sleeveR: [11.4, 10], sleeveRS: [13.5, 12], sleeveL: 26, neckShort: 0.88, shDrop: -3, armOut: 6, kneeSoft: 0.008, hemTiltA: 7.5, walkChest: 2.4, headBob: 2.6, pelvTilt: 3, hemFlutter: 1.8, shLag: 0.07, armLag: 0.035, foreLag: 0.11, headLag: 0.15, spineAmp: 3.4, spineLag: 0.1, asym: 1,
+    thinkHand: [30, -44, -58], thinkPole: [0.1, -1, -0.9],          // 'hmm': the hand at the side of her jaw, fingers up (at the temple it read as a headache; in front of the chin it vanished in the silhouette)
+    mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], clutchAt: [6, 46, 24], reachAt: [70, 14, -110], reachPole: [0.9, 0.3, -0.2], scratchHz: 6.5, scratchAmp: [8, 11], scratchAt: [0, -18, 51], paw: [18, 135, 16], pelvisSmooth: 20, liftPow: 1.6, swingTan: 1, swingTan1: 1, liftSkew: 0.35, walkDrop: 0, bobH2: 0, bobH2ph: 0, bobPh: 0.27, hipSway: 2.2, shoulderCounter: 1.9, handLag: 0, headNod: 2, headTilt: 0, hemBounce: 0, headMorph: 0, headMorph0: 1, headW: 0.88, freezeBack: 6, bowDeg: 35, twistDeg: 52, chestHand: [18, -9, -20], chestPole: [-0.25, -1, -0.45], stepLift: 11, turnLift: 8, armIdleM: 0.25, armIdleGP: 0.5, sleeveR: [11.4, 10], sleeveRS: [13.5, 12], sleeveL: 26, neckShort: 0.88, shDrop: -3, armOut: 6, kneeSoft: 0.008, hemTiltA: 7.5, walkChest: 2.4, headBob: 2.6, pelvTilt: 3, hemFlutter: 1.8, shLag: 0.07, armLag: 0.035, foreLag: 0.11, headLag: 0.15, spineAmp: 3.4, spineLag: 0.1, asym: 1,
     femWeight: 1, femPeriod: 14, femShift: 10, femRoll: 8, femCounter: 11, femHead: 0.5, femChest: 4, femFoot: [13, 9, 14], femHand: [3, 60, -25], femHandPole: [-0.1, 1, -0.1], peekSpread: 0.75, peekNeck: 12, peekLean: 58, peekHead: 72, peekYaw: 0.2, peekHand: [20, -22, -60], peekPelvisF: 52, peekLegBack: 140, peekHemF: 140, peekHemTilt: 18, peekPole: [0.8, -0.3, -0.5], runBobK: [[0, 0.3], [0.2, -0.536], [0.35, -0.7], [0.5, 0.1], [0.62, 0.85], [0.78, 1.1], [0.9, 0.75]], runLeanK: 0.06, runHemF: 16, runHemTilt: 5, runHemLift: 0.6, runSpread: 0.06, runTilt: [0, 0, 0, 0], runShift: [0, 0, 0],   // run swing foot keys: [f, z, beta deg] at the kick-back extreme (u = runKickU of the swing) and at u = 0.75
     runKeyed: false, runLegK: 0, runArmK: 0, runShoulderBack: 0, runShoulderFwd: 0, runPelvisPitch: -6, runCrownK: 0, runWaistK: 0, runNeckK: 0,                                           // limbs are a bit longer in the traced run drawing
     runArmA: [52, 95], runArmB: [-40, 72],                                  // run arm roles [alpha, gamma] deg: forward (A) / back (B)
@@ -2404,10 +2405,11 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var Wt = Wfk, hd = arm.hd, fist = arm.fist || 0;
     if (P.think > 1e-3) {                                // THINK: temple touch -- elbow out to the side, forearm up along the side of the head, fingertips at the temple (reads against white; the scratch is on the crown)
       var wsm = sstep(0, 1, P.think), arc = sin(PI * wsm);
-      Wt = v3lerp(Wt, K.fApply(Fh, C.thinkHand[0], C.thinkHand[1], C.thinkHand[2]), wsm);
-      Wt = v3add(Wt, [4 * arc, -22 * arc, 6 * arc + 1.6 * sin(TAU * 2.7 * P.t) * wsm * wsm]);      // the hand travels out and around (never straight through the torso); the fingertip taps the temple
+      var fFront = sstep(0.93, 0.995, abs(sin(S.theta))), thX = lerp(58, C.thinkHand[0], fFront), thY = lerp(-12, C.thinkHand[1], fFront), thZ = lerp(-60, C.thinkHand[2], fFront);          // facing us: at the side of the jaw; turned: under the chin (where each reads in the silhouette)
+      Wt = v3lerp(Wt, K.fApply(Fh, thX, thY, thZ), wsm);
+      Wt = v3add(Wt, [6 * arc, -14 * arc, 1.2 * sin(TAU * 1.6 * P.t) * wsm * wsm]);      // the hand travels out and up (never straight through the torso); the fingers move a little against the jaw
       pole = v3lerp(pole, C.thinkPole, wsm);
-      hd = v3norm(v3lerp(hd, K.mVec(Fh.R, 0.25, 0.55, 0.8), wsm));
+      hd = v3norm(v3lerp(hd, K.mVec(Fh.R, 0.35, 0.15, 0.9), wsm));          // fingers pointing up along the jaw
       fist = max(fist, wsm);
     }
     if (P.chestHand > 1e-3) {                            // CHEST HAND: the left hand comes up to the chest (worry / surprise), elbow out and down; above 1 it rises on to the MOUTH (a gasp)
@@ -4015,7 +4017,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       // ---- ACT I (0-5.5): wonder
       var dotLook = bump(k, 0.25, 0.9, 1.9, 2.5);                       // the first dot rises up-right of her head: she looks up at it, head cocked
       hy += 0.35 * dotLook; hp += 0.42 * dotLook; hr += 0.22 * dotLook;
-      p.think = bump(k, 0.95, 1.45, 2.0, 2.4);                            // 'hmm': fingertip at the temple, let go for the aha
+      p.think = bump(k, 0.95, 1.45, 2.0, 2.4);                            // 'hmm': fingertip at the chin, let go for the aha
       var aha = bump(k, 2.35, 2.5, 2.8, 3.4);                             // the first bulb (2.4): a happy bounce up on to the toes (+ the rig's E3 perk-up)
       sq -= 0.16 * aha; hp += 0.22 * aha;
       p.poke = bump(k, 3.0, 3.6, 4.3, 5.0);                               // a hand rises to poke at a floating piece; the head follows the hand
@@ -4024,25 +4026,21 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       // ---- ACT II (5.5-12): curiosity and delight
       var pursuit = U.smoothstep(5.6, 6.6, k) * (1 - U.smoothstep(11.4, 12.2, k));          // slow pursuit of an orbiting piece (one sweep each way in ~3 s)
       hy += 0.45 * Math.sin((k - 5.6) * 1.0) * pursuit; hp += 0.18 * Math.cos((k - 5.6) * 1.0) * pursuit;
-      p.think = Math.max(p.think, bump(k, 8.5, 9.0, 10.2, 10.7));         // fingertip tapping the temple (after the rig's E2 toe tap at 7.3)
+      // (no second 'hmm' here: she is turned three-quarters, and from that side the hand at her jaw read as rubbing her neck)
       for (i = 1; i < BULBS.length; i++) { b = BULBS[i]; w = bump(k, b - 0.05, b + 0.1, b + 0.3, b + 0.8); sq -= 0.14 * w; hp += 0.14 * w; }   // happy little bounces when the bulbs pop
       w = bump(k, 9.5, 9.65, 10.2, 10.8); fl += 0.35 * bump(k, 9.5, 9.62, 9.85, 10.3); hp += 0.45 * w; hy -= 0.2 * w;   // the first firework: eyes wide, shoulders up, looking up at it
       hop(9.85, 24); hop(16.25, 26);                                       // hops of excitement at the bulbs 9.8 / 16.2
-      // ---- ACT III (12-17.7): comic overload
-      p.clutch = U.smoothstep(12.0, 12.6, k) * (1 - U.smoothstep(14.5, 15.1, k));          // 'so many ideas!' both hands to the head
-      w = p.clutch * U.smoothstep(12.6, 13.0, k); hr += 0.25 * Math.sin(Math.PI * 2 * 1.3 * (k - 12.6)) * w; hy += 0.12 * Math.sin(Math.PI * 2 * 0.9 * (k - 12.6)) * w;   // little wobbles
-      dz = Math.max(0.3 * bump(k, 12.9, 13.4, 14.2, 14.8), 0.5 * bump(k, 15.1, 15.5, 15.9, 16.4));   // a dizzy sway
-      for (i = 1; i < FIRES.length; i++) { f = FIRES[i]; w = U.smoothstep(f, f + 0.2, k) * (1 - U.smoothstep(f + 0.8, f + 1.3, k)); hy += (i & 1 ? -0.6 : 0.6) * w; hp += 0.4 * w; }   // the head whips after each firework
+      // ---- ACT III (12-17.7): delight - so many ideas, and she loves it
+      var joy = U.smoothstep(12.0, 12.5, k) * (1 - U.smoothstep(14.6, 15.2, k));          // 'so many ideas!': hands open up beside her, palms up, chin up, a happy little bounce
+      p.shrug = Math.max(p.shrug, 0.7 * joy); p.spread = Math.max(p.spread, joy); hp += 0.3 * joy;
+      hr += 0.14 * Math.sin(Math.PI * 2 * 0.7 * (k - 12.0)) * joy;                          // a gentle happy sway of the head
+      sq -= 0.07 * Math.pow(Math.abs(Math.sin(Math.PI * 1.6 * (k - 12.4))), 2) * joy;         // bouncing lightly on her toes
+      for (i = 1; i < FIRES.length; i++) { f = FIRES[i]; w = U.smoothstep(f, f + 0.35, k) * (1 - U.smoothstep(f + 1.0, f + 1.5, k)); hy += (i & 1 ? -0.28 : 0.28) * w; hp += 0.3 * w; }   // she turns to look at each firework (a natural look, not a whip)
       // ---- ACT IV (17.7-20.3): the funnel tightens
-      p.shudder = 0.55 * U.smoothstep(17.75, 17.95, k) * (1 - U.smoothstep(K_BALL + 0.3, K_BALL + 0.6, k)); p.shudderT = Math.max(0, k - 17.8);   // deer freeze (soft: recoil, blink, stillness, hands half-way up) until she spots the ball
-      hr += 0.18 * U.smoothstep(17.9, 18.4, k) * (1 - U.smoothstep(K_BALL + 0.1, K_BALL + 0.3, k));                 // ... head cocked: curious and a little worried
+      hr += 0.18 * U.smoothstep(17.9, 18.4, k) * (1 - U.smoothstep(K_BALL + 0.1, K_BALL + 0.3, k));                 // head cocked: curious
       var spot = U.smoothstep(K_BALL + 0.1, K_BALL + 0.3, k) * (1 - U.smoothstep(K_HIT - 0.18, K_HIT - 0.04, k));   // she spots the ball coming from the top-left: the head snaps to it and follows it up
       hy = U.lerp(hy, -0.6, spot); hp = U.lerp(hp, 0.6 + 0.35 * U.smoothstep(K_BALL + 0.3, K_HIT - 0.3, k), spot); hr = U.lerp(hr, -0.15, spot);
-      ch = 1.4 * U.smoothstep(K_BALL + 0.5, K_BALL + 0.85, k) * (1 - U.smoothstep(K_HIT - 0.12, K_HIT, k));        // 'oh no': the hand flies to the mouth
-      sq -= 0.12 * bump(k, K_BALL + 0.45, K_BALL + 0.6, K_BALL + 0.7, K_BALL + 1.0);                                    // ... with a little jolt up on to the toes
-      fl = Math.max(fl, (0.2 * U.smoothstep(K_BALL + 0.9, K_HIT - 0.35, k) + 0.7 * U.smoothstep(K_HIT - 0.25, K_HIT - 0.05, k)) * (1 - U.smoothstep(K_HIT - 0.02, K_HIT + 0.02, k)));   // growing alarm: shoulders up, then the cringe
-      var cringe = U.smoothstep(K_HIT - 0.18, K_HIT - 0.04, k);           // she shuts her eyes, turns away and ducks a little... BONK
-      hy = U.lerp(hy, 0.35, cringe); hp = U.lerp(hp, -0.2, cringe);
+      sq -= 0.1 * bump(k, K_BALL + 0.45, K_BALL + 0.6, K_BALL + 0.75, K_BALL + 1.05);                                   // 'ooh, what is that?': up on to her toes to see it better
       p.headYaw = U.clamp(hy, -1, 1); p.headPitch = U.clamp(hp, -1, 1); p.headRoll = U.clamp(hr, -1, 1);
       p.squash += sq; p.air = air; p.y = G + y; p.flinch = Math.max(p.flinch, fl); p.dizzy = Math.max(p.dizzy, dz); p.chestHand = Math.max(p.chestHand, ch);
     }
@@ -4090,41 +4088,31 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
           var attack = U.smoothstep(0, 0.07, h);
           var HOLD = 0.2; // the bottom of the squash is held ~3 frames
           var rel = h < HOLD ? 0 : 1 - Math.exp(-(h - HOLD) * 4.2) * Math.cos((h - HOLD) * 12);
-          p.squash = h < HOLD ? 1.15 * attack : U.clamp(1.15 * (1 - rel), -0.4, 1.3); // overshoots into a visible stretch (boing) before settling
-          p.dizzy = U.smoothstep(0.12, 0.4, h) * (1 - U.smoothstep(0.9, 1.6, h)); // staggering wobble after the bonk
-          p.shudder = 0.55 * U.smoothstep(0.05, 0.2, h) * (1 - U.smoothstep(0.45, 0.8, h)); // stunned wobble right after the bonk
-          p.shudderT = h;
-          p.headPitch = U.lerp(p.headPitch, -0.55, U.smoothstep(0, 0.1, h) * (1 - U.smoothstep(0.4, 1.0, h)));
+          p.squash = h < HOLD ? 0.5 * attack : U.clamp(0.5 * (1 - rel), -0.15, 0.6); // a real little knock: the knees give a touch and come back (no cartoon squash)
+          p.headPitch = U.lerp(p.headPitch, -0.28, U.smoothstep(0, 0.08, h) * (1 - U.smoothstep(0.3, 0.75, h)));          // the head dips with the knock ...
           p.headYaw = U.lerp(p.headYaw, 0, U.smoothstep(0, 0.2, h));
-          p.headRoll = U.lerp(p.headRoll, 0.3, U.smoothstep(0, 0.2, h) * (1 - U.smoothstep(0.9, 1.6, h)));
+          p.headRoll = U.lerp(p.headRoll, 0.18, U.smoothstep(0, 0.2, h) * (1 - U.smoothstep(0.7, 1.2, h)));
           var hw = h - HOLD;
-          if (hw > 0) { var wobE = Math.exp(-3.2 * hw); p.headRoll += 0.32 * wobE * Math.sin(Math.PI * 2 * 5.2 * hw); p.headYaw += 0.14 * wobE * Math.sin(Math.PI * 2 * 4.1 * hw); }
-          var stars = bump(h, 0.35, 0.6, 1.25, 1.65), sa = Math.PI * 2 * 1.25 * (h - 0.35);
-          p.headYaw += 0.3 * Math.sin(sa) * stars; p.headRoll += 0.28 * (Math.cos(sa) - 1) * stars; p.headPitch += 0.12 * Math.sin(sa + 1) * stars;
+          if (hw > 0) { var wobE = Math.exp(-4 * hw); p.headRoll += 0.1 * wobE * Math.sin(Math.PI * 2 * 3.2 * hw); }
+          var lookUp = bump(h, 0.45, 0.7, 0.95, 1.25);          // ... then she looks up after the ball, surprised, and starts to giggle
+          p.headPitch = U.lerp(p.headPitch, 0.45, lookUp); p.headYaw = U.lerp(p.headYaw, 0.25, lookUp);
           windX += 420 * bump(h, 0, 0.05, 0.12, 0.32) - 320 * bump(h, 0.26, 0.36, 0.46, 0.72);
         }
 
-        if (t >= c.scratch0 && t < c.scratch1 + 0.45) { // scratching the bonked spot
-          var up = U.easeOutBack(U.clamp((t - c.scratch0) / 0.38), 1.2);
-          var down = 1 - U.smoothstep(0, 1, U.clamp((t - c.scratch1) / 0.4));
-          p.scratch = U.clamp(up * down, 0, 1.05);
-          p.scratchT = t - c.scratch0;
-          p.headRoll = U.lerp(p.headRoll, 0.2 * Math.sin(p.scratchT * 9), 0.5 * p.scratch);
-          p.headPitch = U.lerp(p.headPitch, -0.2, 0.7 * p.scratch);
+        // she laughs at herself: two little waves of giggles (shoulders bobbing, the head tipping back and to the side, a hand coming up in front of her mouth)
+        var SH1 = c.shake0 + 0.75;
+        var gig = bump(t, c.scratch0 - 0.05, c.scratch0 + 0.15, SH1 - 0.3, SH1 - 0.05), gT = t - c.scratch0;
+        if (gig > 0) {
+          var burst = 0.55 + 0.45 * Math.max(Math.sin(Math.PI * 2 * 0.55 * gT), 0);
+          p.shrug = Math.max(p.shrug, 0.3 * gig * burst * Math.pow(Math.abs(Math.sin(Math.PI * 5.5 * gT)), 1.5));
+          p.headPitch = U.lerp(p.headPitch, 0.3 + 0.06 * Math.sin(Math.PI * 11 * gT), gig);
+          p.headRoll = U.lerp(p.headRoll, 0.22 + 0.06 * Math.sin(Math.PI * 5.5 * gT), gig);
+          p.headYaw = U.lerp(p.headYaw, 0.1, gig);
+          p.chestHand = Math.max(p.chestHand, 1.25 * bump(t, c.scratch0 + 0.1, c.scratch0 + 0.35, c.scratch0 + 0.9, c.scratch0 + 1.2));          // a hand to her mouth as she giggles
         }
-
-        var SH1 = c.shake0 + 0.75;          // round 10: a shorter head shake, then a sheepish shrug before she turns away
-        if (t >= c.shake0 && t < SH1) { // shake the head (no!)
-          var s = (t - c.shake0) / (SH1 - c.shake0);
-          var env = Math.sin(Math.PI * Math.min(1, s * 1.05)) * (1 - 0.25 * s);
-          var kS = U.smoothstep(c.shake0, c.shake0 + 0.18, t); // cross-fade from the scratch head pose (no 1-frame pop)
-          p.headYaw = U.lerp(p.headYaw, 0.95 * env * Math.sin(s * Math.PI * 4.0), kS);
-          p.headRoll = U.lerp(p.headRoll, 0.15 * env * Math.sin(s * Math.PI * 4.0 + 1.4), kS);
-          p.headPitch = U.lerp(p.headPitch, -0.1 * env, kS);
-        }
-        // sheepish shrug ('oops... well.'): shoulders up, palms out, head cocked; the turn away blends it out
+        // a happy shrug ('oops!'): shoulders up, palms out, head cocked, chin up; the turn away blends it out
         var shr = bump(t, SH1 - 0.1, SH1 + 0.22, c.turnLeft0 + 0.15, c.turnLeft0 + 0.55);
-        p.shrug = shr; p.headRoll = U.lerp(p.headRoll, 0.3, shr); p.headPitch = U.lerp(p.headPitch, -0.12, shr); p.headYaw = U.lerp(p.headYaw, 0.15, 0.8 * shr);
+        p.shrug = Math.max(p.shrug, shr); p.headRoll = U.lerp(p.headRoll, 0.3, shr); p.headPitch = U.lerp(p.headPitch, 0.1, shr); p.headYaw = U.lerp(p.headYaw, 0.15, 0.8 * shr);
 
         if (t >= c.turnLeft0) {
           var tl = turnLeftAt(t, p.headYaw), tb = U.smoothstep(c.turnLeft0, c.turnLeft0 + 0.3, t);
@@ -4628,8 +4616,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     if (sc.tl < c.tHit - 1) sc._bonkDust = false;
   }
 
+  var STARS_ON = false;
   /** 'seeing stars' after the bonk: three small four-point sparkles circle above her head while she is dazed (round 11) */
   function drawStars(ctx, pose, t) {
+    if (!STARS_ON) return;          // (off: after the bonk she laughs, she is not hurt or dazed)
     var c = sc.T.cues, h = t - c.tHit, i, a = U.smoothstep(0.38, 0.6, h) * (1 - U.smoothstep(1.35, 1.75, h));
     if (!(a > 0.01) || sc.mode !== 'loop') return;
     var an = sc.girl.anchors(pose), cx = an.headCenter.x, cy = an.headTop.y - 22, rx = an.headR * 1.5;
