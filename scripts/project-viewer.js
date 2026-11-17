@@ -1351,7 +1351,7 @@
 
     closeButton.addEventListener("click", closeProject);
 
-    /* a line at the end of one project can open another (the staircase project leads to the stairs game) */
+    /* a line at the end of one project can open another (panel.link in project-data.js; not used at the moment) */
     track.addEventListener("click", function (event) {
       var link = event.target.closest ? event.target.closest("[data-open-project]") : null;
 

@@ -1532,17 +1532,6 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   overflow: visible;
 }
 
-/* a paper card on the dark stage: the piece is an ink drawing that sits in the panel like a framed picture */
-.play-card {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  border-radius: var(--image-radius);
-  background: var(--color-paper);
-  color: var(--color-ink);
-  overflow: hidden;
-}
-
 .project-ritual {
   position: fixed;
   inset: 0;
@@ -1554,12 +1543,6 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   font-size: var(--text-xs);
   line-height: 1.5;
   text-transform: lowercase;
-}
-
-.play-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
 }
 
 .play-button {
