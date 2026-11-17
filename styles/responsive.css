@@ -181,6 +181,37 @@
   }
 }
 
+/* very short screens (a phone held sideways): the contact links follow the form instead of being pinned to the bottom of the screen,
+   and the section keeps clear of the navigation plus */
+@media (max-height: 540px) {
+  .contact-layout {
+    min-height: 0;
+    padding-top: 3.5rem;
+    padding-bottom: calc(var(--nav-bottom-buffer, 1.5rem) + 6rem);
+  }
+
+  .contact-form {
+    gap: 1rem;
+  }
+
+  .contact-links {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    margin: 1.75rem auto 0;
+    transform: none;
+  }
+
+  /* the square portrait fits on the screen instead of running past it */
+  .about-portrait {
+    width: min(48vw, 65vh, 660px);
+  }
+
+  .about-portrait img {
+    height: 78vh;
+  }
+}
+
 @media (max-width: 480px) {
   .site-name {
     font-size: 0.86rem;
