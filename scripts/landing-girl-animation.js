@@ -1805,6 +1805,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     crown: 500,           // standing height (crown of the hair cap)
     rho: 0.60, q1: 0.12, q2: 0.42, bhs: 16, bto: 35,   // gait: stance fraction, heel-strike->flat, heel-off, foot angles (deg)
     heelS: -15, ballS: 35, // foot-local contact points (s along foot)
+    legSoft: 6,          // soft IK zone (units) below full leg reach: the knee eases straight instead of snapping
     lift: 10,             // swing foot clearance
     // GAIT R10 graceful walk: heel-strike contact point ahead of the pelvis axis; stance knee flexion keys (q, deg) and soft-min radii of the knee-target pelvis solve;
     // swing keys: swE world-travel fraction (u, e) + residual landing velocity swR, swZ height keys (u, x lift) + touch-down slope swZ1, swB pitch fraction keys (u, 0..1)
@@ -2101,18 +2102,11 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var unw = idleA > 0 ? sstep(0.15, 0.75, -side * (wsh + 0.7 * b2 * s2 + 1.3 * e1)) * idleA : 0, unwD = dzy > 0 ? sstep(0.15, 0.9, -side * dS1) * dzy : 0;       // the unloaded foot lifts its heel (idle weight shift / dizzy half-step)
       // a heel that comes up PIVOTS ON THE BALL of the foot: the ankle moves so the ball stays exactly where it is on the floor (no sliding toe)
       var ballPivot = function (b1) { var b0 = beta; f -= (C.ballS * cos(b1) + C.ankleZ * sin(b1)) - (C.ballS * cos(b0) + C.ankleZ * sin(b0)); z -= (C.ballS * sin(b1) - C.ankleZ * cos(b1)) - (C.ballS * sin(b0) - C.ankleZ * cos(b0)); beta = b1; };
-      if (unw > 0) { ballPivot(lerp(beta, rad(-18), 0.85 * unw)); z += 8 * e1 * (side < 0 ? 1 : 0) * unw; }          // the unloaded foot rolls up onto its ball (idle weight shift)
-      if (unwD > 0) { z += 11 * unwD; f += 5 * sstep(0.35, 0.9, unwD); beta = lerp(beta, rad(-18), unwD); }          // (the step forward is made while the foot is well up)          // dizzy: a small half-step (the foot is off the floor)
+      if (unw > 0 || unwD > 0) { z += 5.5 * unw + 8 * e1 * (side < 0 ? 1 : 0) + 11 * unwD; f += 5 * sstep(0.35, 0.9, unwD); c -= side * 3 * unw; beta = lerp(beta, rad(-18), max(0.85 * unw, unwD)); }          // (dizzy: the small half-step forward is made while the foot is well up)
       if (rcA > 0) { var rt2 = rcA * (1 - aw) * (1 - min(1, 2 * max(sq, 0))); z += 8.5 * rt2; beta = lerp(beta, beta - rad(22), rt2); }          // recoil: a tiny lift up onto the toes (standing only)
       var femKF = C.femWeight * idleA * (1 - 0.6 * min(1, 2 * ld)), freeW = femKF * sstep(-0.35, 0.9, -side * wc);          // the unloaded leg: foot a little forward and turned out, the knee soft (a flinch or a shrug does not snap the foot back across the floor)
-      if (freeW > 0) {
-        f += C.femFoot[0] * freeW; c += side * C.femFoot[1] * freeW; toe += rad(C.femFoot[2]) * freeW;
-        // the free foot never slides when the weight changes legs: it lifts while it moves (the lift follows how fast it travels: a small step)
-        var swc = sin(TAU * t / C.femPeriod + 1.2), th2 = Math.tanh(2.2 * swc), dwc = (1 - th2 * th2) * 2.2 * cos(TAU * t / C.femPeriod + 1.2) * TAU / C.femPeriod;
-        var xw = (-side * th2 + 0.35) / 1.25, dsw = xw > 0 && xw < 1 ? 6 * xw * (1 - xw) / 1.25 : 0, spd = abs(femKF * dsw * side * dwc) * C.femFoot[0];
-        var lift2 = min(12, 1.6 * spd); z += lift2; beta -= rad(1.2) * lift2;
-      }
-      if (pvt > 0) { z += (C.turnLift - 6) * pvt * (side < 0 ? 1 : 0.8); ballPivot(beta - rad(13) * pvt); }          // turning on the spot: the feet pivot on the toes (heel up) instead of sliding with the rotating body
+      if (freeW > 0) { f += C.femFoot[0] * freeW; c += side * C.femFoot[1] * freeW; toe += rad(C.femFoot[2]) * freeW; }
+      if (pvt > 0) ballPivot(beta - rad(13) * pvt * (side < 0 ? 1 : 0.8));          // turning on the spot: the feet pivot on the toes (heel up) instead of sliding with the rotating body
       // planted feet: a standing foot keeps its place and heading in the world while the body sways or turns over it; a turn on the spot is made in two small steps
       // (without this the feet slid sideways by c x sin(yaw) with the rotating body)
       var tYawX = 0;
@@ -2181,8 +2175,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var L = legs[lj];
       var hip = K.fApply(Fp, 0, L.side * C.hipW, -3);
       var ank = [L.f, L.c, L.z];
-      var dd = v3sub(ank, hip), dl = v3len(dd), reach = (L1 + L2) * 0.9995;
-      if (dl > reach) ank = v3mad(hip, dd, reach / dl);
+      // soft IK: as the leg nears full stretch it eases into it instead of hitting a hard stop (no knee snap at push-off / heel strike)
+      var uswS = (S.legQ[lj] - GW.rho) / (1 - GW.rho), softK = C.legSoft * aw * (uswS > 0 ? sstep(0, 0.25, uswS) * (1 - sstep(0.75, 1, uswS)) : 0), dd = v3sub(ank, hip), dl = v3len(dd), reach = (L1 + L2) * 0.9995, dS = reach - softK;          // (only in the air: a planted foot stays exactly on the floor)
+      if (dl > dS) { var dl2 = softK > 1e-3 ? dS + softK * (1 - Math.exp(-(dl - dS) / softK)) : reach; ank = v3mad(hip, dd, dl2 / dl); }
       var knock = fz * (1 - aw) * rad(7);          // frozen: the knees drift slightly inward
       var poleA = L.side * rad(7) + yawP * 0.5 - L.side * knock * 1.0;
       var knee = ik2(hip, ank, [cos(poleA), sin(poleA), 0], L1, L2);
@@ -2319,7 +2314,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
       gamma += rad(24) * min(1, max(sq, 0)) * (1 - air) * (1 - run);
       alpha -= rad(36) * min(1, max(sq, 0)) * (1 - air) * (1 - 0.7 * run);          // crouch (hop anticipation / landing): the arms swing back
-      if (sq < 0) alpha += -sq * rad(70);                        // boing stretch: the arms fly up a little
+      if (sq < 0) { var sqn2 = -sq; alpha += sqn2 * sstep(0, 0.12, sqn2) * rad(70); }          // boing stretch: the arms fly up a little (eased in: no kink where the squash turns into a stretch)
       if (S.e3 > 0) { alpha += rad(11) * S.e3; beta += rad(9) * S.e3; }          // the 'aha': the arms lift a little
       if (S.dzy > 0) { var dzw = 0.8 * S.dzy; alpha = lerp(alpha, rad(34) + rad(14) * side * S.dS1, dzw); beta = lerp(beta, rad(34), dzw); gamma = lerp(gamma, rad(22), 0.6 * S.dzy); }       // dizzy: arms out for balance
       if (hunch > 0) {
@@ -2330,8 +2325,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         var wvk = sstep(0, 1, S.wave);
         alpha = lerp(alpha, rad(14), wvk); beta = lerp(beta, rad(C.waveBeta), wvk); gamma = lerp(gamma, rad(C.waveGamma) + rad(C.waveAmp) * sin(TAU * C.waveHz * P.t), wvk);
       }
-      if (air > 0) {
-        alpha = lerp(alpha, rad(112), air); gamma = lerp(gamma, rad(52), air); beta = lerp(beta, rad(46), air);
+      if (air > 0) {          // the arms fling up with the hop, easing in and out (no hard start)
+        var airA = sstep(0, 1, air);
+        alpha = lerp(alpha, rad(112), airA); gamma = lerp(gamma, rad(52), airA); beta = lerp(beta, rad(46), airA);
       }
       if (S.shrugX > 0) {                              // sheepish shrug: elbows in, forearms swung out and up to the sides (palms up), the shoulders hiked (shUp)
         var sg = sstep(0, 1, S.shrugX); alpha = lerp(alpha, rad(6), sg); beta = lerp(beta, rad(30), sg); gamma = lerp(gamma, rad(108), sg);
@@ -2669,7 +2665,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     for (i = 0; i < 2 && !dbg.noArms; i++) {            // arms + hands
       var am = S.arm[i], wAa = armRoleW(S, i);
-      if (fillProfiles('arm', i, i, wAa, runW, lerp(C.armIdleM, 1, sstep(0, 0.8, max(S.amount, S.run))) * (am.fist > 0.5 ? 0.5 : 1))) drawLimb(ctx, am.S, elbowCtl(am), am.W, i, tF);
+      if (fillProfiles('arm', i, i, wAa, runW, lerp(C.armIdleM, 1, sstep(0, 0.8, max(S.amount, S.run))) * lerp(1, 0.5, sstep(0.4, 0.6, am.fist || 0)))) drawLimb(ctx, am.S, elbowCtl(am), am.W, i, tF);
       else K.batch(ctx, function () { legacyTube(ctx, am.S, elbowCtl(am), am.W, [[0, 11], [1, 7]], 24); });
       drawSleeve(ctx, am);
       if (HAND_S.length) {
