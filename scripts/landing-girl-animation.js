@@ -2163,7 +2163,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     for (var i2 = 0; i2 < 2; i2++) {
       var lg = legs[i2], hc = lg.side * C.hipW, hv0 = Rp[1] * hc - Rp[2] * 3, hv1 = Rp[4] * hc - Rp[5] * 3, hv2 = Rp[7] * hc - Rp[8] * 3;          // the hip joint's offset from the pelvis origin (exact, incl. the pelvis rotation)
       var dx = lg.f - (fP + hv0), dy = lg.c - (cP + hv1), l2 = Lmax * Lmax - dx * dx - dy * dy;
-      var usw2 = (S.legQ[i2] - rhoG) / (1 - rhoG), relax = usw2 > 0 ? 30 * aw * sstep(0, 0.12, usw2) * (1 - sstep(0.75, 0.95, usw2)) : 0;          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
+      var usw2 = (S.legQ[i2] - rhoG) / (1 - rhoG), relax = usw2 > 0 ? 30 * aw * sstep(0, 0.12, usw2) * (1 - sstep(0.5, 1.0, usw2)) : 0;          /* (the landing leg takes the pelvis down over the second half of the swing: a glide, not a drop at every step) */          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
       var limi = lg.z + sqrt(l2 > 25 ? l2 : 25) - hv2 + relax;
       lim = i2 === 0 ? limi : K.smin(lim, limi, lerp(10, 4, aw));          // (idle: the R9 smoothing, so the approved standing / peek poses keep their height)
       if (a > 0 && S.legQ[i2] < GW.rho) {          // (the trailing leg's request fades out over the last 10 % of its stance: the landing leg has taken the weight)
@@ -2494,9 +2494,11 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   }
   function loadFront(dM, dR, arr) { for (var k = 0; k < NS1; k++) { dM[k] = arr[2 * k]; dR[k] = arr[2 * k + 1]; } }
   /** fills slot profiles for limb `kind` ('leg' | 'arm'), limb index i, role weight wA (walk) and run weight */
+  var SLIM = [];
   function fillProfiles(kind, slot, i, wA, runW, mS) {
     var L = A.limbs && A.limbs[kind];
     if (!L) return false;
+    SLIM[slot] = kind === 'leg' ? (C.legSlim || 1) : kind === 'arm' ? (C.armSlim || 1) : 1;          // a willowy line: the limbs a touch finer than the traced ones
     mixPair(TM[slot], TR[slot], L.walk, wA);
     if (runW > 1e-4 && L.run) {
       mixPair(T1M, T1R, L.run, wA);
@@ -2515,7 +2517,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       ms = TM[slot][k]; mf = FMs[slot][k]; rs = TR[slot][k]; rf = FRs[slot][k];
       cx = LC[3 * k] + ms * LN[3 * k] + mf * LE[3 * k]; cy = LC[3 * k + 1] + ms * LN[3 * k + 1] + mf * LE[3 * k + 1]; cz = LC[3 * k + 2] + ms * LN[3 * k + 2] + mf * LE[3 * k + 2];
       q = K.proj(cx, cy, cz); qxs[k] = q[0]; qys[k] = q[1];
-      qrs[k] = sqrt((1 - tF) * rs * rs + tF * rf * rf);
+      qrs[k] = sqrt((1 - tF) * rs * rs + tF * rf * rf) * (SLIM[slot] || 1);
     }
     var st = C.limbStep > 1 ? C.limbStep : 1;
     K.batch(ctx, function () { for (var j = 0; j < NS; j += st) { var j2 = min(NS, j + st); K.addCapsule(ctx, qxs[j], qys[j], qrs[j], qxs[j2], qys[j2], qrs[j2]); } });
@@ -2914,6 +2916,13 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   // round 10: the graceful walk (walkGrace above) is the default; the R9 presets A/B/C stay selectable for comparison only (they override some of its keys)
   A.walkPresets.current = (function () { var o = wpMake({}), q; for (q in walkGrace) o[q] = walkGrace[q]; return o; })();
   A.setWalkPreset('current');
+  // ---- ELEGANT (willowy, poised, still cute): a tall, upright carriage with a long neck and soft shoulders, a level head; she walks on a narrow line with a gentle turn
+  //      of the hips, the arms swing softly from relaxed elbows with the hands trailing, the step is light (soft heel strike, low foot lift) and the body glides
+  var elegant = { walkStance: 11, idleStance: 17, hipSway: 5.6, walkYaw: 13, headNod: 1.0, headBob: 0.8, headTilt: 0.05, walkChest: 1.0, spineAmp: 1.4, walkLean: -1.2,
+    swingFwd: 20, swingBack: 24, gammaWalk0: 13, gammaWalk1: 15, handLag: 0.38, lift: 27, bhs: 14, neckShort: 0.97, shDrop: -5, femShift: 12, femRoll: 9,
+    kneeK: [[0, 5], [0.1, 12], [0.2, 10], [0.32, 4], [0.44, 5], [0.52, 12], [0.6, 20]], legSlim: 0.9, armSlim: 0.88 };
+  for (k in elegant) A.cfg[k] = elegant[k];
+  for (k in elegant) if (k in A.walkPresets.current) A.walkPresets.current[k] = elegant[k];
   var hc = {"tieU":27,"tiePhi":2.4,"sprout":[-0.2,0.635,0.74],"lockN":8,"lockLen":1.03,"lockW":1.5,"lamK":0.59,"waveK":1,"curlK":1.1,"back":0.16,"backMed":0.21,"bTo":0.36,"medLen":0.9,"fineN":26,"fineLen":0.9,"looseLen":1,"lenSide":0.97,"lenFront":0.87,"widSide":1.07,"widFront":1.45,"runWind":120,"core":1,"coreT0":0.575,"coreT1":0.885,"rootW":7,"ribT0":0.4,"ribT1":0.58};
   for (k in hc) A.hairCfg[k] = hc[k];
   A.rebuild();
