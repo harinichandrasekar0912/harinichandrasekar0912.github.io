@@ -576,6 +576,23 @@
     });
   }
 
+  /* the phone browser bar takes the colour of what is on screen: paper for the page, the dark stage while a project is open */
+  function initThemeColour() {
+    var meta = document.querySelector('meta[name="theme-color"]');
+    var paper = meta ? meta.getAttribute("content") : "";
+
+    if (!meta) {
+      return;
+    }
+
+    document.addEventListener("harini:project-open", function () {
+      meta.setAttribute("content", "#050505");
+    });
+    document.addEventListener("harini:project-closed", function () {
+      meta.setAttribute("content", paper);
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     if (window.HariniNavigationBall) {
       window.HariniNavigationBall.init();
@@ -592,5 +609,6 @@
     initTileImageFade();
     initImageVignette();
     initContactLinks();
+    initThemeColour();
   });
 })();
