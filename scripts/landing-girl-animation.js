@@ -4275,11 +4275,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       P.air = inAir;
       P.y = G - HJ * 4 * uA * (1 - uA);
       P.spread = sm(TJ, TJ + 0.12) * (1 - sm(TL, TL + 0.2));
-      P.startle = sm(TJ - 0.02, TJ + 0.06) * (1 - sm(TJ + 0.24, TJ + 0.36));
-      P.flinch = Math.max(P.flinch, 0.7 * bm(TL - 0.02, TL + 0.1, TL + 0.2, TL + 0.5));
+      // (a happy, excited jump: no startle ticks, no flinch on landing)
       // round 11: the TAKE - the moment she realises: a sharp recoil (shoulders up, hands drawn in, a little hop back on to her toes) held for ~4 frames right before the crouch
       var take = bm(TH - 0.2, TH - 0.13, TH - 0.04, TH + 0.03);
-      P.flinch = Math.max(P.flinch, 0.75 * take); P.headPitch += 0.18 * take; P.squash -= 0.12 * take; P.startle = Math.max(P.startle, 0.6 * take);          // landed: shoulders up, hands drawn in as little paws (the startled stare)
+      P.headPitch += 0.18 * take; P.squash -= 0.12 * take;          // ('oh!': chin up, up on her toes - delighted, not frightened: no paws, no ticks)          // landed: shoulders up, hands drawn in as little paws (the startled stare)
       P.wind.x += -(standing ? 130 : 110) * bm(0.04, 0.2, 0.3, 0.6) + 160 * bm(TJ, TJ + 0.1, TJ + 0.2, TJ + 0.5);    // the ponytail swings forward and hangs over the shoulder, then whips in the jump
       P.wind.y += (standing ? 170 : 60) * bm(0.1, 0.3, 0.55, 0.85);
 
