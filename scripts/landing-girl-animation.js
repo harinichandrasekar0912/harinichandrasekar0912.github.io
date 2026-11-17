@@ -1944,6 +1944,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var d1 = i + 1 === n - 1 ? m1 : (ks[i + 2][1] - ks[i][1]) / (ks[i + 2][0] - ks[i][0]);
     return (2 * t3 - 3 * t2 + 1) * ks[i][1] + (t3 - 2 * t2 + t) * h * d0 + (-2 * t3 + 3 * t2) * ks[i + 1][1] + (t3 - t2) * h * d1;
   }
+  var FEM_E0 = 0.2, FEM_E1 = 0.6;          // the weight-shift window of the free foot (in the shift curve wc): narrow = a quick small step
   var GW = { S: 0, rho: 0, q1: 0, q2: 0, bk: 1, ball: false, bhsBall: 0 }, GR = { S: 0, rho: 0, q1: 0, q2: 0, bk: 1.25, ball: true, bhsBall: 0 };
   /** k = stride scale: when the scene integrates the phase with a shorter stride than the rig's (pose.gait.stride, e.g. the quick small first steps of a dash), the foot travel
       and the contact points shrink by the same factor, so the planted foot still does not slide */
@@ -2104,8 +2105,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var ballPivot = function (b1) { var b0 = beta; f -= (C.ballS * cos(b1) + C.ankleZ * sin(b1)) - (C.ballS * cos(b0) + C.ankleZ * sin(b0)); z -= (C.ballS * sin(b1) - C.ankleZ * cos(b1)) - (C.ballS * sin(b0) - C.ankleZ * cos(b0)); beta = b1; };
       if (unw > 0 || unwD > 0) { z += 5.5 * unw + 8 * e1 * (side < 0 ? 1 : 0) + 11 * unwD; f += 5 * sstep(0.35, 0.9, unwD); c -= side * 3 * unw; beta = lerp(beta, rad(-18), max(0.85 * unw, unwD)); }          // (dizzy: the small half-step forward is made while the foot is well up)
       if (rcA > 0) { var rt2 = rcA * (1 - aw) * (1 - min(1, 2 * max(sq, 0))); z += 8.5 * rt2; beta = lerp(beta, beta - rad(22), rt2); }          // recoil: a tiny lift up onto the toes (standing only)
-      var femKF = C.femWeight * idleA * (1 - 0.6 * min(1, 2 * ld)), freeW = femKF * sstep(-0.35, 0.9, -side * wc);          // the unloaded leg: foot a little forward and turned out, the knee soft (a flinch or a shrug does not snap the foot back across the floor)
-      if (freeW > 0) { f += C.femFoot[0] * freeW; c += side * C.femFoot[1] * freeW; toe += rad(C.femFoot[2]) * freeW; }
+      var femKF = C.femWeight * idleA * (1 - 0.6 * min(1, 2 * ld)), fE0 = FEM_E0, fE1 = FEM_E1, fwin = sstep(fE0, fE1, -side * wc), freeW = femKF * fwin;          /* (the window lies on one side of the crossover: the two feet, at +wc and -wc, are never in it together - one settles, then the other steps out) */          // the unloaded leg: foot a little forward and turned out, the knee soft (a flinch or a shrug does not snap the foot back across the floor)
+      if (freeW > 0) {
+        f += C.femFoot[0] * freeW; c += side * C.femFoot[1] * freeW; toe += rad(C.femFoot[2]) * freeW;
+        // the free foot never slides: when the weight changes legs it moves in a short window as a small LIFTED step (the lift follows how fast it travels)
+        var swc = sin(TAU * t / C.femPeriod + 1.2), th2 = Math.tanh(2.2 * swc), dwc = (1 - th2 * th2) * 2.2 * cos(TAU * t / C.femPeriod + 1.2) * TAU / C.femPeriod;
+        var xw = (-side * th2 - fE0) / (fE1 - fE0), dsw = xw > 0 && xw < 1 ? 6 * xw * (1 - xw) / (fE1 - fE0) : 0, spd = abs(femKF * dsw * side * dwc) * C.femFoot[0];
+        z += min(14, 1.1 * spd);
+      }
       if (pvt > 0) ballPivot(beta - rad(13) * pvt * (side < 0 ? 1 : 0.8));          // turning on the spot: the feet pivot on the toes (heel up) instead of sliding with the rotating body
       // planted feet: a standing foot keeps its place and heading in the world while the body sways or turns over it; a turn on the spot is made in two small steps
       // (without this the feet slid sideways by c x sin(yaw) with the rotating body)
