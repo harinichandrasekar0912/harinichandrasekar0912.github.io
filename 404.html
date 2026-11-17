@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <meta name="theme-color" content="#faf8f3">
+    <title>Harini Chandrasekar</title>
+    <!-- GitHub Pages serves this page for any address that does not exist, at that address, so nothing here may use a relative path:
+         the styles are inline and the way home is worked out in the script below (the site lives under /harini-portolfio/ on github.io,
+         at the root on its own domain). -->
+    <style>
+      html { background: #faf8f3; color: #151412; }
+      body {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        min-height: 100svh;
+        margin: 0;
+        padding: 0 1.5rem;
+        font: 15px/1.6 ui-monospace, "SFMono-Regular", Consolas, Menlo, monospace;
+        text-align: center;
+      }
+      p { margin: 0 0 1.5rem; color: #625d54; }
+      a { color: #151412; text-underline-offset: 0.3em; }
+      a:focus-visible { outline: 1px solid #151412; outline-offset: 4px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>this page doesn't exist.</p>
+      <a href="/" data-home>back to the start</a>
+    </main>
+    <script>
+      (function () {
+        var first = location.pathname.split("/")[1];
+        var home = /\.github\.io$/i.test(location.hostname) && first ? "/" + first + "/" : "/";
+
+        document.querySelector("[data-home]").setAttribute("href", home);
+      })();
+    </script>
+  </body>
+</html>
