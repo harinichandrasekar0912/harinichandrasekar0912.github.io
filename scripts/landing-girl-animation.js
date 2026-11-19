@@ -2169,8 +2169,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         tYawX = (thF - thN) * tw;
       }
       if (e2 > 0 && side < 0) { z += 20 * tap; f += 6 * tap; beta -= rad(18) * tap; }          // E2: the free foot lifts a little, toes pointing, and taps back down on the ball
-      if (e3 > 0) ballPivot(lerp(beta, rad(-20), e3));          // E3: up on her toes
-      if (sqn > 0) { var tp = min(1, sqn * 5) * (1 - aw); ballPivot(lerp(beta, rad(-36), tp)); }       // boing stretch: up on the toes
+      if (e3 > 0) ballPivot(lerp(beta, rad(-20), e3), side * toe - tYawX);          // E3: up on her toes
+      if (sqn > 0) { var tp = min(1, sqn * 5) * (1 - aw); ballPivot(lerp(beta, rad(-36), tp), side * toe - tYawX); }          // (after the planted-feet pinning: the heel rises along the foot's own heading, so the ball stays put in a 3/4 view too)       // boing stretch: up on the toes
       if (pk > 0) f -= C.peekLegBack * pk;               // peek: the feet are braced back (away from the edge), hidden behind it
       if (air > 0) {                                   // hop: toes point first (push-off), then the knees tuck up under her
         var tk = sstep(0.1, 0.9, air), tp2 = sstep(0, 0.55, air);          // push-off: toes point first, then the knees come up; the feet end up behind the knees (not a chair)
