@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="styles/responsive.css">
     <link rel="stylesheet" href="styles/landing-girl-animation.css">
     <!-- the landing animation is fetched at once, at high priority, but only started after the first paint (see the end of <body>) -->
-    <link rel="preload" href="scripts/landing-girl-animation.js" as="script" fetchpriority="high">
+    <link rel="preload" href="scripts/min/landing-girl-animation.js" as="script" fetchpriority="high">
   </head>
   <body>
     <a class="skip-link" href="#work">skip to work</a>
@@ -309,8 +309,8 @@
       </button>
     </div>
 
-    <script src="scripts/navigation-ball.js" defer></script>
-    <script src="scripts/main.js" defer></script>
+    <script src="scripts/min/navigation-ball.js" defer></script>
+    <script src="scripts/min/main.js" defer></script>
     <script>
       /* The landing animation starts right after the page's first paint, so the title and the navigation never wait for it to set up
          (its file is already loading: the preload in <head>). A hidden tab, which paints nothing, starts it after a second. */
@@ -326,7 +326,7 @@
 
           started = true;
           el = document.createElement("script");
-          el.src = "scripts/landing-girl-animation.js";
+          el.src = "scripts/min/landing-girl-animation.js";
           document.body.appendChild(el);
         }
 

@@ -34,6 +34,9 @@ scripts/
   play/                       short playable pieces, loaded only when needed
     ink-kit.js                shared helpers (stage, theme, loop, pointer, session memory)
     where-it-sits.js          "where it sits" (opening the Spatial Archive project)
+  min/                        smaller copies of all of the above: these are what the page loads (made by tools/minify.mjs)
+tools/
+  minify.mjs                  rebuilds scripts/min/ (see Speed below)
 assets/
   images/
     about/
@@ -87,6 +90,12 @@ To add a project: create its image set in the same sizes, add an entry to `scrip
 - Walk and run steps change length with speed (short quick steps when starting or stopping), so the planted feet never slide. Arms swing continuously; the ponytail streams along the body when she looks back.
 - On fast displays the scene is drawn on every n-th refresh while a frame costs more than one refresh (`pace()` in the scene section): an even 72 fps on a 144 Hz screen instead of an uneven mix.
 - Deterministic test hooks: `window.__landingGirl.scene` has `restart(t0)`, `advanceTo(t)`, `press()`, `advanceBy(s)`, `render()`.
+
+## Speed
+
+- The page loads the smaller copies in `scripts/min/` (comments and indentation removed, about a third less to download). The readable files in `scripts/` stay the source. **After editing anything in `scripts/`, run `node tools/minify.mjs` and commit `scripts/min/` with it**, or the site keeps showing the old version. `node tools/minify.mjs --check` says whether any copy is out of date. No packages to install; GitHub Pages serves the committed files as they are.
+- The title and the navigation paint first; the landing animation is fetched at once (a preload in `<head>`, high priority) but only started right after that first paint (the small script at the end of `index.html`).
+- The project viewer and its data (`project-viewer.js`, `project-data.js`) are not in `index.html`: `main.js` loads them once the page is idle, or straight away on the first key press or touch. A tile clicked before they arrive opens as soon as they do.
 
 ## Deployment
 
