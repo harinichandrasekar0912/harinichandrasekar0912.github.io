@@ -1285,6 +1285,8 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   font-size: clamp(1.1rem, 1rem + 0.5vw, 1.55rem);
   font-weight: 420;
   line-height: 1.16;
+  /* two-line headings break into even halves, never one word left on its own */
+  text-wrap: balance;
 }
 
 .project-panel p:not(.project-step):not(.project-meta) {
@@ -1293,6 +1295,11 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   color: var(--project-text-soft);
   font-size: var(--text-sm);
   line-height: 1.55;
+}
+
+/* no paragraph ends on a single word (browsers without text-wrap: pretty simply wrap as before) */
+.project-panel p {
+  text-wrap: pretty;
 }
 
 .project-panel .project-meta {
