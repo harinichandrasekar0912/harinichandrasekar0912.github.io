@@ -76,6 +76,12 @@
   const NAV_BALL_PREP_DURATIONS = [360, 430, 500];
   const NAV_BALL_LANDING_DURATIONS = [480, 360, 260];
   const NAV_BALL_ROLL_DURATION = 2180;
+  // rolling off the end of a picture that stops short of the screen edge (see planRollAway)
+  const ROLL_GRAVITY = 2600; // px/s^2 on a laptop (phones: divided by MOBILE_BALL_TIME_SCALE^2, like their calmer bounces)
+  const ROLL_FADE_MS = 450; // the ball fades out over this long once it has left the corner
+  const ROLL_TIP_MIN_ANGLE = 0.6; // rad (~34 deg): the ball follows the rounded corner at least this far before it leaves it ...
+  const ROLL_TIP_MAX_ANGLE = 1.25; // ... and at most this far (~72 deg)
+  const EDGE_TOLERANCE = 1.5; // px: a picture this close to the screen edge counts as touching it
   const MOBILE_BALL_TIME_SCALE = 1.42; // calmer bounces / roll on phones
 
   // staged (phone) menu opening, about 1.2 s in all: each spoke visibly grows out of the top of the plus (780 ms, 100 ms apart); each circle
@@ -161,18 +167,6 @@
 
   function sectionIndex(section) {
     return Object.prototype.hasOwnProperty.call(SECTION_INDEX, section) ? SECTION_INDEX[section] : 0;
-  }
-
-  function targetSideFor(section) {
-    if (section === "about" || section === "work") {
-      return "left";
-    }
-
-    if (section === "archive" || section === "contact") {
-      return "right";
-    }
-
-    return "center";
   }
 
   function rollDirectionFor(section) {
@@ -532,6 +526,175 @@
     return { x: base.x, y: base.y - 4 * height * q * (1 - q) };
   }
 
+  /* ---- the roll-away after the landing bounces ------------------------------------------------------------------------------------------
+   * The ball may only ever roll on something. Two ways out:
+   *   "edge": the surface runs on to the screen edge in the roll direction (a picture attached to that edge, the contact floor, the landing
+   *           floor): the ball rolls off the screen, exactly as before (easeRollOut over the roll duration).
+   *   "fall": the surface ends before the screen edge (a free-standing picture): the ball rolls along the top edge with the same rolling
+   *           motion until its contact point reaches the rounded corner, rolls over the corner (its centre follows a circle of radius
+   *           corner radius + ball radius around the corner's centre, speeding up under gravity), leaves the corner where a real ball would
+   *           (never before ~35 degrees), then falls under gravity with the sideways speed it had, fading out as it falls.
+   * Viewport coordinates, y down. Pure function: at(ms) gives the position, the rotation, the opacity and whether the ball still touches. */
+  function planRollAway(options) {
+    const dir = options.dir < 0 ? -1 : 1;
+    const startX = options.startX;
+    const y = options.y;
+    const radius = options.radius;
+    const duration = Math.max(options.durationMs, 1);
+    const endX = dir < 0 ? -radius - 18 : options.screenW + radius + 18;
+    const circumference = Math.max(1, Math.PI * radius * 2);
+    const support = options.support;
+    const span = endX - startX;
+
+    function rollX(ms) {
+      return mix(startX, endX, easeRollOut(ms / duration));
+    }
+
+    function rotationFor(distance) {
+      return dir * (distance / circumference) * 360;
+    }
+
+    // the moment the ball's centre crosses a given x on the eased roll (inverse of easeRollOut)
+    function timeAtX(x) {
+      const share = clamp((x - startX) / (Math.abs(span) > 1e-6 ? span : 1), 0, 1);
+
+      return (1 - Math.pow(1 - share, 1 / 2.2)) * duration;
+    }
+
+    if (!support) {
+      const leaveX = dir < 0 ? 0 : options.screenW;
+
+      return {
+        mode: "edge",
+        totalMs: duration,
+        leaveMs: timeAtX(leaveX),
+        at: function (ms) {
+          const x = rollX(ms);
+
+          return { x: x, y: y, rotation: rotationFor(Math.abs(x - startX)), opacity: 1, touching: true, onTop: true };
+        }
+      };
+    }
+
+    const gravity = options.gravity; // px/s^2
+    const cornerR = Math.max(0, support.cornerRadius || 0);
+    const R = radius + cornerR; // the ball's centre circles the corner's centre at this distance
+    const top = y + radius; // the surface the ball rolls on
+    let flatEndX = support.edgeX - dir * cornerR; // where the contact point reaches the start of the rounded corner
+
+    if ((flatEndX - startX) * dir < 0) {
+      flatEndX = startX; // already at the corner
+    }
+
+    const flatMs = timeAtX(flatEndX);
+    const flatRaw = clamp(flatMs / duration, 0, 1);
+    const entrySpeed = Math.max((Math.abs(span) * 2.2 * Math.pow(1 - flatRaw, 1.2)) / (duration / 1000), 40); // px/s at the corner
+    const corner = { x: flatEndX, y: top + cornerR };
+    const ratio = (entrySpeed * entrySpeed) / (gravity * R);
+    const leaveAngle = clamp(Math.acos(clamp((ratio + 2) / 3, -1, 1)), ROLL_TIP_MIN_ANGLE, ROLL_TIP_MAX_ANGLE);
+    const arcAngles = [0]; // corner angle per ms of the tip
+    let angle = 0;
+    let speed = entrySpeed;
+
+    while (angle < leaveAngle && arcAngles.length < 4000) {
+      speed = Math.sqrt(entrySpeed * entrySpeed + 2 * gravity * R * (1 - Math.cos(angle)));
+      angle = Math.min(leaveAngle, angle + (speed / R) * 0.001);
+      arcAngles.push(angle);
+    }
+
+    const arcMs = arcAngles.length - 1;
+    const leaveSpeed = Math.sqrt(entrySpeed * entrySpeed + 2 * gravity * R * (1 - Math.cos(leaveAngle)));
+    const leavePoint = { x: corner.x + dir * R * Math.sin(leaveAngle), y: corner.y - R * Math.cos(leaveAngle) };
+    const leaveVx = dir * leaveSpeed * Math.cos(leaveAngle);
+    const leaveVy = leaveSpeed * Math.sin(leaveAngle);
+    const fadeMs = options.fadeMs;
+    const flatDistance = Math.abs(flatEndX - startX);
+    const arcDistance = R * leaveAngle;
+    const leaveMs = flatMs + arcMs;
+    let fallMs = fadeMs;
+
+    // stop once it has faded out or left the bottom of the screen, whichever comes first
+    for (let t = 0; t <= fadeMs; t += 4) {
+      const fy = leavePoint.y + leaveVy * (t / 1000) + 0.5 * gravity * (t / 1000) * (t / 1000);
+
+      if (fy - radius > options.screenH) {
+        fallMs = t;
+        break;
+      }
+    }
+
+    return {
+      mode: "fall",
+      totalMs: leaveMs + fallMs,
+      leaveMs: leaveMs,
+      corner: corner,
+      leavePoint: leavePoint,
+      at: function (ms) {
+        if (ms <= flatMs) {
+          const x = rollX(ms);
+
+          return { x: x, y: y, rotation: rotationFor(Math.abs(x - startX)), opacity: 1, touching: true, onTop: true };
+        }
+
+        if (ms <= leaveMs) {
+          const index = clamp(ms - flatMs, 0, arcMs);
+          const low = Math.floor(index);
+          const a = mix(arcAngles[low], arcAngles[Math.min(low + 1, arcMs)], index - low);
+
+          return {
+            x: corner.x + dir * R * Math.sin(a),
+            y: corner.y - R * Math.cos(a),
+            rotation: rotationFor(flatDistance + R * a),
+            opacity: 1,
+            touching: true,
+            onTop: false
+          };
+        }
+
+        const t = Math.min(ms - leaveMs, fallMs) / 1000;
+
+        return {
+          x: leavePoint.x + leaveVx * t,
+          y: leavePoint.y + leaveVy * t + 0.5 * gravity * t * t,
+          rotation: rotationFor(flatDistance + arcDistance + leaveSpeed * t),
+          opacity: clamp(1 - (t * 1000) / fadeMs, 0, 1),
+          touching: false,
+          onTop: false
+        };
+      }
+    };
+  }
+
+  /* where a landing picture is attached: "left" when it reaches the left screen edge, "right" when it reaches the right one, else the
+   * section's usual side. The ball lands near the end away from that edge and rolls towards it. */
+  function attachedSide(element, fallback) {
+    if (!element) {
+      return fallback;
+    }
+
+    const rect = element.getBoundingClientRect();
+    const touchesLeft = rect.left <= EDGE_TOLERANCE;
+    const touchesRight = rect.right >= window.innerWidth - EDGE_TOLERANCE;
+
+    if (touchesLeft && !touchesRight) {
+      return "left";
+    }
+
+    if (touchesRight && !touchesLeft) {
+      return "right";
+    }
+
+    return fallback;
+  }
+
+  function emitBallEvent(name, detail) {
+    try {
+      window.dispatchEvent(new CustomEvent(name, { detail: detail }));
+    } catch (error) {
+      // never let a listener break the trip
+    }
+  }
+
   /* ------------------------------------------------------------------ trajectory debug overlay (off unless asked for) */
 
   function trajectoryDebugRequested() {
@@ -661,6 +824,13 @@
         dot(trip.path.apex, "#e01010", 5);
         label(trip.path.apex, "apex", "#e01010");
       }
+
+      if (trip.roll && trip.roll.mode === "fall") {
+        dot(trip.roll.corner, "#ff8a00", 3);
+        label(trip.roll.corner, "corner", "#ff8a00");
+        dot(trip.roll.leavePoint, "#e01010", 3);
+        label(trip.roll.leavePoint, "leaves the corner", "#e01010");
+      }
     }
 
     function writePanel() {
@@ -690,6 +860,7 @@
         "path length  " + (trip.path ? Math.round(trip.path.length) + " px, " + Math.round(trip.path.duration * 1000) + " ms" : "-"),
         "ball speed   " + Math.round(trip.speed) + " px/s" + (trip.path ? "  (planned " + Math.round(trip.path.speed) + ")" : ""),
         "render gap   " + (Math.round(trip.maxGap * 100) / 100) + " px (largest red-to-path distance in the main path)",
+        "roll-away                        " + (trip.roll ? (trip.roll.mode === "edge" ? "rolls off the screen edge" : "falls off the end of the picture") : "-"),
         "scroll moved in prep bounces     " + (trip.flags.scrollMovedDuringPrep ? "YES" : "no"),
         "scroll moved in landing bounces  " + (trip.flags.scrollMovedDuringLanding ? "YES" : "no"),
         "prep bases equal                 " + (trip.prepDrift > 0.5 ? "NO (" + trip.prepDrift.toFixed(2) + " px)" : "yes"),
@@ -711,6 +882,13 @@
     writePanel();
 
     return {
+      setRoll: function (plan) {
+        if (trip) {
+          trip.roll = plan;
+          draw();
+          writePanel();
+        }
+      },
       beginTrip: function (A, info) {
         trip = {
           A: copyPoint(A),
@@ -1601,15 +1779,21 @@
       }
 
       if (section === "about") {
-        return platformFromElement(document.querySelector(".about-portrait img") || document.querySelector(".about-portrait"), "about", "left", "platform", ballRadius());
+        const portrait = document.querySelector(".about-portrait img") || document.querySelector(".about-portrait");
+
+        return platformFromElement(portrait, "about", attachedSide(portrait, "left"), "platform", ballRadius());
       }
 
       if (section === "work") {
-        return platformFromElement(document.querySelector(".work-tile"), "work", "left", "platform", ballRadius());
+        const tile = document.querySelector(".work-tile");
+
+        return platformFromElement(tile, "work", attachedSide(tile, "left"), "platform", ballRadius());
       }
 
       if (section === "archive") {
-        return platformFromElement(document.querySelector(".archive-bar"), "archive", "right", "platform", ballRadius());
+        const bar = document.querySelector(".archive-bar");
+
+        return platformFromElement(bar, "archive", attachedSide(bar, "right"), "platform", ballRadius());
       }
 
       if (section === "contact") {
@@ -1711,8 +1895,7 @@
       const prepDurations = NAV_BALL_PREP_DURATIONS.map(scaleMotionDuration);
       const landingDurations = NAV_BALL_LANDING_DURATIONS.map(scaleMotionDuration);
       const rollDuration = scaleMotionDuration(NAV_BALL_ROLL_DURATION);
-      const rollDirection = rollDirectionFor(targetId);
-      const rollCircumference = Math.max(1, Math.PI * radius * 2);
+      let rollDirection = rollDirectionFor(targetId); // set from the landing element's side once it is measured (buildMainPath)
       const target = document.getElementById(targetId);
       const cleanUrl = window.location.pathname + window.location.search;
       const scrollStart = currentScrollY(); // captured once; frozen until the main path starts
@@ -1740,8 +1923,9 @@
       let speedMin = Infinity;
       let speedMax = 0;
       let previousSample = null;
-      let rollStartX = 0;
-      let rollEndX = 0;
+      let roll = null; // planRollAway result, made when the roll starts
+      let rollMs = rollDuration;
+      let leaveSent = false;
 
       if (!isCurrentAnimation(token)) {
         return;
@@ -1756,6 +1940,7 @@
 
         scrollInstantly(reducedScroll);
         setBallPosition(reducedPoint.x, reducedPoint.y);
+        emitBallEvent("navball:contact", { element: reducedEnd.element, x: reducedPoint.x, strength: 0, index: 0, section: targetId });
         updateCurrentSection(targetId, true);
         showPlusInPlace(token, targetId);
         return;
@@ -1791,8 +1976,7 @@
 
         path = isPhone ? planPhoneBounce(A0, F, z, safeTop) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED, scrollTarget - scrollStart);
         mainMs = Math.max(1, path.duration * 1000);
-        rollStartX = F.x;
-        rollEndX = rollDirection < 0 ? -radius - 18 : window.innerWidth + radius + 18;
+        rollDirection = endPoint.side === "right" ? 1 : endPoint.side === "left" ? -1 : rollDirectionFor(targetId);
         if (activeTrip) {
           activeTrip.scrollTarget = scrollTarget;
         }
@@ -1833,6 +2017,38 @@
         }
       }
 
+      /* "navball:contact" at the touchdown (index 0, strength 1) and at the end of each landing bounce (index 1 - 3, strength = the height of
+       * the bounce that just ended relative to the touchdown: 3/4, 1/2, 1/4), for layouts that react to the ball (a picture flexing, a reveal) */
+      function emitContact(index) {
+        emitBallEvent("navball:contact", {
+          element: endPoint ? endPoint.element : null,
+          x: F ? F.x : A0.x,
+          strength: [1, 0.75, 0.5, 0.25][index] || 0,
+          index: index,
+          section: targetId
+        });
+      }
+
+      /* the surface ends before the screen edge in the roll direction (a picture that is not attached to that edge): the ball must tip over
+       * its end and fall instead of rolling on air. Measured now: the page is frozen at scrollTarget, so this is the rectangle the ball sees. */
+      function rollSupport() {
+        if (!endPoint || endPoint.kind !== "platform" || !endPoint.element) {
+          return null; // the contact floor and the landing floor run across the whole screen
+        }
+
+        const rect = endPoint.element.getBoundingClientRect();
+        const reachesEdge = rollDirection < 0 ? rect.left <= EDGE_TOLERANCE : rect.right >= window.innerWidth - EDGE_TOLERANCE;
+
+        if (reachesEdge) {
+          return null;
+        }
+
+        const style = window.getComputedStyle(endPoint.element);
+        const cornerRadius = parsePixel(rollDirection < 0 ? style.borderTopLeftRadius : style.borderTopRightRadius);
+
+        return { edgeX: rollDirection < 0 ? rect.left : rect.right, cornerRadius: Math.min(cornerRadius, rect.width / 2, rect.height / 2) };
+      }
+
       function phaseDuration(name) {
         switch (name) {
           case PHASE.PREP1:
@@ -1850,7 +2066,7 @@
           case PHASE.LAND3:
             return landingDurations[2];
           default:
-            return rollDuration;
+            return rollMs;
         }
       }
 
@@ -1902,15 +2118,37 @@
           }
 
           debugInfo.landingBases.push(copyPoint(F));
+          emitContact(0);
           return;
         }
 
         if (name === PHASE.LAND2 || name === PHASE.LAND3) {
           debugInfo.landingBases.push(copyPoint(F));
+          emitContact(name === PHASE.LAND2 ? 1 : 2);
           return;
         }
 
         if (name === PHASE.ROLL) {
+          emitContact(3);
+          roll = planRollAway({
+            dir: rollDirection,
+            startX: F.x,
+            y: F.y,
+            radius: radius,
+            durationMs: rollDuration,
+            screenW: window.innerWidth,
+            screenH: window.innerHeight,
+            support: rollSupport(),
+            gravity: ROLL_GRAVITY / (motionScale() * motionScale()),
+            fadeMs: scaleMotionDuration(ROLL_FADE_MS)
+          });
+          rollMs = Math.max(1, roll.totalMs);
+          leaveSent = false;
+
+          if (trajectoryDebug) {
+            trajectoryDebug.setRoll(roll);
+          }
+
           setState(STATES.BALL_ROLLING_OUT);
           ball.classList.remove("is-arrived", "is-landing", "is-landed");
           ball.classList.add("is-rolling");
@@ -2039,15 +2277,23 @@
           default: {
             raw = elapsed / rollDuration;
             freezeScrollAt(scrollTarget, "scrollMovedDuringLanding");
-            const eased = easeRollOut(raw);
-            const x = mix(rollStartX, rollEndX, eased);
+            const state = roll.at(Math.min(elapsed, rollMs));
 
-            ball.style.setProperty("--ball-rotation", rollDirection * (Math.abs(x - rollStartX) / rollCircumference) * 360 + "deg");
-            setBallPosition(x, F.y);
+            ball.style.setProperty("--ball-rotation", state.rotation + "deg");
+            setBallPosition(state.x, state.y);
             setBallScale(1, 1);
 
-            if (endPoint.kind === "floor") {
-              setTimelineShadow(0, 0.72);
+            if (roll.mode === "fall") {
+              ball.style.opacity = String(state.opacity);
+            }
+
+            if (!leaveSent && elapsed >= roll.leaveMs) {
+              leaveSent = true;
+              emitBallEvent("navball:leave", { element: endPoint.element, section: targetId, mode: roll.mode });
+            }
+
+            if (endPoint.kind !== "platform" || !state.onTop) {
+              setTimelineShadow(0, 0.72); // no shadow on the floors, on the corner or in the fall
             } else {
               setTimelineShadow(mix(0.3, 0, clamp(raw, 0, 1)), mix(1.08, 0.72, clamp(raw, 0, 1)));
             }
