@@ -665,6 +665,11 @@ body.is-project-open .viewport-edge-blur {
   cursor: default;
 }
 
+/* ...so it does not answer the pointer as if it would go somewhere (keyboard focus still shows) */
+.contact-links a.is-unset:hover {
+  opacity: 1;
+}
+
 .contact-section {
   position: relative;
   display: grid;
