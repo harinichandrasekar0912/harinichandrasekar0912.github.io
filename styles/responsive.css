@@ -424,7 +424,7 @@
     opacity: 1;
     pointer-events: auto;
     transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(1);
-    animation: radialPop 440ms var(--ease-standard) var(--pop-delay, 0ms) both;
+    animation: radialPop var(--nav-pop) var(--ease-standard) var(--pop-delay, 0ms) both;
   }
 
   .archive-bars.has-active-archive-item .archive-bar:not(.is-active) {
@@ -507,7 +507,7 @@
     opacity: 1;
     pointer-events: auto;
     transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(1);
-    animation: radialPop 440ms var(--ease-standard) var(--pop-delay, 0ms) both;
+    animation: radialPop var(--nav-pop) var(--ease-standard) var(--pop-delay, 0ms) both;
   }
 
   .project-viewer.is-ready .project-panel-copy {
