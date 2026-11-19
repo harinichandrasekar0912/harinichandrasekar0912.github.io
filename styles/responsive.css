@@ -252,6 +252,12 @@
     padding-block: clamp(2.75rem, 6vh, 4rem);
   }
 
+  /* contact sets its own height (one screen, see main.css); the general section padding above must not reach it: it made the section
+     a screen plus ~100px, pushed the link circles into the navigation plus and left blank paper to scroll past at the end of the page */
+  .contact-section {
+    padding-block: 0;
+  }
+
   .about-section,
   .work-section,
   .archive-section {
