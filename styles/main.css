@@ -406,9 +406,12 @@ body.is-project-open .viewport-edge-blur {
 }
 
 /*
-  About me: three layouts to compare on one page. ?about=a, ?about=b or ?about=c (the inline script at the top of index.html sets
-  html[data-about]; a is the default). Only the arrangement differs: her words, the photo and the markup are the same in all three.
+  About me: layouts to compare on one page, ?about=a|b|c|d (the inline script at the top of index.html sets html[data-about]; d is the
+  default). Only the arrangement differs: her words, the photo and the markup are the same in all of them.
+    d  left    the portrait leaves the page on the LEFT like the work tiles (the navigation ball lands near its right end and rolls off the
+               left edge of the screen, as on the live site); the text column sits to its right
     a  pair    a modest portrait beside a left-aligned reading column, both top-aligned, the pair centred on the page
+               (&ledge=1: a hairline carries the top edge of the photo on to the left edge of the screen, for the ball to roll off along)
     b  letter  one narrow column: a small upright portrait at its head, then the text, the first paragraph a size up as the opening
     c  edge    the portrait leaves the page on the right like the work tiles (it starts their zigzag); the text sits to its left
                (on a phone it leaves on the left, where the navigation ball comes down)
@@ -485,8 +488,34 @@ html[data-about="a"] .about-layout {
   column-gap: clamp(2.5rem, 5.5vw, 5.5rem);
 }
 
+html[data-about="a"] .about-portrait {
+  grid-column: 1;
+  grid-row: 1;
+}
+
 html[data-about="a"] .about-copy {
+  grid-column: 2;
+  grid-row: 1;
   margin-top: -0.42em; /* the top of the first line level with the top of the photo */
+}
+
+/* &ledge=1: one hairline (the photo's own border colour and weight) from the top edge of the photo to the left edge of the screen. It shares
+   the photo's grid cell, starts at the photo's left side and reaches 100vw further left (nothing can scroll to the left of the page) */
+.about-ledge {
+  display: none;
+}
+
+html[data-about="a"][data-ledge="1"] .about-ledge {
+  display: block;
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  justify-self: start;
+  width: 100vw;
+  height: var(--line-thin);
+  margin-left: -100vw;
+  background: var(--color-line);
+  pointer-events: none;
 }
 
 /* ---- b: letter */
@@ -544,6 +573,83 @@ html[data-about="c"] .about-portrait {
 html[data-about="c"] .about-portrait img {
   border-right: 0;
 }
+
+/* ---- d: left. The square photo at most 395 px wide (its 791 px source, sharp on a 2x screen); the text centred in the space to its right,
+   both top-aligned so the title is still in view when the navigation ball lands on the photo */
+html[data-about="d"] .about-layout {
+  display: grid;
+  grid-template-columns: clamp(240px, 28vw, 395px) minmax(clamp(2.5rem, 5vw, 6rem), 0.8fr) minmax(0, 33rem) minmax(var(--page-x), 1fr);
+  align-items: start;
+  align-self: stretch;
+  width: auto;
+  max-width: none;
+  margin-inline: calc(-1 * var(--page-x));
+}
+
+html[data-about="d"] .about-portrait {
+  grid-column: 1;
+  grid-row: 1;
+  border-radius: 0 var(--image-radius) var(--image-radius) 0;
+}
+
+html[data-about="d"] .about-portrait img {
+  border-left: 0;
+}
+
+html[data-about="d"] .about-copy {
+  grid-column: 3;
+  grid-row: 1;
+  margin-top: -0.42em;
+}
+
+/*
+  The photo's colour, any layout: &photo=reveal | colour | bw (reveal is the default). bw: grey with a very slight lift in contrast.
+  reveal: grey at rest, like the work tiles. scripts/about-photo.js adds .is-colour - just after the navigation ball first touches the photo,
+  on hover or focus, or (reached without the ball: scrolling, a link, reduced motion) once the photo is half on screen - and the colour eases
+  in over 700 ms and stays for the rest of the visit. Only the filter changes, on the photo's own compositor layer (will-change).
+*/
+html[data-photo="bw"] .about-portrait img,
+html[data-photo="reveal"] .about-portrait img {
+  filter: grayscale(1) contrast(1.06);
+}
+
+html[data-photo="reveal"] .about-portrait img {
+  transition: filter 700ms cubic-bezier(0.45, 0, 0.25, 1);
+  will-change: filter;
+}
+
+html[data-photo="reveal"] .about-portrait.is-colour img,
+html[data-photo="reveal"]:not(.is-ball-animating) .about-portrait:hover img {
+  filter: grayscale(0) contrast(1);
+}
+
+/* &pixel=1: until scripts/about-photo.js has laid its canvas of grey squares over the photo the photo stays hidden (no flash of the
+   finished picture); the canvas is removed once the squares have resolved into the photo */
+html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
+  opacity: 0;
+}
+
+.about-pixels {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* a change of colour is not movement: the photo still eases into colour (motion.css shortens every other transition to 1 ms) */
+  html[data-photo="reveal"] .about-portrait img {
+    transition-duration: 700ms !important;
+  }
+
+  html[data-pixel="1"] .about-portrait img {
+    opacity: 1;
+  }
+}
+
 .work-section {
   min-height: 0;
   padding-block: var(--section-gap-half);

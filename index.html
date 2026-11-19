@@ -1,10 +1,20 @@
 <!doctype html>
-<html lang="en" data-about="a">
+<html lang="en" data-about="d" data-photo="reveal">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- about me: three layouts to compare on one page, ?about=a, ?about=b or ?about=c (a when there is none); styles/main.css has all three -->
-    <script>(function () { var m = /[?&]about=([abc])(?:&|$)/i.exec(window.location.search); if (m) { document.documentElement.setAttribute("data-about", m[1].toLowerCase()); } })();</script>
+    <!-- about me, to compare on one page: ?about=a|b|c|d (d when there is none), &ledge=1 (with a), &photo=reveal|colour|bw (reveal is the
+         default), &pixel=1. styles/main.css has the layouts, scripts/about-photo.js the reveal and the pixels. -->
+    <script>(function () {
+      var q = window.location.search, root = document.documentElement;
+      function param(name, values) { var m = new RegExp("[?&]" + name + "=(" + values + ")(?:&|$)", "i").exec(q); return m ? m[1].toLowerCase() : ""; }
+      var about = param("about", "[abcd]") || "d", photo = param("photo", "colour|color|bw|reveal").replace("color", "colour"), pixel = param("pixel", "1") === "1";
+      if (!photo || (pixel && photo === "reveal")) { photo = pixel ? "colour" : "reveal"; } /* the pixels resolve into the photo in colour */
+      root.setAttribute("data-about", about);
+      root.setAttribute("data-photo", photo);
+      if (param("ledge", "1")) { root.setAttribute("data-ledge", "1"); }
+      if (pixel) { root.setAttribute("data-pixel", "1"); }
+    })();</script>
     <meta
       name="description"
       content="Personal portfolio website for Harini Chandrasekar."
@@ -65,6 +75,7 @@
             <p>I also think in pictures, which is less mystical than it sounds. Say "apple" and a fully lit one turns up in my head, ready to be spun around. It's why a sixteen-hour book becomes a sixteen-hour film that I direct entirely by myself, casting and camera angles included. My brother can't picture anything at all, and he has been trying to understand how my head works ever since. Honestly, so have I.</p>
             <p>I like plans. I also can't leave finished things alone, so I go back to check whether I got them right and find, fairly often, that I didn't. Paulo Coelho says the universe conspires to help you when you really want something. So far it has mostly helped me by making things refuse to line up. I haven't found my pyramids yet, but I'm quite enjoying the sand.</p>
           </div>
+          <span class="about-ledge" aria-hidden="true"></span>
         </div>
       </section>
 
@@ -314,5 +325,6 @@
     <script src="scripts/navigation-ball.js" defer></script>
     <script src="scripts/project-viewer.js" defer></script>
     <script src="scripts/main.js" defer></script>
+    <script src="scripts/about-photo.js" defer></script>
   </body>
 </html>

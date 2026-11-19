@@ -55,8 +55,6 @@
   const NAV_BALL_PREP_DURATIONS = [360, 430, 500];
   const NAV_BALL_LANDING_DURATIONS = [480, 360, 260];
   const NAV_BALL_ROLL_DURATION = 2180;
-  const ROLL_DROP_GRAVITY = 0.0042; // px/ms^2: a ball that rolls off the end of a free-standing picture falls ~300 px in ~0.38 s
-  const ROLL_DROP_FADE_MS = 420; // ... and fades out while it falls
   const MOBILE_BALL_TIME_SCALE = 1.42; // calmer bounces / roll on phones
 
   // staged (phone) menu opening: total under 650 ms
@@ -146,26 +144,8 @@
     return Object.prototype.hasOwnProperty.call(SECTION_INDEX, section) ? SECTION_INDEX[section] : 0;
   }
 
-  /* the about portrait is landed on like a work tile (near its right corner, then the ball rolls away to the left), unless it leaves the
-     page on the right (one of the about-me layouts): then like an archive bar (near its left corner, rolling away to the right) */
-  function aboutSide() {
-    const portrait = document.querySelector(".about-portrait");
-
-    if (!portrait) {
-      return "left";
-    }
-
-    const rect = portrait.getBoundingClientRect();
-
-    return rect.right >= window.innerWidth - 2 && rect.left > window.innerWidth / 3 ? "right" : "left";
-  }
-
   function targetSideFor(section) {
-    if (section === "about") {
-      return aboutSide();
-    }
-
-    if (section === "work") {
+    if (section === "about" || section === "work") {
       return "left";
     }
 
@@ -177,7 +157,7 @@
   }
 
   function rollDirectionFor(section) {
-    return targetSideFor(section) === "right" ? 1 : -1;
+    return section === "archive" || section === "contact" ? 1 : -1;
   }
 
   function currentScrollY() {
@@ -1217,7 +1197,7 @@
       }
 
       if (section === "about") {
-        return platformFromElement(document.querySelector(".about-portrait img") || document.querySelector(".about-portrait"), "about", aboutSide(), "platform", ballRadius());
+        return platformFromElement(document.querySelector(".about-portrait img") || document.querySelector(".about-portrait"), "about", "left", "platform", ballRadius());
       }
 
       if (section === "work") {
@@ -1496,9 +1476,6 @@
       let previousSample = null;
       let rollStartX = 0;
       let rollEndX = 0;
-      let rollDropX = null; // the far edge of a platform that ends before the edge of the screen: the ball drops off it there
-      let rollDropAt = -1;
-      let rollDropVx = 0;
 
       if (!isCurrentAnimation(token)) {
         return;
@@ -1664,20 +1641,6 @@
         }
 
         if (name === PHASE.ROLL) {
-          /* a platform that stops short of the screen edge (a free-standing picture): the ball rolls to its end and falls off instead of
-             rolling on through the air (the page is frozen at scrollTarget now, so the rectangle is the one the ball sees) */
-          rollDropX = null;
-          rollDropAt = -1;
-
-          if (endPoint && endPoint.kind === "platform" && endPoint.element) {
-            const platformRect = endPoint.element.getBoundingClientRect();
-            const edge = rollDirection < 0 ? platformRect.left : platformRect.right;
-
-            if (rollDirection < 0 ? edge > 2 : edge < window.innerWidth - 2) {
-              rollDropX = edge;
-            }
-          }
-
           setState(STATES.BALL_ROLLING_OUT);
           ball.classList.remove("is-arrived", "is-landing", "is-landed");
           ball.classList.add("is-rolling");
@@ -1809,32 +1772,13 @@
             raw = elapsed / rollDuration;
             freezeScrollAt(scrollTarget, "scrollMovedDuringLanding");
             const eased = easeRollOut(raw);
-            let x = mix(rollStartX, rollEndX, eased);
-            let y = F.y;
-            let falling = false;
-
-            if (rollDropX !== null && (rollDirection < 0 ? x < rollDropX : x > rollDropX)) {
-              if (rollDropAt < 0) {
-                // the moment the centre passes the edge: keep the rolling speed sideways (d eased / d raw of easeRollOut), add gravity
-                rollDropAt = elapsed;
-                rollDropVx = ((rollEndX - rollStartX) * 2.2 * Math.pow(1 - clamp(raw, 0, 1), 1.2)) / Math.max(1, rollDuration);
-              }
-
-              const fallMs = elapsed - rollDropAt;
-
-              x = rollDropX + rollDropVx * fallMs;
-              y = Math.min(F.y + 0.5 * ROLL_DROP_GRAVITY * fallMs * fallMs, window.innerHeight + radius * 4); // gone below the screen: stays there
-              falling = true;
-              ball.style.opacity = String(clamp(1 - fallMs / ROLL_DROP_FADE_MS, 0, 1));
-            }
+            const x = mix(rollStartX, rollEndX, eased);
 
             ball.style.setProperty("--ball-rotation", rollDirection * (Math.abs(x - rollStartX) / rollCircumference) * 360 + "deg");
-            setBallPosition(x, y);
+            setBallPosition(x, F.y);
             setBallScale(1, 1);
 
-            if (falling) {
-              setTimelineShadow(0, 0.72);
-            } else if (endPoint.kind === "floor") {
+            if (endPoint.kind === "floor") {
               setTimelineShadow(0, 0.72);
             } else {
               setTimelineShadow(mix(0.3, 0, clamp(raw, 0, 1)), mix(1.08, 0.72, clamp(raw, 0, 1)));
