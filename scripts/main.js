@@ -597,7 +597,10 @@
     }
 
     document.addEventListener("harini:project-open", function () {
-      meta.setAttribute("content", "#050505");
+      /* the stage colour from the design tokens (--color-stage), the same black the viewer is drawn in */
+      var stage = window.getComputedStyle(document.documentElement).getPropertyValue("--color-stage").trim();
+
+      meta.setAttribute("content", stage || "#050505");
     });
     document.addEventListener("harini:project-closed", function () {
       meta.setAttribute("content", paper);
