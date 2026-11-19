@@ -387,6 +387,11 @@
     text-align: center;
   }
 
+  /* the heading's box is narrower than the column (max-width 14em): centred as a box too, or its centred text sits left of the rest */
+  .project-viewer[data-project-mode="stacked"] .project-panel h3 {
+    margin-inline: auto;
+  }
+
   .project-progress {
     display: none;
   }
