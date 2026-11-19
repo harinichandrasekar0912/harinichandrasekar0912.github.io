@@ -514,3 +514,10 @@
     transition-delay: 240ms;
   }
 }
+
+/* a finger needs 44 px: phones held sideways and tablets are wider than the phone layout, but the plus is still tapped */
+@media (pointer: coarse) {
+  :root {
+    --plus-circle-size: 44px;
+  }
+}
