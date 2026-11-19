@@ -542,3 +542,35 @@
     transition-delay: 240ms;
   }
 }
+
+/* short wide screens (a phone held sideways, 390 to 430px tall): the panel text used to run on under the close button and the progress
+   line (up to 138px past it). Here the text starts level with the top of the picture, uses the whole column and is set a step smaller,
+   so every panel of every project ends above the close button. */
+@media (max-height: 540px) and (min-width: 768px) {
+  .project-viewer[data-project-mode="horizontal"] .project-panel-copy {
+    width: min(30rem, calc(100% - 2.5rem));
+    max-width: 30rem;
+    align-self: start;
+  }
+
+  .project-viewer[data-project-mode="horizontal"] .project-step {
+    margin-bottom: var(--space-2);
+  }
+
+  .project-viewer[data-project-mode="horizontal"] .project-panel h3 {
+    max-width: none;
+    margin-bottom: var(--space-2);
+    font-size: 1.05rem;
+  }
+
+  .project-viewer[data-project-mode="horizontal"] .project-panel p:not(.project-step):not(.project-meta) {
+    max-width: none;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .project-viewer[data-project-mode="horizontal"] .project-panel .project-meta {
+    max-width: none;
+    margin-top: var(--space-3);
+  }
+}
