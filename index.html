@@ -245,20 +245,7 @@
         <line class="radial-line radial-line-archive" x1="190" y1="138" x2="238" y2="-6" pathLength="1"></line>
         <line class="radial-line radial-line-contact" x1="190" y1="138" x2="312" y2="50" pathLength="1"></line>
       </svg>
-      <ul class="radial-menu" id="radial-menu" aria-hidden="true">
-        <li class="radial-item radial-item-about">
-          <button type="button" data-nav-target="about" tabindex="-1">about</button>
-        </li>
-        <li class="radial-item radial-item-work">
-          <button type="button" data-nav-target="work" tabindex="-1">work</button>
-        </li>
-        <li class="radial-item radial-item-archive">
-          <button type="button" data-nav-target="archive" tabindex="-1">archive</button>
-        </li>
-        <li class="radial-item radial-item-contact">
-          <button type="button" data-nav-target="contact" tabindex="-1">contact</button>
-        </li>
-      </ul>
+      <!-- the plus comes before its menu, so Tab goes from the plus into about, work, archive and contact -->
       <button
         class="nav-core"
         type="button"
@@ -275,6 +262,20 @@
         <span class="plus-stem" aria-hidden="true"></span>
         <span class="plus-arm" aria-hidden="true"></span>
       </button>
+      <ul class="radial-menu" id="radial-menu" aria-hidden="true">
+        <li class="radial-item radial-item-about">
+          <button type="button" data-nav-target="about" tabindex="-1">about</button>
+        </li>
+        <li class="radial-item radial-item-work">
+          <button type="button" data-nav-target="work" tabindex="-1">work</button>
+        </li>
+        <li class="radial-item radial-item-archive">
+          <button type="button" data-nav-target="archive" tabindex="-1">archive</button>
+        </li>
+        <li class="radial-item radial-item-contact">
+          <button type="button" data-nav-target="contact" tabindex="-1">contact</button>
+        </li>
+      </ul>
     </nav>
 
     <div class="nav-travel-ball" data-travel-ball aria-hidden="true">

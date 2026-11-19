@@ -137,11 +137,6 @@
     --item-y: -72px;
   }
 
-  .radial-item button {
-    width: var(--navi-circle-size);
-    height: var(--navi-circle-size);
-  }
-
   .project-panel {
     grid-template-columns: 1fr;
     justify-content: start;

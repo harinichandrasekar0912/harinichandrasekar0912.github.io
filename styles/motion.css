@@ -20,8 +20,10 @@ html.is-ball-animating {
   height: var(--plus-circle-size);
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: transparent;
+  border-radius: var(--radius-circle);
+  /* a disc of paper behind the plus: invisible on the page, but it keeps the plus readable when a picture (or the dark edge of one)
+     scrolls under it */
+  background: var(--color-paper);
   cursor: pointer;
   pointer-events: auto;
   overflow: visible;
@@ -33,14 +35,11 @@ html.is-ball-animating {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
-  border: var(--line-thin) solid transparent;
-  border-radius: 50%;
+  border: var(--hairline) solid transparent;
+  border-radius: var(--radius-circle);
+  background: var(--color-ink);
   opacity: 0;
   pointer-events: none;
-}
-
-.nav-core::after {
-  background: var(--color-ink);
   transform: scale(0.96);
   transition:
     opacity 500ms var(--ease-standard),
@@ -66,7 +65,7 @@ html.is-ball-animating {
 .nav-ring circle {
   fill: none;
   stroke: var(--color-ink);
-  stroke-width: 1.35;
+  stroke-width: 1.05; /* one hairline: the ring's 44-unit box is drawn 42 to 44 px wide (it was 1.35, heavier than every other line) */
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   transition:
@@ -146,8 +145,8 @@ html.is-ball-animating {
   width: var(--navi-circle-size);
   height: var(--navi-circle-size);
   padding: 0;
-  border: var(--line-thin) solid var(--color-ink);
-  border-radius: 50%;
+  border: var(--hairline) solid var(--color-ink);
+  border-radius: var(--radius-circle);
   background: var(--color-paper);
   color: var(--color-ink);
   font-size: var(--text-xs);
@@ -156,18 +155,18 @@ html.is-ball-animating {
   text-transform: lowercase;
   cursor: pointer;
   transition:
-    background-color 320ms var(--ease-standard),
-    border-color 320ms var(--ease-standard),
-    color 320ms var(--ease-standard),
-    transform 320ms var(--ease-standard);
+    background-color var(--duration-medium) var(--ease-standard),
+    border-color var(--duration-medium) var(--ease-standard),
+    color var(--duration-medium) var(--ease-standard),
+    transform var(--duration-medium) var(--ease-standard);
 }
 
 .radial-item button::after {
   content: "";
   position: absolute;
   inset: -5px;
-  border: var(--line-thin) solid var(--color-line-strong);
-  border-radius: 50%;
+  border: var(--hairline) solid var(--color-line-strong);
+  border-radius: var(--radius-circle);
   opacity: 0;
   transform: scale(0.88);
   transition:
@@ -175,27 +174,38 @@ html.is-ball-animating {
     transform 500ms var(--ease-standard);
 }
 
-.radial-item button:hover::after,
+/* a circle answers a mouse or the keyboard by turning to ink; on a touch screen the tap itself starts the trip, so there is no hover
+   look to get stuck on */
+@media (hover: hover) {
+  .radial-item button:hover::after {
+    opacity: 0.16;
+    transform: scale(1);
+  }
+
+  .radial-item button:hover {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-paper);
+    transform: scale(1.025);
+  }
+}
+
 .radial-item button:focus-visible::after {
   opacity: 0.16;
   transform: scale(1);
 }
 
-.radial-item button:hover,
 .radial-item button:focus-visible {
+  outline: 0;
   background: var(--color-ink);
   border-color: var(--color-ink);
   color: var(--color-paper);
   transform: scale(1.025);
 }
 
-.radial-item button:focus-visible {
-  outline: 0;
-}
-
 .nav-core:focus-visible {
-  outline: 1px solid var(--color-line-strong);
-  outline-offset: 8px;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
 .radial-lines {
@@ -212,8 +222,8 @@ html.is-ball-animating {
 
 .radial-line {
   fill: none;
-  stroke: rgba(21, 20, 18, 0.42);
-  stroke-width: 2;
+  stroke: var(--color-ink-faint);
+  stroke-width: 2; /* with round caps and a 0.1 dash: a row of 2 px dots */
   stroke-linecap: round;
   stroke-dasharray: 0.1 8;
   stroke-dashoffset: 0;
@@ -327,7 +337,7 @@ html.is-ball-animating {
 
 .nav-object[data-nav-state="plus_restored"] .nav-core {
   opacity: 1;
-  background: transparent;
+  background: var(--color-paper);
   pointer-events: auto;
 }
 
@@ -343,7 +353,7 @@ html.is-ball-animating {
 
 /* the plus fades in IN PLACE after a trip: opacity 0 -> 1, scale 0.96 -> 1 (no ball or shadow travels back to it) */
 .nav-object.is-plus-restoring .nav-core {
-  animation: plusRestore 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: plusRestore 420ms var(--ease-standard) both;
 }
 
 /* While the plus fades in (or the ball closes into it on a "home" trip) nothing from the menu may show or move:
@@ -428,7 +438,7 @@ html .nav-object.is-open.is-phone-nav-opening .nav-ring {
 html .nav-object.is-open.is-phone-nav-opening .nav-ring circle {
   stroke-dashoffset: 0;
   transition:
-    stroke-dashoffset 360ms cubic-bezier(0.22, 1, 0.36, 1) 0ms,
+    stroke-dashoffset var(--duration-medium) var(--ease-standard) 0ms,
     opacity 120ms linear;
 }
 
@@ -445,8 +455,8 @@ html .nav-object.is-open.is-phone-nav-opening .radial-item {
   transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(1);
   animation: none;
   transition:
-    opacity 360ms cubic-bezier(0.22, 1, 0.36, 1) var(--phone-pop-delay, 120ms),
-    transform 360ms cubic-bezier(0.22, 1, 0.36, 1) var(--phone-pop-delay, 120ms);
+    opacity var(--duration-medium) var(--ease-standard) var(--phone-pop-delay, 120ms),
+    transform var(--duration-medium) var(--ease-standard) var(--phone-pop-delay, 120ms);
   will-change: transform, opacity;
 }
 
@@ -463,6 +473,7 @@ html .nav-object.is-open.is-phone-nav-opening.is-phone-nav-ready .radial-item {
 
 .nav-object.is-project-close .nav-core {
   opacity: 1;
+  background: transparent;
   pointer-events: auto;
 }
 
@@ -475,7 +486,7 @@ html .nav-object.is-open.is-phone-nav-opening.is-phone-nav-ready .radial-item {
 
 .nav-object.is-project-close .nav-core::after {
   opacity: 0;
-  border-color: rgba(255, 255, 255, 0.52);
+  border-color: var(--color-stage-line);
   background: transparent;
   transform: scale(1);
   transition:
@@ -493,7 +504,7 @@ html .nav-object.is-open.is-phone-nav-opening.is-phone-nav-ready .radial-item {
   opacity: 1;
   width: 18px;
   height: 2px;
-  background: #ffffff;
+  background: var(--color-on-stage);
 }
 
 .nav-object.is-project-close .plus-arm {
@@ -520,7 +531,7 @@ html .nav-object.is-open.is-phone-nav-opening.is-phone-nav-ready .radial-item {
 .nav-object.is-project-close.is-project-closing .nav-core:hover::after,
 .nav-object.is-project-close.is-project-closing .nav-core:focus-visible::after {
   opacity: 1;
-  border-color: rgba(255, 255, 255, 0.72);
+  border-color: var(--color-stage-line-strong);
 }
 
 html:not([data-debug-nav-geometry="true"]) [data-nav-debug-overlay],
@@ -845,6 +856,12 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
     transform var(--duration-medium) var(--ease-standard),
     background-color var(--duration-medium) var(--ease-standard),
     border-color var(--duration-medium) var(--ease-standard);
+}
+
+.nav-core {
+  transition:
+    opacity var(--duration-medium) var(--ease-standard),
+    transform var(--duration-medium) var(--ease-standard);
 }
 
 /* The travelling ball is positioned and squashed every frame by navigation-ball.js (--ball-x / --ball-y / --ball-scale-*),
