@@ -2082,7 +2082,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var tapPh = 2.6 * (tS - C.ideaT[1]), tap = e2 * pow(sin(PI * tapPh), 2), tapBob = e2 * (0.5 + 0.5 * cos(TAU * tapPh)), tapSw = e2 * cos(PI * tapPh);
     S.tap = tap;
     S.e1 = e1h; S.e3 = e3; S.e1k = sstep(0, 1, e1s);
-    S.startle = P.startle; S.spread = P.spread; S.poke = P.poke; S.clutch = P.clutch; S.shrugX = P.shrug; S.reach = P.reach; S.wave = P.wave;
+    S.startle = P.startle; S.spread = P.spread; S.poke = P.poke; S.clutch = P.clutch; S.shrugX = P.shrug; S.reach = P.reach; S.wave = P.wave; S.clasp = P.clasp; S.burst = P.burst; S.flutter = P.flutter;
     // the hello wave's side-to-side swing (+1 = the hand out away from her head) and the hand's lag behind it (the fingers trail each swing: a soft, floppy, childlike wave); both grow with the envelope
     var wvAmp = sstep(0.45, 1, P.wave), wvW = TAU * C.waveHz * P.waveT;
     S.waveSw = wvAmp * sin(wvW); S.waveFl = wvAmp * cos(wvW);          // round-10 performance fields (used by the arms / shoulders / the drawing)
@@ -2093,7 +2093,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // ---- FEMININE STANDING POSE (a sweet, relaxed child's stance, only while she stands calmly): weight on one leg with a gentle hip shift and pelvis tilt, the other knee softly bent with the foot a little
     //      forward and turned out, shoulders counter-tilted (the support-side one a touch lower), a gentle S in the spine, a soft head tilt, one hand lightly holding the side of the skirt; the weight
     //      changes slowly (every femPeriod / 2 s) with smooth easing.  Blends in with the stop (idleA) and out for every reaction.
-    var femK = C.femWeight * idleA * (1 - min(1, 2.2 * max(fz, dzy, fl, bow, pk, sstep(0, 0.45, abs(sq))))) * (1 - sstep(0, 0.6, P.wave)) * (1 - sstep(0, 0.3, air)) * (1 - P.spread) * (1 - 0.6 * min(1, 2 * ld));          // (the wave, a hop and open happy hands let go of the stance on smooth curves: no corner as the hand comes down; a crouch turning into a stretch passes squash 0 and used to snap the hands to the skirt and back within 0.1 s)          // (round 11: the squash term fades the stance in over ~0.3 s as a squash dies away; the old 3 x |squash| did it in ~0.1 s = the arms dropped in a snap after every hop)
+    var femK = C.femWeight * idleA * (1 - min(1, 2.2 * max(fz, dzy, fl, bow, pk, sstep(0, 0.45, abs(sq))))) * (1 - sstep(0, 0.6, P.wave)) * (1 - sstep(0, 0.3, air)) * (1 - P.spread) * (1 - P.clasp) * (1 - P.burst) * (1 - 0.6 * min(1, 2 * ld));          // (the wave, a hop and open happy hands let go of the stance on smooth curves: no corner as the hand comes down; a crouch turning into a stretch passes squash 0 and used to snap the hands to the skirt and back within 0.1 s)          // (round 11: the squash term fades the stance in over ~0.3 s as a squash dies away; the old 3 x |squash| did it in ~0.1 s = the arms dropped in a snap after every hop)
     var wc = Math.tanh(2.2 * sin(TAU * t / C.femPeriod + 1.2)), fw = femK * wc;          // wc > 0: the weight is on her RIGHT leg (screen-left in the front view)
     S.femK = femK; S.fw = fw;
 
@@ -2356,10 +2356,15 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (S.shrugX > 0) {                              // sheepish shrug: elbows in, forearms swung out and up to the sides (palms up), the shoulders hiked (shUp)
         var sg = sstep(0, 1, S.shrugX); alpha = lerp(alpha, rad(6), sg); beta = lerp(beta, rad(30), sg); gamma = lerp(gamma, rad(108), sg);
       }
+      var bsU = 0, bsF = 0;
+      if (S.burst > 0) {          // 'so many ideas!': both arms open up and out (half way: excited hands up beside her shoulders; full: a joyful V above her head)
+        var bLo = sstep(0, 0.5, S.burst), bHi = sstep(0.5, 1, S.burst); bsU = bLo; bsF = bLo;          // (half way the elbows stay low and the forearms stand up: hands beside her shoulders; then the elbows open out and up)
+        alpha = lerp(lerp(alpha, rad(24), bLo), rad(14), bHi); beta = lerp(lerp(beta, rad(30), bLo), rad(104), bHi);
+      }
       var Ssh = K.fApply(Fsh, -1.0, side * C.shoulderC, 0);
       if (run > 0) { var wFs = 0.5 + 0.5 * fw; Ssh[0] += run * (C.runShoulderFwd * wFs - C.runShoulderBack * (1 - wFs)); }   // run: the arm that swings back also has its shoulder twisted back (far shoulder)
       if (side === -1) Ssh[2] += 21 * sstep(0, 1, min(1, P.scratch));          // the scratching shoulder is hiked up
-      Ssh[2] += C.shDrop * S.yawS + 7 * S.hunchS + 5 * max(sq, 0) + 4 * P.scratch + C.shrugAmp * S.b3 * (side === S.s3 ? 1 : 0.15) + 2 * S.b1 + 2.5 * S.e1 * (side === 1 ? 1 : 0.3) + 3 * S.e3 + 3 * S.shrugX + 2 * S.startle + (side === 1 ? 4 * wvU : 0);
+      Ssh[2] += C.shDrop * S.yawS + 7 * S.hunchS + 5 * max(sq, 0) + 4 * P.scratch + C.shrugAmp * S.b3 * (side === S.s3 ? 1 : 0.15) + 2 * S.b1 + 2.5 * S.e1 * (side === 1 ? 1 : 0.3) + 3 * S.e3 + 3 * S.shrugX + 2 * S.startle + (side === 1 ? 4 * wvU : 0) + 5 * bsU + 3 * S.clasp;
       var ca = cos(alpha), sa = sin(alpha), cb = cos(beta), sb = sin(beta);
       var d1 = K.mVec(Rarm, sa * cb, side * sb, -ca * cb);
       var a2 = alpha + gamma, b2 = beta * C.foreBeta;
@@ -2370,6 +2375,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         d2 = v3norm(v3lerp(d2, K.mVec(Rarm, d2L[0], side * d2L[1], d2L[2]), sstep(0, 0.6, S.wave)));
         hdW = K.mVec(Rarm, 0.5 * C.waveFwd * sin(thH), side * sin(thH), -cos(thH));
       }
+      if (bsF > 0) {          // the burst forearms: folded up in front on the way (as in the wave), then standing up and out in the plane facing us; the open hands flutter (a quick shimmer of the wrists, the two hands out of step)
+        var thB = lerp(lerp(rad(20), rad(164), bsF), rad(150), sstep(0.5, 1, S.burst)), fl8 = rad(13) * S.flutter * sin(TAU * 6.5 * P.t + (side > 0 ? 0 : 2.2)), bsP = sstep(0.4, 1, bsF);
+        var b2T = v3norm([0.25, sin(thB), -cos(thB)]), b2M = [sin(thB), 0.3 * sin(thB), -cos(thB)], b2L = v3lerp(b2M, b2T, bsP);
+        d2 = v3norm(v3lerp(d2, K.mVec(Rarm, b2L[0], side * b2L[1], b2L[2]), sstep(0, 0.6, bsF)));
+        hdW = K.mVec(Rarm, 0.12, side * sin(thB + rad(10) + fl8), -cos(thB + rad(10) + fl8)); wvF = max(wvF, bsF);
+      }
       var E = v3mad(Ssh, d1, C.armU * S.ak), W = v3mad(E, d2, C.armF * S.ak);
       var arm = { side: side, S: Ssh, E: E, W: W, fw: fw, hd: v3norm(v3add(d2, K.mVec(Rarm, 0.16 + C.handLag * a * (1 - run) * side * sin(TAU * ph), side * C.handOut, 0))), curl: K.mVec(Rarm, 0, -side, 0), thumbDir: K.mVec(Rarm, 1, 0, 0) };
       arm.fist = max(hunch * 0.7, 0.5 * air); arm.scrW = 0; arm.scrPh = 0;
@@ -2379,6 +2390,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (side === 1 && S.femK * S.yawS > 1e-3) applyFemArm(S, arm, S.femK * S.yawS);
       if (side === 1 && S.clutch > 1e-3) applyClutchR(S, arm, S.clutch);
       if (side === 1 && S.reach > 1e-3) applyReachR(S, arm, S.reach);
+      if (S.clasp > 1e-3) applyClasp(S, arm, S.clasp);
       arm.runW = run;
       var ud = v3sub(arm.E, arm.S), ul = v3len(ud) || 1;
       arm.raise = sstep(0.12, 0.45, 1 + ud[2] / ul);        // how far the upper arm is away from hanging (the sleeve then leaves the torso silhouette)
@@ -2397,6 +2409,18 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var pole = v3lerp(v3sub(arm.E, v3lerp(Ssh, arm.W, C.armU / (C.armU + C.armF))), K.mVec(Fp.R, C.femHandPole[0], C.femHandPole[1], C.femHandPole[2]), hw);
     arm.E = ik2(Ssh, Wt, pole, C.armU * S.ak, C.armF * S.ak); arm.W = Wt;
     arm.hd = v3norm(v3lerp(arm.hd, K.mVec(Fp.R, 0.12, 0.3, -1), hw)); arm.fist = max(arm.fist || 0, 0.45 * hw);
+  }
+  /** CLASP ('so many ideas!'): both hands come together beside her right cheek, fingers up (an excited 'ooh!'; her head tips into them); elbows down. Target in the shoulder-row frame (the hands do not
+      follow every dart of the head). The hand travels by way of a point lower in front of her chest, so it rises in front of her, never through the body */
+  function applyClasp(S, arm, w) {
+    var Ssh = arm.S, wc = sstep(0, 1, w), Fs = S.torsoF[SH_IDX], side = arm.side;
+    var tgt = K.fApply(Fs, 30, side > 0 ? 58 : 46, 32), mid = K.fApply(Fs, 46, side * 16, -30);          // (beside her right cheek, where the clasped hands show in the silhouette; in front of her chin they vanished into it)
+    var Wt = v3lerp(v3lerp(arm.W, mid, wc), v3lerp(mid, tgt, wc), wc);
+    var d = v3sub(Wt, Ssh), dl = v3len(d), reach = (C.armU + C.armF) * S.ak * 0.998;
+    if (dl > reach) Wt = v3mad(Ssh, d, reach / dl);
+    var bend = v3sub(arm.E, v3lerp(Ssh, arm.W, C.armU / (C.armU + C.armF))), pole = v3lerp(v3norm(v3len(bend) > 1.5 ? bend : [-0.5, side * 0.3, -1]), v3norm([-0.4, side * 0.55, -1]), wc);          // (unit poles blended over the whole move: the elbow turns over gradually)
+    arm.E = ik2(Ssh, Wt, pole, C.armU * S.ak, C.armF * S.ak); arm.W = Wt;
+    arm.hd = v3norm(v3lerp(arm.hd, K.mVec(Fs.R, 0.25, -side * 0.35, 0.9), wc)); arm.fist = max((arm.fist || 0) * (1 - wc), 0.75 * wc); arm.openW *= 1 - wc;
   }
   /** REACH, right hand: reaches down-forward toward the nav console below her ('what is THAT?'), index finger out; target in the pelvis frame (cfg.reachAt) */
   function applyReachR(S, arm, w) {
@@ -4089,10 +4113,27 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       w = bump(k, 9.5, 9.65, 10.2, 10.8); fl += 0.35 * bump(k, 9.5, 9.62, 9.85, 10.3); hp += 0.45 * w; hy -= 0.2 * w;   // the first firework: eyes wide, shoulders up, looking up at it
       hop(9.85, 24); hop(16.25, 26);                                       // hops of excitement at the bulbs 9.8 / 16.2
       // ---- ACT III (12-17.7): delight - so many ideas, and she loves it
-      var joy = U.smoothstep(12.0, 12.5, k) * (1 - U.smoothstep(14.6, 15.2, k));          // 'so many ideas!': hands open up beside her, palms up, chin up, a happy little bounce
-      p.shrug = Math.max(p.shrug, 0.7 * joy); p.spread = Math.max(p.spread, joy); hp += 0.3 * joy;
-      hr += 0.14 * Math.sin(Math.PI * 2 * 0.7 * (k - 12.0)) * joy;                          // a gentle happy sway of the head
-      sq -= 0.07 * Math.pow(Math.abs(Math.sin(Math.PI * 1.6 * (k - 12.4))), 2) * joy;         // bouncing lightly on her toes
+      // 'SO MANY IDEAS!' - bursting with them: her eyes dart from one thought to the next (quick little head darts with holds), her hands fly together under her chin with
+      // the shoulders scrunched up ('ooh!'), a tiny dip, then she flings them open up and out in a joyful V, up on her toes, chin up; the open hands come down to beside her
+      // shoulders and flutter while she bounces lightly on her toes and her head bobs brightly from idea to idea; a second fling when the next bulb pops (13.4); at the end
+      // the hands come back together at her chest for a happy little hug of the moment and let go.  (No shrug, no palms-up: it read as 'I don't know'.)
+      var darts = [[11.9, 0.32, 0.3], [12.12, -0.26, 0.42], [12.3, 0.12, 0.52]];          // [k, headYaw, headPitch]: quick 0.1 s darts, held between
+      var dHy = 0, dHp = 0, dW = U.smoothstep(11.85, 11.95, k) * (1 - U.smoothstep(12.45, 12.75, k));
+      for (i = 0; i < darts.length; i++) { w = U.smoothstep(darts[i][0], darts[i][0] + 0.1, k); dHy = U.lerp(dHy, darts[i][1], w); dHp = U.lerp(dHp, darts[i][2], w); }
+      hy = U.lerp(hy, dHy, dW); hp = U.lerp(hp, dHp, dW);
+      p.clasp = Math.max(p.clasp, bump(k, 11.95, 12.32, 12.4, 12.74) + 0.85 * bump(k, 14.75, 15.1, 15.3, 15.75));
+      hr -= 0.24 * p.clasp;                                                                // the head tips into the clasped hands
+      sq += 0.07 * bump(k, 12.36, 12.45, 12.47, 12.56);                                   // the tiny dip before the fling
+      var burst = U.smoothstep(12.44, 12.78, k) * (1 - 0.55 * U.smoothstep(12.95, 13.3, k)) + 0.5 * bump(k, 13.35, 13.55, 13.7, 14.0);
+      burst *= 1 - U.smoothstep(14.4, 15.0, k);
+      p.burst = Math.max(p.burst, burst); p.spread = Math.max(p.spread, U.smoothstep(12.42, 12.62, k) * (1 - U.smoothstep(14.55, 15.0, k)));
+      p.flutter = Math.max(p.flutter, U.smoothstep(12.75, 13.0, k) * (1 - U.smoothstep(14.3, 14.8, k)));
+      var joy = U.smoothstep(12.45, 12.75, k) * (1 - U.smoothstep(14.6, 15.4, k));
+      hp += 0.32 * U.smoothstep(12.46, 12.66, k) * (1 - U.smoothstep(12.9, 13.4, k)) + 0.12 * joy;            // chin up with the fling, then bright
+      hp += 0.07 * Math.sin(Math.PI * 2 * 2.1 * (k - 12.7)) * U.smoothstep(12.8, 13.1, k) * (1 - U.smoothstep(14.2, 14.7, k));   // the head bobbing brightly
+      hr += 0.14 * Math.sin(Math.PI * 2 * 0.7 * (k - 12.6)) * joy;                          // a happy sway of the head
+      sq -= 0.11 * bump(k, 12.47, 12.62, 12.72, 12.95);                                     // up on her toes with the fling
+      sq -= 0.06 * Math.pow(Math.sin(Math.PI * 2.1 * (k - 12.95)), 2) * U.smoothstep(12.95, 13.2, k) * (1 - U.smoothstep(14.2, 14.7, k));   // bouncing lightly on her toes
       for (i = 1; i < FIRES.length; i++) { f = FIRES[i]; w = U.smoothstep(f, f + 0.35, k) * (1 - U.smoothstep(f + 1.0, f + 1.5, k)); hy += (i & 1 ? -0.28 : 0.28) * w; hp += 0.3 * w; }   // she turns to look at each firework (a natural look, not a whip)
       // ---- ACT IV (17.7-20.3): the funnel tightens
       hr += 0.18 * U.smoothstep(17.9, 18.4, k) * (1 - U.smoothstep(K_BALL + 0.1, K_BALL + 0.3, k));                 // head cocked: curious
