@@ -2925,8 +2925,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     "runLean":-1,"runLeanDeg":8,"runLean0":0,"runBendH":60,"runHead":6,"runHeadLevel":1,"runPelvisPitch":0,"runPelvisF":0,
     "runCrownK":0,"runWaistK":0,"runNeckK":0,"runLegK":0,"runArmK":0,"runShoulderBack":0,"runShoulderFwd":0,
     "runHemLift":1.2,"runHemF":8,"runHemTilt":3,"runSpread":0.1,"runTilt":[0,2,4,7],"runShift":[0,0,0],
-    "jRun":1,"jLoft":0,"jOpen":0.5,"jPelvYaw":14,"jTwist":[0.6,0.12,0.05],"jHead":[-0.45,0.35,0.12,0.12],
-    "jUp":[5,26,70,-2,12,0],"jFore":[5,24,20,30,16,-40],"jWrist":[0.9,0.15,-50,0.1],"jShLift":4,"jFlutter":6,"jArmLag":0.08,"jRock":[2.5,0.1],"jRoll":[4,0.05],"jHem":4};
+    "jRun":1,"jLoft":0,"jOpen":0.5,"jPelvYaw":14,"jTwist":[0.6,0.08,0.05],"jHead":[-0.45,0.25,0.1,0.12],
+    "jUp":[5,20,70,-2,10,0],"jFore":[5,18,20,30,12,-40],"jWrist":[0.9,0.13,-50,0.07],"jShLift":3,"jFlutter":4,"jArmLag":0.08,"jRock":[1.8,0.1],"jRoll":[3,0.05],"jHem":3.5};          // (refined: a light, poised flutter rather than a big flail)
   for (k in runJack) A.cfg[k] = runJack[k];
 
   // ---- WALK STYLE PRESETS (runtime switch: landingGirlAnimation.scene.girl.setWalkPreset('A'|'B'|'C'|'current'); the stride (372) and the foot contact are the same in all of them)
@@ -4342,7 +4342,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       // ---- beat 4: the JACK RUN (rebuilt): a little coil, then she is off - the legs go first and the upper body is left a touch behind (a small 'whoa' lean back,
       //      chin up, delighted), and it settles upright with the chest open toward us, arms up and flapping (the rig's Jack layer, weighted by the run).  No look back:
       //      she is not being chased, she is thrilled.
-      P.lean = -0.4 * bm(TR - 0.14, TR - 0.03, TR + 0.03, TR + 0.15) - 0.55 * bm(TR + 0.02, TR + 0.16, TR + 0.3, TR + 0.75) + 0.15 * sm(TR + 0.3, TR + 0.9);
+      P.lean = -0.3 * bm(TR - 0.14, TR - 0.03, TR + 0.03, TR + 0.15) - 0.4 * bm(TR + 0.02, TR + 0.16, TR + 0.3, TR + 0.75) + 0.15 * sm(TR + 0.3, TR + 0.9);
       P.headPitch += 0.14 * sm(TR + 0.1, TR + 0.5) + 0.1 * bm(TR + 0.02, TR + 0.16, TR + 0.3, TR + 0.75);          // chin up: delighted
       P.squash += 0.3 * bm(TR - 0.1, TR, TR + 0.06, TR + 0.18);
       var vRun = V_RUN * U.easeOutQuad(U.clamp((rt - TR) / 0.62)), vLow = 0;          // round 11: 0.62 s to top speed (was 0.45): the first steps are really short and quick before she is up to speed
@@ -4356,7 +4356,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var spdN = o.speed / V_WALK, amtRun = U.smoothstep(0.01, 0.3, spdN) * sm(TR - 0.02, TR + 0.26);          // the stride builds up over ~0.25 s at the burst (no one-frame leg pop; the rig lifts the swing foot while the amount ramps)
       P.gait.amount = standing ? amtRun : Math.max(amtRun, U.smoothstep(0.01, 0.3, vLow / V_WALK));
       P.gait.run = o.run;
-      P.gait.jack = U.smoothstep(0, 1, U.clamp((rt - TR - 0.2) / 0.55)) * U.smoothstep(0.05, 0.4, o.speed / V_RUN);          // the Jack arms / open chest / head bob come in once the glance back is over: the first steps are an ordinary dash, then the arms float up and out (~0.55 s, a fling, not a snap)
+      P.gait.jack = U.smoothstep(0, 1, U.clamp((rt - TR - 0.02) / 0.5)) * U.smoothstep(0.05, 0.4, o.speed / V_RUN);          // the Jack arms / open chest / head bob float in over ~0.5 s from the take-off (a fling, not a snap; on a phone she is across the screen in ~1 s)
       P.gait.speed = o.speed;
       P.wind.x += 140 * o.run; P.wind.y += -40 * o.run;
       o.TR = TR;
@@ -4748,13 +4748,13 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         // so a planted foot keeps the weight it landed with (no slide while she speeds up from a walk)
         // (the hand-over is spread over the whole of that window on a smoothstep, from the weight the foot took off with to the current one: the swinging foot glides
         //  from the walking swing into the running swing instead of being yanked across)
-        if (!R.rl) { R.rl = [o.run, o.run]; R.rl0 = [o.run, o.run]; R.rlIn = [false, false]; }
+        if (!R.rl) { var rl0 = o.run > 0.3 ? 1 : 0; R.rl = [rl0, rl0]; R.rl0 = [rl0, rl0]; R.rlT = [rl0, rl0]; R.rlIn = [false, false]; }
         for (var li = 0; li < 2; li++) {
           var qL = (R.phase + 0.1 + 0.5 * li) % 1; if (qL < 0) qL += 1;
           var inW = qL >= 0.62 && qL < 0.97;
-          if (inW && !R.rlIn[li]) R.rl0[li] = R.rl[li];
-          R.rlIn[li] = inW;
-          if (inW) R.rl[li] = U.lerp(R.rl0[li], o.run, U.smoothstep(0.62, 0.97, qL));
+          if (inW && !R.rlIn[li]) { R.rl0[li] = R.rl[li]; R.rlT[li] = o.run > 0.3 ? 1 : 0; }          // (the target is all or nothing, decided as the window opens: a foot planted with a
+          R.rlIn[li] = inW;                                                                                 //  half-walk, half-run contact pushed its ball ~4 u into the floor)
+          if (inW) R.rl[li] = U.lerp(R.rl0[li], R.rlT[li], U.smoothstep(0.62, 0.97, qL));
         }
         p.gait.runLeg = [R.rl[0], R.rl[1]];
         sc.pose = p;
