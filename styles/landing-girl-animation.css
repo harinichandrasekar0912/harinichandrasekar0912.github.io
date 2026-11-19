@@ -60,3 +60,10 @@
     aspect-ratio: 16 / 8;
   }
 }
+
+/* on a phone held upright she is about a fifth of the screen tall (in the 16:8 band she was ~15 % with big empty bands above and below); the cloud still fits around her */
+@media (max-width: 767px) and (orientation: portrait) {
+  .landing-media {
+    aspect-ratio: 4 / 3;
+  }
+}
