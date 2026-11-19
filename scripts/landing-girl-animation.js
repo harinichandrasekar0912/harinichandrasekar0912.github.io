@@ -1836,6 +1836,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     keyQ: 0.1,            // INTERNAL gait phase of the traced walk pose (leg 0 role A at this phase; leg 1 is role B)
     keyQRun: 0.1,         // same for the run
     keyFw: 0.81,          // |cos(2 pi keyQ)|: arm role weights saturate at the key
+    ankleFwd: 1.5,        // the drawn shin centre at the ankle, forward of the ankle joint (real feet: the leg runs into the ankle, the heel behind it)
   });
 
   // ------------------------------------------------------------------------------------------------ lofts (rebuilt when the tables change)
@@ -2105,8 +2106,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var unw = idleA > 0 ? sstep(0.15, 0.75, -side * (wsh + 0.7 * b2 * s2 + 1.3 * e1)) * idleA : 0, unwD = dzy > 0 ? sstep(0.15, 0.9, -side * dS1) * dzy : 0;       // the unloaded foot lifts its heel (idle weight shift / dizzy half-step)
       // a heel that comes up PIVOTS ON THE BALL of the foot: the ankle moves so the ball stays exactly where it is on the floor (no sliding toe)
       var ballPivot = function (b1) { var b0 = beta; f -= (C.ballS * cos(b1) + C.ankleZ * sin(b1)) - (C.ballS * cos(b0) + C.ankleZ * sin(b0)); z -= (C.ballS * sin(b1) - C.ankleZ * cos(b1)) - (C.ballS * sin(b0) - C.ankleZ * cos(b0)); beta = b1; };
-      if (unw > 0 || unwD > 0) { z += 5.5 * unw + 8 * e1 * (side < 0 ? 1 : 0) + 11 * unwD; f += 5 * sstep(0.35, 0.9, unwD); c -= side * 3 * unw; beta = lerp(beta, rad(-18), max(0.85 * unw, unwD)); }          // (dizzy: the small half-step forward is made while the foot is well up)
-      if (rcA > 0) { var rt2 = rcA * (1 - aw) * (1 - min(1, 2 * max(sq, 0))); z += 8.5 * rt2; beta = lerp(beta, beta - rad(22), rt2); }          // recoil: a tiny lift up onto the toes (standing only)
+      if (unw > 0 || unwD > 0) { ballPivot(lerp(beta, rad(-18), max(0.85 * unw, unwD))); z += 3 * unwD; f += 5 * sstep(0.35, 0.9, unwD); c -= side * 3 * unw; }          // (real feet: the heel rises about the planted ball exactly - the old fixed lifts floated the ball ~5 u or sank it)          // (dizzy: the small half-step forward is made while the foot is well up)
+      if (rcA > 0) { var rt2 = rcA * (1 - aw) * (1 - min(1, 2 * max(sq, 0))); ballPivot(beta - rad(22) * rt2); }          // recoil: a tiny lift up onto the toes (standing only)
       var femKF = C.femWeight * idleA * (1 - 0.6 * min(1, 2 * ld)), fE0 = FEM_E0, fE1 = FEM_E1, fwin = sstep(fE0, fE1, -side * wc), freeW = femKF * fwin;          /* (the window lies on one side of the crossover: the two feet, at +wc and -wc, are never in it together - one settles, then the other steps out) */          // the unloaded leg: foot a little forward and turned out, the knee soft (a flinch or a shrug does not snap the foot back across the floor)
       if (freeW > 0) {
         f += C.femFoot[0] * freeW; c += side * C.femFoot[1] * freeW; toe += rad(C.femFoot[2]) * freeW;
@@ -2134,8 +2135,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         tYawX = (thF - thN) * tw;
       }
       if (e2 > 0 && side > 0) { var tb = rad(30) * tap; beta = lerp(beta, beta + tb, 1); z += 15 * sin(tb); }          // E2: the toe taps (the heel stays on the floor)
-      if (e3 > 0) { beta = lerp(beta, rad(-20), e3); z += 11.5 * e3; }          // E3: up on her toes
-      if (sqn > 0) { var tp = min(1, sqn * 5) * (1 - aw); z += 20 * tp; beta = lerp(beta, rad(-36), tp); }       // boing stretch: up on the toes
+      if (e3 > 0) ballPivot(lerp(beta, rad(-20), e3));          // E3: up on her toes
+      if (sqn > 0) { var tp = min(1, sqn * 5) * (1 - aw); ballPivot(lerp(beta, rad(-36), tp)); }       // boing stretch: up on the toes
       if (pk > 0) f -= C.peekLegBack * pk;               // peek: the feet are braced back (away from the edge), hidden behind it
       if (air > 0) {                                   // hop: toes point first (push-off), then the knees tuck up under her
         var tk = sstep(0.1, 0.9, air), tp2 = sstep(0, 0.55, air);          // push-off: toes point first, then the knees come up; the feet end up behind the knees (not a chair)
@@ -2143,7 +2144,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
       // toe bend weight (shoeFrame): the forefoot flexes against the ground while the heel rises in stance; it springs straight in the first 12 % of the swing (pointed foot in the air)
       var rhoG = lerp(GW.rho, GR.rho, run), usw = (q - rhoG) / (1 - rhoG), tbG = q < rhoG ? 1 : 1 - sstep(0.05, 0.3, usw) + sstep(0.85, 1, usw);          // (and the toes lift again for the ball landing)
-      legs.push({ side: side, f: f, c: c, z: z, beta: beta, toe: toe, tYaw: tYawX, tb: lerp(1, tbG, aw) * (1 - air) });
+      // the toes never dip into the floor: a pointed foot near the ground keeps its toes bent up just enough (the toe tip ~26 u beyond the ball stays >= 0.6 u above the floor)
+      var tbL = lerp(1, tbG, aw) * (1 - air);
+      if (beta < -0.02 && tbL < 1) { var hbl = z + C.ballS * sin(beta) - C.ankleZ * cos(beta), sgl = (0.6 - hbl) / 26; if (sgl > -1) tbL = max(tbL, min(1, 1 - Math.asin(min(1, sgl)) / beta)); }
+      legs.push({ side: side, f: f, c: c, z: z, beta: beta, toe: toe, tYaw: tYawX, tb: tbL });
     }
 
     // ---- pelvis: bob limited by leg reach (so legs never over-extend), twist, sway, shiver
@@ -2506,6 +2510,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     if (mS < 1) for (var k2 = 0; k2 < NS1; k2++) TM[slot][k2] *= mS;          // idle: the traced swing offsets (two different gait roles mixed 50:50) are damped, the arm hangs straight
     loadFront(FMs[slot], FRs[slot], L.front[i]);
+    if (kind === 'leg') {          // REAL FEET: the traced shin ended ~14 u forward (and ~4 u sideways) of the ankle joint (the traced foot was a shoe), so the heel stuck out behind the leg
+      var hN = NS >> 1, dS = TM[slot][NS] - C.ankleFwd, dF = FMs[slot][NS];          // like a club.  The shin is now TILTED onto the ankle joint (the offset correction grows smoothly from
+      for (var k3 = hN; k3 < NS1; k3++) { var wk = sstep(hN, NS, k3); TM[slot][k3] -= dS * wk; FMs[slot][k3] -= dF * wk; }          // the knee to the ankle: no kink in the shin), the Achilles just behind it
+    }
     return true;
   }
   var qxs = new Float64Array(NS1), qys = new Float64Array(NS1), qrs = new Float64Array(NS1);
@@ -2618,8 +2626,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var sh = K.mVec(Rf, Bv[0], Bv[1], Bv[2]);
     return K.frame(Rr, [of[0] + sh[0], of[1] + sh[1], of[2] + sh[2]]);
   }
-  /** five tiny toe tips (bare foot): a hint of toe separation at the end of the foot; big toe on the inner side (toward the other foot). Positions in the foot frame (s, y, z, radius). */
-  var TOE = [[58.6, 5.0, 2.6, 2.4], [57.4, 1.8, 2.4, 2.1], [55.6, -1.2, 2.2, 1.9], [53.4, -3.9, 2.0, 1.7], [51.2, -6.3, 1.9, 1.5]];          // (GAIT R10: on the slimmer toe wedge of the bare-foot loft, tips just proud of it so they read as toes)
+  /** five toe tips (bare foot) along the oblique toe line, the big toe longest and on the inner side (toward the other foot), each resting on its pad; and the two ANKLE BONES
+      (malleoli): the inner one higher and further forward than the outer one, so the ankle reads as an ankle from the front and the back.  Positions in the foot frame (s, y, z, radius). */
+  var TOE = [[58.8, 5.8, 3.6, 3.5], [57.6, 2.2, 3.0, 2.7], [55.8, -1.1, 2.8, 2.45], [53.4, -4.3, 2.6, 2.2], [50.6, -7.1, 2.4, 2.0]];
+  var MALL = [[1.0, 3.8, 22.4, 2.6], [-0.6, -4.0, 19.6, 2.6]];          // [inner, outer] (y > 0 = inner)
   function drawToes(ctx, lg, i) {
     var inner = lg.side < 0 ? 1 : -1;               // left foot: the inner side is +y (toward her right)
     K.batch(ctx, function () {
@@ -2627,6 +2637,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         var t = TOE[k], Fr = shoeFrame(lg, t[0]), p = K.fApply(Fr, t[0], t[1] * inner, t[2]), q = K.proj(p[0], p[1], p[2]);
         K.addDisc(ctx, q[0], q[1], t[3]);
       }
+      for (var m = 0; m < 2; m++) { var b = MALL[m], pm = K.fApply(lg.Ff, b[0], b[1] * inner, b[2]), qm = K.proj(pm[0], pm[1], pm[2]); K.addDisc(ctx, qm[0], qm[1], b[3]); }
     });
   }
   function projectShoe(lg, loft) { for (var r = 0; r < loft.R; r++) K.projectRow(loft, r, shoeFrame(lg, loft.rows[r][0]), 0); }
@@ -2925,6 +2936,38 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   for (k in elegant) if (k in A.walkPresets.current) A.walkPresets.current[k] = elegant[k];
   var hc = {"tieU":27,"tiePhi":2.4,"sprout":[-0.2,0.635,0.74],"lockN":8,"lockLen":1.03,"lockW":1.5,"lamK":0.59,"waveK":1,"curlK":1.1,"back":0.16,"backMed":0.21,"bTo":0.36,"medLen":0.9,"fineN":26,"fineLen":0.9,"looseLen":1,"lenSide":0.97,"lenFront":0.87,"widSide":1.07,"widFront":1.45,"runWind":120,"core":1,"coreT0":0.575,"coreT1":0.885,"rootW":7,"ribT0":0.4,"ribT1":0.58};
   for (k in hc) A.hairCfg[k] = hc[k];
+  A.rebuild();
+})();
+
+
+/* ===== girl_a_feet.js ===== */
+/* REAL FEET (bare, a child's slim foot): the foot loft is built here from anatomical keys instead of the traced wedge (a thick club heel and a needle-thin forefoot).
+   Foot frame: s along the foot (ankle joint at 0, toes +), z up from the sole, the ankle joint 21 above the sole.  Keys (s, value), smooth monotone cubics:
+     sole   - a rounded heel pad (touching the floor at the heel contact s = -15, curling up behind it), a faint arch under the midfoot, flat under the ball (s = 35),
+              the toe pads, then the toe tips curling up
+     dorsum - the heel's back curve rising into the Achilles line, the ankle, the instep sloping down to the toe knuckles, the toes thinning to their rounded tips
+     width  - a narrow heel, widening through the midfoot to the ball (about a third of the foot length), the toes rounding off (the big toe longest)
+   The same table is used for the walk and the run (both role tables), so the feet never change shape between gaits.  Toe tips / ankle bones: girl_a.js drawToes. */
+(function () {
+  'use strict';
+  var A = GA.girlA, K = A.core, D = A.data;
+  var SOLE = [[-16.4, 6.0], [-15.8, 2.4], [-15, 0.5], [-14, 0.05], [-12, 0], [-4, 0], [4, 0.35], [14, 0.9], [24, 0.6], [31, 0.1], [35, 0], [44, 0], [50, 0.15], [54, 0.4], [57.5, 0.9], [60.4, 1.9]];
+  var TOP = [[-16.4, 8.5], [-15.6, 11.5], [-14.2, 13.2], [-12, 14.2], [-9.5, 15.6], [-7, 18.5], [-5, 21.5], [0, 23.2], [5, 22.0], [10, 19.8], [16, 16.8], [23, 14.0], [30, 11.9], [37, 10.6], [43, 9.3], [49, 8.4], [54, 7.8], [57.5, 7.1], [60.4, 5.6]];
+  var WID = [[-16.4, 3.2], [-15, 5.6], [-12, 6.6], [-8, 6.9], [0, 7.0], [8, 8.0], [16, 9.3], [24, 10.6], [31, 11.5], [37, 11.8], [43, 11.3], [49, 10.3], [54, 8.9], [57.5, 7.0], [60.4, 4.2]];
+  var PWR = [[-16.4, 2.1], [-8, 2.2], [10, 2.3], [30, 2.6], [50, 2.6], [60.4, 2.2]];
+  function table() {
+    var rows = [], s, n = 56, s0 = SOLE[0][0], s1 = SOLE[SOLE.length - 1][0];
+    for (var i = 0; i <= n; i++) {
+      s = s0 + (s1 - s0) * i / n;
+      var lo = K.curve(SOLE, s), hi = K.curve(TOP, s);
+      rows.push([+s.toFixed(3), +((hi + lo) / 2).toFixed(3), +((hi - lo) / 2).toFixed(3), +K.curve(WID, s).toFixed(3), +K.curve(PWR, s).toFixed(3)]);
+    }
+    return rows;
+  }
+  var T = table();
+  A.footKeys = { sole: SOLE, top: TOP, width: WID, power: PWR };
+  D.shoe = [[T, T], [T, T]];
+  if (A.dataRun) A.dataRun.shoe = [[T, T], [T, T]];
   A.rebuild();
 })();
 
