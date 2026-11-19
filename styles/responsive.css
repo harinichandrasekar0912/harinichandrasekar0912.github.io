@@ -1,13 +1,4 @@
 @media (max-width: 980px) {
-  .about-layout,
-  .archive-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .about-layout {
-    gap: var(--space-8);
-  }
-
   .archive-layout {
     grid-template-columns: 1fr;
   }
@@ -47,21 +38,66 @@
     margin-top: 0;
   }
 
-  .about-section,
   .archive-section {
     align-items: start;
   }
 
-  .about-portrait {
-    width: min(88vw, 480px);
-    justify-self: start;
-    transform: none;
+  /* about me on a phone: one column, the portrait at most ~264 px wide (791 px source, crisp at 3x) and always reaching the left part of
+     the screen: on a phone the navigation ball comes straight down from the "about" circle (~90-105 px from the left) and lands there */
+  .about-layout,
+  html[data-about] .about-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: clamp(1.75rem, 7vw, 2.5rem);
   }
 
   .about-copy {
-    max-width: 20rem;
+    max-width: none;
+    line-height: 1.68;
+  }
+
+  html[data-about="a"] .about-portrait {
+    width: min(68vw, 264px);
+    justify-self: start;
+  }
+
+  html[data-about="a"] .about-copy {
     margin-top: 0;
-    font-size: var(--text-md);
+  }
+
+  html[data-about="b"] .about-layout {
+    justify-items: start;
+    row-gap: 0;
+    width: 100%;
+  }
+
+  html[data-about="b"] .about-portrait {
+    width: clamp(132px, 38vw, 160px);
+    margin-top: 0;
+    margin-bottom: clamp(1.75rem, 7vw, 2.5rem);
+  }
+
+  html[data-about="c"] .about-layout {
+    grid-template-columns: var(--page-x) minmax(0, 1fr) var(--page-x);
+  }
+
+  /* on a phone the edge portrait leaves the page on the left, like the first work tile (on the right it would be out of the ball's way) */
+  html[data-about="c"] .about-portrait {
+    grid-column: 1 / 3;
+    grid-row: 1;
+    justify-self: start;
+    width: min(72vw, 264px);
+    border-radius: 0 var(--image-radius) var(--image-radius) 0;
+  }
+
+  html[data-about="c"] .about-portrait img {
+    border-right: var(--line-thin) solid var(--color-line);
+    border-left: 0;
+  }
+
+  html[data-about="c"] .about-copy {
+    grid-column: 2;
+    grid-row: 2;
   }
 
   .work-list {
@@ -202,13 +238,15 @@
     transform: none;
   }
 
-  /* the square portrait fits on the screen instead of running past it */
-  .about-portrait {
-    width: min(48vw, 65vh, 660px);
+  /* about me: the letter's portrait stays a small part of the short screen, and the edge portrait sits level with the start of the text
+     (centred on the long column it would start below the first screen) */
+  html[data-about="b"] .about-portrait {
+    width: clamp(110px, 30vh, 170px);
   }
 
-  .about-portrait img {
-    height: 78vh;
+  html[data-about="c"] .about-portrait {
+    align-self: start;
+    margin-top: 0.4rem;
   }
 }
 
@@ -219,10 +257,6 @@
 
   .landing-media {
     width: min(90vw, 420px);
-  }
-
-  .about-portrait {
-    width: min(92vw, 390px);
   }
 
   .contact-form {
@@ -270,26 +304,6 @@
 
   .work-space {
     min-height: clamp(0.5rem, 2vw, 1rem);
-  }
-
-  .about-portrait {
-    width: 100vw;
-    max-width: none;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    justify-self: center;
-    border-radius: 0;
-    overflow: hidden;
-  }
-
-  .about-portrait img {
-    display: block;
-    width: 100%;
-    height: clamp(280px, 62vw, 480px);
-    aspect-ratio: auto;
-    border-right: 0;
-    border-left: 0;
-    border-radius: 0;
   }
 
   .archive-layout {
