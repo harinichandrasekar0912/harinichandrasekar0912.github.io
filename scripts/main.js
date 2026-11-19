@@ -1,4 +1,7 @@
 (function () {
+  // the folder this file was loaded from ("scripts/", or "scripts/min/" for the smaller copy): the project viewer is loaded from it later
+  var SCRIPT_DIR = (document.currentScript && document.currentScript.src ? document.currentScript.src.replace(/[^\/]*$/, "") : "") || "scripts/";
+
   // Paste your secure form endpoint here.
   // Example: Formspree/Basin/Getform endpoint.
   // Do not put Gmail passwords, SMTP credentials, or private API keys in frontend code.
@@ -593,14 +596,93 @@
     });
   }
 
+  /*
+    The project viewer and its data (about 100 KB of script) are not needed for the first view, so they are not in index.html: they are
+    requested once the page has loaded and the browser is idle, or at once when the visitor presses a key or touches/clicks anything.
+    A tile clicked before they have arrived opens as soon as they do. They load from the folder this file came from (scripts/ or scripts/min/).
+  */
+  function initProjectViewerWhenIdle() {
+    var requested = false;
+    var ready = false;
+    var pendingTrigger = null;
+    var intents = ["pointerdown", "touchstart", "keydown"];
+
+    function onEarlyClick(event) {
+      var trigger = !ready && event.target && event.target.closest ? event.target.closest("[data-project-trigger]") : null;
+
+      if (trigger) {
+        pendingTrigger = trigger;
+        request();
+      }
+    }
+
+    function start() {
+      ready = true;
+      document.removeEventListener("click", onEarlyClick, true);
+
+      if (window.HariniProjectViewer) {
+        window.HariniProjectViewer.init();
+      }
+
+      if (pendingTrigger && document.contains(pendingTrigger)) {
+        pendingTrigger.click();
+      }
+
+      pendingTrigger = null;
+    }
+
+    function addScript(name, onload) {
+      var el = document.createElement("script");
+
+      el.src = SCRIPT_DIR + name;
+      el.async = false; /* the data runs before the viewer */
+
+      if (onload) {
+        el.onload = onload;
+      }
+
+      document.head.appendChild(el);
+    }
+
+    function request() {
+      if (requested) {
+        return;
+      }
+
+      requested = true;
+      intents.forEach(function (type) {
+        document.removeEventListener(type, request, true);
+      });
+      addScript("project-data.js");
+      addScript("project-viewer.js", start);
+    }
+
+    function whenIdle() {
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(request, { timeout: 2000 });
+      } else {
+        window.setTimeout(request, 300);
+      }
+    }
+
+    document.addEventListener("click", onEarlyClick, true);
+    intents.forEach(function (type) {
+      document.addEventListener(type, request, { capture: true, passive: true });
+    });
+
+    if (document.readyState === "complete") {
+      whenIdle();
+    } else {
+      window.addEventListener("load", whenIdle, { once: true });
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     if (window.HariniNavigationBall) {
       window.HariniNavigationBall.init();
     }
 
-    if (window.HariniProjectViewer) {
-      window.HariniProjectViewer.init();
-    }
+    initProjectViewerWhenIdle();
 
     initContactForm();
     initArchivePlaceholders();
