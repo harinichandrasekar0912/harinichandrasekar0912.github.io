@@ -19,11 +19,16 @@
         min-height: 100svh;
         margin: 0;
         padding: 0 1.5rem;
-        font: 15px/1.6 ui-monospace, "SFMono-Regular", Consolas, Menlo, monospace;
+        /* the site's own values, written out (this page cannot load the style sheets): --font-mono, --text-md, --weight-regular,
+           --leading-body, and its link underline and focus ring */
+        font-family: "Suisse Int'l Mono", "Suisse Intl Mono", ui-monospace, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+        font-size: clamp(0.94rem, 0.88rem + 0.18vw, 1.06rem);
+        font-weight: 370;
+        line-height: 1.5;
         text-align: center;
       }
       p { margin: 0 0 1.5rem; color: #625d54; }
-      a { color: #151412; text-underline-offset: 0.3em; }
+      a { color: #151412; text-decoration-thickness: 1px; text-underline-offset: 0.28em; }
       a:focus-visible { outline: 1px solid #151412; outline-offset: 4px; }
     </style>
   </head>
