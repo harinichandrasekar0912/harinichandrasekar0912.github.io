@@ -2003,7 +2003,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       reach: clamp(num(p.reach, 0), 0, 1),          // the right hand reaches down-forward (toward the nav console below her), index finger out
       wave: clamp(num(p.wave, 0), 0, 1),          // round 11: the right hand waves hello at the viewer (open hand, the forearm swings)
       waveT: num(p.waveT, 0),          // beats: the wave's own clock (s; the side-to-side swing is sin(2 pi waveHz waveT), its size follows the wave envelope)
-      clasp: clamp(num(p.clasp, 0), 0, 1), burst: clamp(num(p.burst, 0), 0, 1), flutter: clamp(num(p.flutter, 0), 0, 1),          // beats ('so many ideas!'): hands clasped under the chin, arms flung open up and out, fingers fluttering
+      clasp: clamp(num(p.clasp, 0), 0, 1), burst: clamp(num(p.burst, 0), 0, 1), flutter: clamp(num(p.flutter, 0), 0, 1), handsFree: clamp(num(p.handsFree, 0), 0, 1),          // beats ('so many ideas!'): hands clasped by the cheek, arms flung open up and out, fingers fluttering; handsFree: the hands let go of the stance (skirt) on a slow curve
       wind: { x: num(w.x, 0), y: num(w.y, 0) }, t: num(p.t, 0),
     };
   }
@@ -2093,7 +2093,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // ---- FEMININE STANDING POSE (a sweet, relaxed child's stance, only while she stands calmly): weight on one leg with a gentle hip shift and pelvis tilt, the other knee softly bent with the foot a little
     //      forward and turned out, shoulders counter-tilted (the support-side one a touch lower), a gentle S in the spine, a soft head tilt, one hand lightly holding the side of the skirt; the weight
     //      changes slowly (every femPeriod / 2 s) with smooth easing.  Blends in with the stop (idleA) and out for every reaction.
-    var femK = C.femWeight * idleA * (1 - min(1, 2.2 * max(fz, dzy, fl, bow, pk, sstep(0, 0.45, abs(sq))))) * (1 - sstep(0, 0.6, P.wave)) * (1 - sstep(0, 0.3, air)) * (1 - P.spread) * (1 - P.clasp) * (1 - P.burst) * (1 - 0.6 * min(1, 2 * ld));          // (the wave, a hop and open happy hands let go of the stance on smooth curves: no corner as the hand comes down; a crouch turning into a stretch passes squash 0 and used to snap the hands to the skirt and back within 0.1 s)          // (round 11: the squash term fades the stance in over ~0.3 s as a squash dies away; the old 3 x |squash| did it in ~0.1 s = the arms dropped in a snap after every hop)
+    var femK = C.femWeight * idleA * (1 - min(1, 2.2 * max(fz, dzy, fl, bow, pk, sstep(0, 0.45, abs(sq))))) * (1 - sstep(0, 0.6, P.wave)) * (1 - sstep(0, 0.3, air)) * (1 - P.spread) * (1 - P.clasp) * (1 - P.burst) * (1 - P.handsFree) * (1 - 0.6 * min(1, 2 * ld));          // (the wave, a hop and open happy hands let go of the stance on smooth curves: no corner as the hand comes down; a crouch turning into a stretch passes squash 0 and used to snap the hands to the skirt and back within 0.1 s)          // (round 11: the squash term fades the stance in over ~0.3 s as a squash dies away; the old 3 x |squash| did it in ~0.1 s = the arms dropped in a snap after every hop)
     var wc = Math.tanh(2.2 * sin(TAU * t / C.femPeriod + 1.2)), fw = femK * wc;          // wc > 0: the weight is on her RIGHT leg (screen-left in the front view)
     S.femK = femK; S.fw = fw;
 
@@ -2753,14 +2753,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     girl.walkPresetName = function () { return A.walkPreset; };
 
     // ---- per-tick memo: step() (x2 per frame), draw() and anchors() are called with the same pose, so the rig is solved once per distinct pose
-    var memoVer = -1, KEYN = 47, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
+    var memoVer = -1, KEYN = 48, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
     function poseKey(p, o) {
       var g = p.gait || {}, w = p.wind || {};
       o[0] = p.x; o[1] = p.y; o[2] = p.yaw; o[3] = g.amount; o[4] = g.phase; o[5] = g.speed; o[6] = g.run; o[7] = p.headYaw; o[8] = p.headPitch; o[9] = p.headRoll; o[10] = p.lean; o[11] = p.squash;
       o[12] = p.scratch; o[13] = p.scratchT; o[14] = p.think; o[15] = p.shudder; o[16] = p.shudderT; o[17] = p.air; o[18] = p.peek; o[19] = p.flinch; o[20] = p.dizzy; o[24] = p.bow; o[25] = p.twist; o[26] = p.chestHand; o[21] = w.x; o[22] = w.y; o[23] = p.t;
       o[27] = p.startle; o[28] = p.spread; o[29] = p.poke; o[30] = p.clutch; o[31] = p.shrug; o[32] = p.thinkT; o[33] = p.reach; o[34] = g.stride || 0; o[35] = p.wave;
       o[36] = p.footYaw || 0; o[37] = p.footYawW || 0; var ts = p.turnStep; o[38] = ts ? ts.u : -1; o[39] = ts ? ts.yaw0 : 0; o[40] = ts ? ts.yaw1 : 0; o[41] = ts ? ts.w : 0; o[42] = ts && ts.first ? 1 : 0;
-      o[43] = p.waveT || 0; o[44] = p.clasp || 0; o[45] = p.burst || 0; o[46] = p.flutter || 0;
+      o[43] = p.waveT || 0; o[44] = p.clasp || 0; o[45] = p.burst || 0; o[46] = p.flutter || 0; o[47] = p.handsFree || 0;
     }
     function solveMemo(pose) {
       poseKey(pose, kNow);
@@ -4045,7 +4045,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         x: xStop, y: G, yaw: 0,
         gait: { amount: 0, phase: 0, speed: 0, run: 0 },
         headYaw: 0, headPitch: 0, headRoll: 0, lean: 0, peek: 0, flinch: 0, dizzy: 0, bow: 0, twist: 0, chestHand: 0, squash: 0, scratch: 0, scratchT: 0, think: 0, shudder: 0, shudderT: 0, air: 0,
-        startle: 0, spread: 0, poke: 0, clutch: 0, shrug: 0, reach: 0, wave: 0, waveT: 0, clasp: 0, burst: 0, flutter: 0, thinkT: -1,          // round 10: startle ticks, open hands, poke at the air, both hands to the head, sheepish shrug, reach down to the console, thinking-script clock (s since turnFront1, -1 = off)
+        startle: 0, spread: 0, poke: 0, clutch: 0, shrug: 0, reach: 0, wave: 0, waveT: 0, clasp: 0, burst: 0, flutter: 0, handsFree: 0, thinkT: -1,          // round 10: startle ticks, open hands, poke at the air, both hands to the head, sheepish shrug, reach down to the console, thinking-script clock (s since turnFront1, -1 = off)
         wind: { x: 0, y: 0 }, t: t,
       };
     }
@@ -4140,6 +4140,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var spot = U.smoothstep(K_BALL + 0.1, K_BALL + 0.3, k) * (1 - U.smoothstep(K_HIT - 0.18, K_HIT - 0.04, k));   // she spots the ball coming from the top-left: the head snaps to it and follows it up
       hy = U.lerp(hy, -0.6, spot); hp = U.lerp(hp, 0.6 + 0.35 * U.smoothstep(K_BALL + 0.3, K_HIT - 0.3, k), spot); hr = U.lerp(hr, -0.15, spot);
       sq -= 0.1 * bump(k, K_BALL + 0.45, K_BALL + 0.6, K_BALL + 0.75, K_BALL + 1.05);                                   // 'ooh, what is that?': up on to her toes to see it better
+      p.handsFree = U.smoothstep(K_BALL + 0.3, K_BALL + 0.85, k) * (1 - U.smoothstep(K_HIT + 0.9, K_HIT + 1.7, k));   // her hand lets go of the skirt as she watches the ball come (the bonk's squash used to tear it off in two frames: a ~30 u jump), and finds it again once the knock has passed
       p.headYaw = U.clamp(hy, -1, 1); p.headPitch = U.clamp(hp, -1, 1); p.headRoll = U.clamp(hr, -1, 1);
       p.squash += sq; p.air = air; p.y = G + y; p.flinch = Math.max(p.flinch, fl); p.dizzy = Math.max(p.dizzy, dz); p.chestHand = Math.max(p.chestHand, ch);
     }
@@ -4294,7 +4295,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       // used to snap those poses off in one frame: the hand jumped ~200 units)
       P.thinkT = p0.thinkT >= 0 ? p0.thinkT + rt : -1;          // the think-idle script (weight shift, toe tap, 'aha' perk-up) keeps its clock: the look-down fades it out within ~0.2 s instead of switching it off in one frame
       P.wave = (p0.wave || 0) * (1 - U.smoothstep(0, 0.3, rt)); P.waveT = (p0.waveT || 0) + rt;
-      P.clasp = (p0.clasp || 0) * (1 - U.smoothstep(0, 0.3, rt)); P.burst = (p0.burst || 0) * (1 - U.smoothstep(0, 0.3, rt)); P.flutter = (p0.flutter || 0) * (1 - U.smoothstep(0, 0.3, rt));
+      P.clasp = (p0.clasp || 0) * (1 - U.smoothstep(0, 0.3, rt)); P.burst = (p0.burst || 0) * (1 - U.smoothstep(0, 0.3, rt)); P.flutter = (p0.flutter || 0) * (1 - U.smoothstep(0, 0.3, rt)); P.handsFree = (p0.handsFree || 0) * (1 - U.smoothstep(0, 0.3, rt));
       P.shudder = (p0.shudder || 0) * (1 - U.smoothstep(0, 0.2, rt)); P.shudderT = (p0.shudderT || 0) + rt;
       P.flinch = (p0.flinch || 0) * (1 - U.smoothstep(0, 0.3, rt));
       P.startle = (p0.startle || 0) * (1 - U.smoothstep(0, 0.2, rt)); P.spread = (p0.spread || 0) * (1 - U.smoothstep(0, 0.25, rt));
