@@ -1,44 +1,50 @@
 /* Navigation plus console + travelling ball.
  *
  * Trip sequence (every trip, in this exact order):
- *   selected nav circle morphs into the ball -> capture A once -> freeze scroll -> three prep bounces at A (z/4, z/2, 3z/4)
- *   -> compute scrollTarget and the final visible landing point B -> ONE continuous, physically plausible flight:
- *      A -> straight up to D -> rounded arc over C -> E -> straight down to B   (see planTrajectory: one smooth curve, vertical and bend-free where
- *      the arc meets the lines; the speed follows real physics - fast at launch and landing, slowest at the top; the page scrolls with the ball
- *      in the same requestAnimationFrame loop) -> exact landing at B
- *   -> three landing bounces at B (3z/4, z/2, z/4) -> roll out of the screen -> travelling ball hidden -> plus fades in IN PLACE.
+ *   selected nav circle morphs into the ball at A (no movement) -> capture A once -> freeze scroll -> three prep bounces at A (z/4, z/2, 3z/4)
+ *   -> compute scrollTarget and the final visible landing point B -> the main path, with the page scrolling in the same requestAnimationFrame:
+ *        desktop / tablet: ONE cubic Bezier from A to B whose control points sit straight above A and straight above B, so the ball leaves A
+ *          going straight up, bends over one rounded top and comes down into B going straight down (no straight pieces, no joints), at a
+ *          constant speed along the curve (arc-length sampling)
+ *        phone (max-width: 767px): a vertical bounce, B.x = A.x: the rise slows (ease-out) to a brief hang at the apex, then the fall speeds up
+ *          (ease-in) into B
+ *   -> exact landing at B -> three landing bounces at B (3z/4, z/2, z/4), page still -> roll out of the screen -> travelling ball hidden
+ *   -> plus fades in IN PLACE (nothing travels back to the plus).
  * B is on the top edge of the target image, near the end that is furthest from the screen edge the image is attached to (small buffer).
- * Phone (max-width: 767px): same sequence, but the ball never moves sideways before the roll-away (B.x = A.x: a straight vertical lob).
  *
- * Obsolete experimental path systems (obstacle nudging, "exact" trajectory, composite camera modes, spline / bezier / segmented paths,
- * debug overlay) were removed so that nothing can run by accident.
+ * Debug overlay: DEBUG_NAV_TRAJECTORY_OVERLAY below, or ?navdebug=1 in the address. It draws the real sampled path (blue), the ball's rendered
+ * centre every frame (red), A, B, the apex and the control points, and a small panel; it never changes the motion.
  */
 (function () {
   "use strict";
 
   /* ------------------------------------------------------------------ configuration */
 
-  // The main path is ONE physical flight (see planTrajectory): A -> straight up to D -> half-circle-like arc over C -> E -> straight down to B.
-  const NAV_BALL_PATH_MODE = "arc";
+  const NAV_BALL_PATH_MODE = "bezier";
 
+  const DEBUG_NAV_TRAJECTORY_OVERLAY = false;
   const DEBUG_NAV_BALL_SEQUENCE = false;
-  const DEBUG_NAV_BALL_SPLINE = false;
   const DEBUG_PHONE_NAV_BALL = false;
 
-  // Average speed of the whole flight in px/s (gravity is chosen so that length / duration matches). Lower = slower, easier to follow with the eye.
-  const MAIN_PATH_AVERAGE_SPEED = 340;
-  const PHONE_PATH_AVERAGE_SPEED = 300;
-  const TRAJECTORY_LIFT_FACTOR = 1.12; // m = z * 1.12 (> z): how far above the higher of A and B the guide level (D and E) sits
-  const TRAJECTORY_LIFT_MIN = 40;
-  const TRAJECTORY_MIN_RISE_FACTOR = 0.4; // a squashed arc keeps at least 40% of the half-circle height ...
-  const TRAJECTORY_MIN_RISE = 24; // ... and at least 24 px (only matters when the screen is too small for the full half circle)
-  const TRAJECTORY_MIN_LANDING_DROP = 14; // E stays at least this far above B, so the ball always comes down into B
-  const TRAJECTORY_MIN_LAUNCH_RISE = 12; // D stays at least this far above A
-  const TRAJECTORY_APEX_FACTOR = 1.5; // apex C is this many half-spans (|dx| / 2) above the guide level: a little higher than a half circle = a rounded peak, no flat top
-  const TRAJECTORY_FALL_BOOST = 0.5; // the fall is a little quicker than the rise, like a real bounce: speed gained per px of drop grows smoothly from 1x at the apex to 1.5x at the landing (0 = symmetric)
-  const TRAJECTORY_ARC_EXPONENT = 0.8; // shape of the arc, y = G - rise * sin(phi)^q: below 1 the bend is gentlest where the arc meets the vertical lines
-  const TRAJECTORY_MIN_DURATION = 0.9; // seconds
-  const TRAJECTORY_MAX_DURATION = 9; // seconds - a safety net only: the average speed (not a time cap) decides how long a flight lasts, also on very large screens
+  // desktop / tablet main path
+  const MAIN_PATH_SPEED = 430; // px/s along the curve, the same all the way (no easing restarts, no pause at the top)
+  const MAIN_PATH_MIN_DURATION = 0.6; // s - only for very short trips
+  const MAIN_PATH_MAX_DURATION = 6; // s - safety net only
+  // height of the two control points above the higher of A and B: max(MIN, |dx| * SPAN, z * Z). The real top of the curve is about 3/4 of this
+  // for level ends (less when one end is much lower). Lowered only when the sampled curve would leave the screen.
+  const BEZIER_LIFT_MIN = 40;
+  const BEZIER_LIFT_SPAN = 0.55;
+  const BEZIER_LIFT_Z = 0.65;
+  const BEZIER_MIN_LIFT = 10; // never less: the start and the end stay vertical
+  const BEZIER_SAMPLES = 720;
+
+  // phone main path (one big vertical bounce)
+  const PHONE_MAIN_LIFT_FACTOR = 1.7; // apex = higher of A and B minus clamp(phoneZ * 1.7, 84, 150)
+  const PHONE_MAIN_LIFT_MIN = 84;
+  const PHONE_MAIN_LIFT_MAX = 150;
+  const PHONE_MAIN_LIFT_FLOOR = 28; // on a very short screen the apex may come lower than 84 px, never lower than this
+  const PHONE_APEX_HANG = 110; // ms of near-weightlessness at the top
+
   const LANDING_EDGE_BUFFER = 6; // px: extra room between the ball and the rounded image corner it lands near
   // Where the ball comes to rest, as a fraction of the screen height measured from the top (the page is scrolled so that the platform it lands on
   // is there). Small = the section title sits near the top and the first tile is whole with a good part of the second below it; it is never
@@ -47,20 +53,18 @@
   const LANDING_SCREEN_FRACTION_MAX = 0.34;
   const SCROLL_PROGRESS_MODE = "smootherstep"; // easing of the page scroll over the flight time ("linear" = scroll progress equals flight progress)
 
-  // "home" trips (the circle of the section you are in turns into "home"): true = the previous behaviour (prep bounces, arc up and over to the plus,
-  // the ball closes into the plus). false = the same sequence as every other trip, landing on the landing media and rolling away.
-  const HOME_TRIP_CLOSES_INTO_PLUS = true;
-
   const BALL_MORPH_DURATION = 1300;
   const NAV_BALL_PREP_DURATIONS = [360, 430, 500];
   const NAV_BALL_LANDING_DURATIONS = [480, 360, 260];
   const NAV_BALL_ROLL_DURATION = 2180;
   const MOBILE_BALL_TIME_SCALE = 1.42; // calmer bounces / roll on phones
 
-  // staged (phone) menu opening: total under 650 ms
-  const PHONE_MENU_SPOKE_DURATION = 420;
-  const PHONE_MENU_SPOKE_STAGGER = 45;
-  const PHONE_MENU_READY_DELAY = 610; // circles are fully in by ~615 ms after the opening starts
+  // staged (phone) menu opening, about 1.2 s in all: each spoke visibly grows out of the top of the plus (780 ms, 100 ms apart); each circle
+  // fades and scales in (520 ms, styles/motion.css --phone-pop-delay) as its spoke nears its end; the circles take taps once all are in
+  const PHONE_MENU_SPOKE_DURATION = 780;
+  const PHONE_MENU_SPOKE_STAGGER = 100;
+  const PHONE_MENU_SPOKE_EASE = "cubic-bezier(0.3, 0.1, 0.2, 1)"; // an even, unhurried draw (no burst at the start)
+  const PHONE_MENU_READY_DELAY = 1270;
 
   const SECTION_IDS = ["landing", "about", "work", "archive", "contact"];
   const SECTION_INDEX = { landing: 0, about: 1, work: 2, archive: 3, contact: 4 };
@@ -112,10 +116,6 @@
 
   function easeOutCubic(t) {
     return 1 - Math.pow(1 - clamp(t, 0, 1), 3);
-  }
-
-  function easeInOutCubic(t) {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   }
 
   function easeRollOut(t) {
@@ -217,219 +217,487 @@
     };
   }
 
-  /* ---- the trajectory ---------------------------------------------------------------------------------------------------------------
-   * ONE continuous, physically plausible flight (viewport coordinates, y grows downward):
-   *     A --straight up--> D --arc over C--> E --straight down--> B
-   *   D = (A.x, G)   E = (B.x, G)   C = ((A.x + B.x) / 2, G - rise)   guide level G = (higher of A and B) - m,  m = 1.12 z  (> z)
-   *   rise = |dx| / 2 * TRAJECTORY_APEX_FACTOR: the top C is a little higher than a half circle would be, so the peak is rounded (like a bounce
-   *   that has drifted sideways), not a flat horizontal cap. C is the highest point of the whole flight.
-   *
-   * Shape: the arc is a smooth rounded arch whose ends are exactly vertical and whose bend is gentlest where it meets the straight lines
-   * (a tall half ellipse, slightly sharpened at the top): x = A.x + dx (1 - cos phi) / 2, y = G - rise sin(phi)^q, phi = 0..pi, q slightly
-   * below 1. The tangent is vertical at D and E and the curvature starts from 0 there, so nothing "turns sharply" where the arc meets the
-   * lines: the three parts read as one fluid curve.
-   *
-   * Speed: real physics for a ball on this path. Mechanical energy is conserved, so the speed depends only on the height:
-   *     v(h)^2 = v_top^2 + 2 g (h_top - h)
-   * fastest at launch and landing, slowest at the top C, smooth everywhere (no easing curve is applied to the ball). v_top is the sideways speed
-   * of a free-flying ball over the same span and height (v_top^2 = g (|dx| / 2)^2 / (2 rise)). Gravity g is chosen so that the whole flight lasts
-   * length / averageSpeed seconds (a bit slower than before, so the eye can follow it).
-   * The way DOWN is a little quicker than the way up (like a real bounce): from the apex on, the energy gained per px of drop grows smoothly
-   * (smoothstep of the drop) from 1x to 1 + TRAJECTORY_FALL_BOOST, so speed AND acceleration are exactly continuous at the top and nothing
-   * changes character there (the local pull peaks a little higher, about 1.8x, three quarters of the way down, and ends at 1.5x at B).
-   * The arc is lowered (only if the full height would leave the screen) before the guide level is lowered; A and B never move. */
-  function planTrajectory(A, F, z, safeTop, averageSpeed) {
-    const topY = Math.min(A.y, F.y);
-    const dx = F.x - A.x;
-    const halfSpan = Math.abs(dx) / 2;
-    const lift = Math.max(z * TRAJECTORY_LIFT_FACTOR, TRAJECTORY_LIFT_MIN);
-    let guideY = topY - lift;
-    const fullRise = halfSpan * TRAJECTORY_APEX_FACTOR; // apex height above the guide level
-    let rise = fullRise;
-
-    // keep the apex on screen: lower the arc first, lower the guide level only as a last resort
-    if (guideY - rise < safeTop) {
-      // short screens: first lower the guide level a little (never below 0.85 z above the higher end, still above the last prep bounce) so the arc keeps its height ...
-      guideY = clamp(safeTop + fullRise, guideY, topY - Math.max(z * 0.85, TRAJECTORY_LIFT_MIN));
-
-      // ... and only then lower the arc
-      const minRise = Math.min(fullRise, Math.max(TRAJECTORY_MIN_RISE_FACTOR * fullRise, TRAJECTORY_MIN_RISE));
-
-      rise = clamp(guideY - safeTop, minRise, fullRise);
-
-      if (guideY - rise < safeTop) {
-        guideY = safeTop + rise;
-      }
-    }
-
-    // E stays above B and D stays above A, so the ball always rises first and drops last
-    guideY = Math.min(guideY, F.y - TRAJECTORY_MIN_LANDING_DROP, A.y - TRAJECTORY_MIN_LAUNCH_RISE);
-    rise = Math.max(0, Math.min(rise, guideY - safeTop));
-
-    // 1) the path as a table of points (about 2 px apart): straight up, arc, straight down
-    const points = [{ x: A.x, y: A.y }];
-    const addLine = function (toY) {
-      const fromY = points[points.length - 1].y;
-      const count = Math.max(1, Math.ceil(Math.abs(toY - fromY) / 2));
-
-      for (let step = 1; step <= count; step += 1) {
-        points.push({ x: points[points.length - 1].x, y: mix(fromY, toY, step / count) });
-      }
-    };
-
-    addLine(guideY);
-    const enterIndex = points.length - 1; // D
-
-    if (halfSpan > 0.01 && rise > 0.01) {
-      const arcLength = Math.PI * 0.5 * (halfSpan + rise) * 1.15;
-      const count = clamp(Math.ceil(arcLength / 2), 60, 1600);
-
-      for (let step = 1; step <= count; step += 1) {
-        const phi = (Math.PI * step) / count;
-
-        points.push({
-          x: A.x + (dx * (1 - Math.cos(phi))) / 2,
-          y: guideY - rise * Math.pow(Math.max(Math.sin(phi), 0), TRAJECTORY_ARC_EXPONENT)
-        });
-      }
-
-      points[points.length - 1].x = F.x; // E exactly above B
-      points[points.length - 1].y = guideY;
-    } else {
-      points.push({ x: F.x, y: guideY }); // no arc (A and B in a vertical line): D and E coincide
-    }
-
-    const exitIndex = points.length - 1; // E
-
-    addLine(F.y);
-    points[points.length - 1].x = F.x;
-    points[points.length - 1].y = F.y;
-
-    // 2) physics with g = 1 (unit time): speed from the height by energy conservation, time = sum of ds / v
+  /* ---- desktop / tablet main path ------------------------------------------------------------------------------------------------------
+   * Viewport coordinates (y grows downward). ONE cubic Bezier:
+   *     P(t) = (1-t)^3 A + 3(1-t)^2 t P1 + 3(1-t) t^2 P2 + t^3 B,   P1 = (A.x, c),  P2 = (B.x, c),  c = min(A.y, B.y) - lift
+   *   P'(0) = 3 (P1 - A) points straight up, P'(1) = 3 (B - P2) points straight down: the ball leaves A vertically and lands on B vertically,
+   *   with one rounded top in between (the curve bends from the very first pixel, so nothing reads as a straight line joined to a cap).
+   *   A and B keep their real heights: when B is higher than A the climb is long and the drop short, and the other way round.
+   * The curve is sampled densely once per trip; the ball moves along it by distance (cumulative arc length) at MAIN_PATH_SPEED, so the speed
+   * is the same everywhere: near the top only the vertical part of the motion goes to zero, the ball keeps travelling sideways.
+   * Screen edge: the lowest y of the SAMPLED curve (not the control points) must stay at or below safeTop; if not, the lift is reduced
+   * (bisection) - A and B never move. */
+  function sampleBezier(A, P1, P2, B, count) {
+    const points = [];
+    let length = 0;
+    let minY = Infinity;
     let apexIndex = 0;
-    let topHeight = -Infinity;
 
-    for (let index = 0; index < points.length; index += 1) {
-      const height = A.y - points[index].y;
+    for (let index = 0; index <= count; index += 1) {
+      const point = cubicBezierPoint(A, P1, P2, B, index / count);
 
-      if (height > topHeight + 1e-9) {
-        topHeight = height;
+      if (index > 0) {
+        const previous = points[index - 1];
+
+        length += Math.hypot(point.x - previous.x, point.y - previous.y);
+      }
+
+      if (point.y < minY) {
+        minY = point.y;
         apexIndex = index;
       }
+
+      points.push({ x: point.x, y: point.y, d: length });
     }
 
-    const topHead = rise > 0.5 ? (halfSpan * halfSpan) / (4 * rise) : 0; // v_top^2 / (2 g): a vertical lob (no sideways motion) stops dead at the top
-    const dropToB = Math.max(topHeight - (A.y - F.y), 1e-6); // height between the apex and B
+    points[0].x = A.x;
+    points[0].y = A.y;
+    points[count].x = B.x;
+    points[count].y = B.y;
 
-    // v^2 / 2 (g = 1) at a height: rising = head + height gained; falling = the same, with gravity growing smoothly from 1x to 1 + boost over the drop
-    function unitHead(height, falling) {
-      const depth = Math.max(topHeight - height, 0);
+    return { points: points, length: length, minY: minY, apexIndex: apexIndex };
+  }
 
-      if (!falling) {
-        return topHead + depth;
+  function planBezierPath(A, B, z, safeTop, speed) {
+    const topY = Math.min(A.y, B.y);
+    const dx = B.x - A.x;
+    const wantedLift = Math.max(BEZIER_LIFT_MIN, Math.abs(dx) * BEZIER_LIFT_SPAN, z * BEZIER_LIFT_Z);
+    const build = function (lift) {
+      const controlY = topY - lift;
+      const P1 = { x: A.x, y: controlY };
+      const P2 = { x: B.x, y: controlY };
+
+      return { lift: lift, P1: P1, P2: P2, sampled: sampleBezier(A, P1, P2, B, BEZIER_SAMPLES) };
+    };
+    let plan = build(wantedLift);
+
+    if (plan.sampled.minY < safeTop) {
+      let low = 0;
+      let high = wantedLift;
+
+      for (let step = 0; step < 28; step += 1) {
+        const middle = (low + high) / 2;
+
+        if (sampleBezier(A, { x: A.x, y: topY - middle }, { x: B.x, y: topY - middle }, B, 96).minY >= safeTop) {
+          low = middle;
+        } else {
+          high = middle;
+        }
       }
 
-      const share = clamp(depth / dropToB, 0, 1);
-
-      return topHead + depth * (1 + TRAJECTORY_FALL_BOOST * share * share * (3 - 2 * share));
+      plan = build(Math.max(low, BEZIER_MIN_LIFT));
     }
 
-    function unitSpeed(height, falling) {
-      return Math.sqrt(2 * Math.max(unitHead(height, falling), 1e-6));
-    }
+    const points = plan.sampled.points;
+    const length = Math.max(plan.sampled.length, 1e-6);
+    const duration = clamp(length / speed, MAIN_PATH_MIN_DURATION, MAIN_PATH_MAX_DURATION); // seconds
+    const apex = copyPoint(points[plan.sampled.apexIndex]);
 
-    const arrival = [0];
-    const distance = [0];
-    let length = 0;
-    let previousSpeed = unitSpeed(A.y - points[0].y, false);
-
-    for (let index = 1; index < points.length; index += 1) {
-      const segment = Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
-      const speed = unitSpeed(A.y - points[index].y, index > apexIndex);
-
-      // constant acceleration inside a 2 px piece: time = distance / mean speed (exact, also when the speed starts from 0 at the top of a lob)
-      const unitTime = segment > 0 ? (2 * segment) / Math.max(previousSpeed + speed, 1e-6) : 0;
-
-      previousSpeed = speed;
-      length += segment;
-      distance.push(length);
-      arrival.push(arrival[index - 1] + unitTime);
-    }
-
-    const totalUnit = arrival[arrival.length - 1];
-    const duration = clamp(length / averageSpeed, TRAJECTORY_MIN_DURATION, TRAJECTORY_MAX_DURATION); // seconds
-    const scale = duration / totalUnit; // seconds per unit time (gravity = 1 / scale^2)
-
-    function pointAt(seconds) {
-      if (seconds >= duration) {
-        return { x: F.x, y: F.y };
-      }
-
-      if (seconds <= 0) {
+    function pointAtDistance(distance) {
+      if (distance <= 0) {
         return { x: A.x, y: A.y };
       }
 
-      const unitTime = seconds / scale;
-      let low = 0;
-      let high = arrival.length - 1;
+      if (distance >= length) {
+        return { x: B.x, y: B.y };
+      }
+
+      let low = 1;
+      let high = points.length - 1;
 
       while (low < high) {
         const middle = (low + high) >> 1;
 
-        if (arrival[middle] < unitTime) {
+        if (points[middle].d < distance) {
           low = middle + 1;
         } else {
           high = middle;
         }
       }
 
-      const after = Math.max(low, 1);
-      const span = arrival[after] - arrival[after - 1];
-      const fraction = span > 1e-12 ? (unitTime - arrival[after - 1]) / span : 0;
+      const before = points[low - 1];
+      const after = points[low];
+      const span = after.d - before.d;
+      const fraction = span > 1e-9 ? (distance - before.d) / span : 0;
 
-      return {
-        x: mix(points[after - 1].x, points[after].x, fraction),
-        y: mix(points[after - 1].y, points[after].y, fraction)
-      };
-    }
-
-    // analytic speed (px/s) from the height - used by the debug output and the tests
-    function speedAt(seconds) {
-      return unitSpeed(A.y - pointAt(seconds).y, seconds > arrival[apexIndex] * scale) / scale;
+      return { x: mix(before.x, after.x, fraction), y: mix(before.y, after.y, fraction) };
     }
 
     return {
-      mode: "arc",
+      mode: "bezier",
       duration: duration,
-      pointAt: pointAt,
-      speedAt: speedAt,
       length: length,
-      averageSpeed: length / duration,
-      launchSpeed: unitSpeed(0, false) / scale,
-      landingSpeed: unitSpeed(A.y - F.y, true) / scale,
-      gravity: 1 / (scale * scale), // gravity on the way up; on the way down the pull grows smoothly (see TRAJECTORY_FALL_BOOST)
-      fallBoost: TRAJECTORY_FALL_BOOST,
-      times: { D: arrival[enterIndex] * scale, apex: arrival[apexIndex] * scale, E: arrival[exitIndex] * scale },
-      safeTop: safeTop,
-      geometry: {
-        A: copyPoint(A),
-        D: { x: A.x, y: guideY },
-        C: { x: (A.x + F.x) / 2, y: guideY - rise },
-        E: { x: F.x, y: guideY },
-        F: copyPoint(F),
-        guideY: guideY,
-        lift: lift,
-        rise: rise,
-        fullRise: fullRise,
-        halfSpan: halfSpan,
-        topY: topY
+      speed: length / duration,
+      pointAt: function (seconds) {
+        return pointAtDistance((clamp(seconds, 0, duration) / duration) * length);
+      },
+      progressAt: function (seconds) {
+        return clamp(seconds / duration, 0, 1);
+      },
+      scrollProgressAt: function (seconds) {
+        const progress = clamp(seconds / duration, 0, 1);
+
+        return SCROLL_PROGRESS_MODE === "linear" ? progress : smootherstep(progress);
+      },
+      samples: points,
+      apex: apex,
+      guides: [{ name: "P1", point: copyPoint(plan.P1), colour: "#1fa34a" }, { name: "P2", point: copyPoint(plan.P2), colour: "#11a5b8" }],
+      geometry: { A: copyPoint(A), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, wantedLift: wantedLift, topY: topY, safeTop: safeTop }
+    };
+  }
+
+  /* ---- phone main path: one big vertical bounce -------------------------------------------------------------------------------------
+   *   A -> apex (ease-out cubic: fast start, visibly slowing to ~0) -> a short hang (PHONE_APEX_HANG) -> B (ease-in cubic: starts slowly,
+   *   speeds up and hits B with momentum, then the first landing bounce takes over). x never changes (B.x = A.x).
+   *   The two legs get their own durations (the climb and the drop differ whenever A and B are at different heights).
+   * Scroll: smooth and monotonic, split at the same moments: it eases in and out during the climb, holds during the hang, eases in and out
+   * during the fall, and arrives exactly as the ball lands. */
+  function planPhoneBounce(A, B, phoneZ, safeTop) {
+    const topY = Math.min(A.y, B.y);
+    const wantedLift = clamp(phoneZ * PHONE_MAIN_LIFT_FACTOR, PHONE_MAIN_LIFT_MIN, PHONE_MAIN_LIFT_MAX);
+    const lift = Math.max(Math.min(wantedLift, topY - safeTop), PHONE_MAIN_LIFT_FLOOR);
+    const apex = { x: A.x, y: topY - lift };
+    const upDistance = Math.abs(A.y - apex.y);
+    const downDistance = Math.abs(B.y - apex.y);
+    const upMs = clamp(Math.sqrt(upDistance) * 48, 620, 880);
+    const hangMs = PHONE_APEX_HANG;
+    const downMs = clamp(Math.sqrt(downDistance) * 44, 620, 920);
+    const totalMs = upMs + hangMs + downMs;
+    const upShare = (upDistance + 1e-6) / (upDistance + downDistance + 2e-6); // share of the scroll done on the way up
+    const samples = [];
+
+    function pointAtMs(ms) {
+      if (ms <= 0) {
+        return { x: A.x, y: A.y };
       }
+
+      if (ms < upMs) {
+        return { x: A.x, y: mix(A.y, apex.y, easeOutCubic(ms / upMs)) };
+      }
+
+      if (ms < upMs + hangMs) {
+        return { x: A.x, y: apex.y };
+      }
+
+      if (ms < totalMs) {
+        const t = (ms - upMs - hangMs) / downMs;
+
+        return { x: A.x, y: mix(apex.y, B.y, t * t * t) };
+      }
+
+      return { x: A.x, y: B.y };
+    }
+
+    for (let index = 0; index <= 240; index += 1) {
+      const point = pointAtMs((index / 240) * totalMs);
+
+      samples.push({ x: point.x, y: point.y });
+    }
+
+    return {
+      mode: "phone-bounce",
+      duration: totalMs / 1000,
+      length: upDistance + downDistance,
+      speed: (upDistance + downDistance) / (totalMs / 1000),
+      pointAt: function (seconds) {
+        return pointAtMs(seconds * 1000);
+      },
+      progressAt: function (seconds) {
+        return clamp((seconds * 1000) / totalMs, 0, 1);
+      },
+      scrollProgressAt: function (seconds) {
+        const ms = seconds * 1000;
+
+        if (ms <= upMs) {
+          return upShare * smootherstep(ms / upMs);
+        }
+
+        if (ms <= upMs + hangMs) {
+          return upShare;
+        }
+
+        return upShare + (1 - upShare) * smootherstep((ms - upMs - hangMs) / downMs);
+      },
+      samples: samples,
+      apex: copyPoint(apex),
+      guides: [],
+      phoneX: A.x,
+      geometry: { A: copyPoint(A), B: copyPoint(B), apex: copyPoint(apex), lift: lift, wantedLift: wantedLift, upMs: upMs, hangMs: hangMs, downMs: downMs, safeTop: safeTop }
     };
   }
 
   function bouncePoint(base, height, p) {
     const q = clamp(p, 0, 1);
     return { x: base.x, y: base.y - 4 * height * q * (1 - q) };
+  }
+
+  /* ------------------------------------------------------------------ trajectory debug overlay (off unless asked for) */
+
+  function trajectoryDebugRequested() {
+    if (DEBUG_NAV_TRAJECTORY_OVERLAY) {
+      return true;
+    }
+
+    try {
+      return /(?:^|[?&])navdebug=1(?:&|$)/.test(window.location.search);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /* Draws what really happens: the blue line is the sampled path the animation uses, the red line is the ball's rendered centre (read back from
+   * the element every frame, so any stray transform or scroll error shows up as a gap between the two). Fixed to the viewport, never takes
+   * pointer events. */
+  function createTrajectoryDebug(ball) {
+    const canvas = document.createElement("canvas");
+    const panel = document.createElement("pre");
+    const context = canvas.getContext("2d");
+    let trip = null;
+
+    canvas.setAttribute("aria-hidden", "true");
+    canvas.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483646";
+    panel.setAttribute("aria-hidden", "true");
+    panel.style.cssText = "position:fixed;top:8px;right:8px;margin:0;padding:8px 10px;max-width:46vw;pointer-events:none;z-index:2147483647;" +
+      "background:rgba(255,255,255,0.92);color:#111;border:1px solid #bbb;border-radius:6px;font:10.5px/1.45 ui-monospace,Consolas,monospace;white-space:pre-wrap";
+    document.body.appendChild(canvas);
+    document.body.appendChild(panel);
+
+    function fit() {
+      const ratio = window.devicePixelRatio || 1;
+
+      canvas.width = Math.round(window.innerWidth * ratio);
+      canvas.height = Math.round(window.innerHeight * ratio);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function fmt(point) {
+      return point ? "(" + Math.round(point.x * 10) / 10 + ", " + Math.round(point.y * 10) / 10 + ")" : "-";
+    }
+
+    function dot(point, colour, radius) {
+      context.fillStyle = colour;
+      context.beginPath();
+      context.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    function ring(point, colour, radius) {
+      context.strokeStyle = colour;
+      context.lineWidth = 2;
+      context.beginPath();
+      context.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      context.stroke();
+    }
+
+    function label(point, text, colour) {
+      context.fillStyle = colour;
+      context.font = "11px ui-monospace, Consolas, monospace";
+      context.fillText(text, point.x + 8, point.y - 8);
+    }
+
+    function draw() {
+      context.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      if (!trip) {
+        return;
+      }
+
+      if (trip.isPhone) {
+        context.save();
+        context.strokeStyle = "#7ed321";
+        context.setLineDash([6, 6]);
+        context.lineWidth = 1.5;
+        context.beginPath();
+        context.moveTo(trip.A.x, 0);
+        context.lineTo(trip.A.x, window.innerHeight);
+        context.stroke();
+        context.restore();
+      }
+
+      if (trip.path) {
+        context.strokeStyle = "#1e6bff";
+        context.lineWidth = 2;
+        context.beginPath();
+        trip.path.samples.forEach(function (point, index) {
+          if (index === 0) {
+            context.moveTo(point.x, point.y);
+          } else {
+            context.lineTo(point.x, point.y);
+          }
+        });
+        context.stroke();
+        trip.path.guides.forEach(function (guide) {
+          dot(guide.point, guide.colour, 4);
+          label(guide.point, guide.name, guide.colour);
+        });
+      }
+
+      if (trip.trace.length > 1) {
+        context.strokeStyle = "rgba(230, 20, 20, 0.85)";
+        context.lineWidth = 1.25;
+        context.beginPath();
+        trip.trace.forEach(function (point, index) {
+          if (index === 0) {
+            context.moveTo(point.x, point.y);
+          } else {
+            context.lineTo(point.x, point.y);
+          }
+        });
+        context.stroke();
+      }
+
+      ring(trip.A, "#ff8a00", 14);
+      dot(trip.A, "#ff8a00", 4);
+      label(trip.A, "A", "#ff8a00");
+
+      if (trip.B) {
+        ring(trip.B, "#e000c8", 14);
+        dot(trip.B, "#e000c8", 4);
+        label(trip.B, "B", "#e000c8");
+      }
+
+      if (trip.path) {
+        dot(trip.path.apex, "#e01010", 5);
+        label(trip.path.apex, "apex", "#e01010");
+      }
+    }
+
+    function writePanel() {
+      if (!trip) {
+        panel.textContent = "nav ball debug: waiting for a trip";
+        return;
+      }
+
+      const lines = [
+        "device       " + (trip.isPhone ? "phone" : "desktop / tablet") + "  " + window.innerWidth + " x " + window.innerHeight,
+        "state        " + (ball.dataset.ballState || "-") + "  /  " + (ball.dataset.ballPhase || "-"),
+        "path mode    " + (trip.path ? trip.path.mode : "(after prep bounces)"),
+        "A            " + fmt(trip.A),
+        "B            " + fmt(trip.B),
+        "apex         " + (trip.path ? fmt(trip.path.apex) : "-")
+      ];
+
+      if (trip.path && trip.path.guides.length) {
+        lines.push("guides       " + trip.path.guides.map(function (guide) {
+          return guide.name + " " + fmt(guide.point);
+        }).join("  "));
+      }
+
+      lines.push(
+        "scroll       start " + Math.round(trip.scrollStart) + "  target " + (trip.scrollTarget == null ? "-" : Math.round(trip.scrollTarget)) + "  now " + Math.round(window.scrollY),
+        "progress     " + (Math.round(trip.progress * 1000) / 10) + " %",
+        "path length  " + (trip.path ? Math.round(trip.path.length) + " px, " + Math.round(trip.path.duration * 1000) + " ms" : "-"),
+        "ball speed   " + Math.round(trip.speed) + " px/s" + (trip.path ? "  (planned " + Math.round(trip.path.speed) + ")" : ""),
+        "render gap   " + (Math.round(trip.maxGap * 100) / 100) + " px (largest red-to-path distance in the main path)",
+        "scroll moved in prep bounces     " + (trip.flags.scrollMovedDuringPrep ? "YES" : "no"),
+        "scroll moved in landing bounces  " + (trip.flags.scrollMovedDuringLanding ? "YES" : "no"),
+        "prep bases equal                 " + (trip.prepDrift > 0.5 ? "NO (" + trip.prepDrift.toFixed(2) + " px)" : "yes"),
+        "landing bases equal              " + (trip.landDrift > 0.5 ? "NO (" + trip.landDrift.toFixed(2) + " px)" : "yes")
+      );
+
+      if (trip.isPhone) {
+        lines.push("phone x drift                    " + (trip.phoneDrift > 0.5 ? "YES (" + trip.phoneDrift.toFixed(2) + " px)" : "no"));
+      }
+
+      panel.textContent = lines.join("\n");
+    }
+
+    fit();
+    window.addEventListener("resize", function () {
+      fit();
+      draw();
+    });
+    writePanel();
+
+    return {
+      beginTrip: function (A, info) {
+        trip = {
+          A: copyPoint(A),
+          B: null,
+          path: null,
+          isPhone: info.isPhone,
+          scrollStart: info.scrollStart,
+          scrollTarget: null,
+          trace: [],
+          progress: 0,
+          speed: 0,
+          maxGap: 0,
+          prepDrift: 0,
+          landDrift: 0,
+          phoneDrift: 0,
+          flags: info.flags,
+          last: null
+        };
+        draw();
+        writePanel();
+      },
+      setPath: function (path, A, B, info) {
+        if (!trip) {
+          return;
+        }
+
+        trip.path = path;
+        trip.B = copyPoint(B);
+        trip.scrollTarget = info.scrollTarget;
+        draw();
+        writePanel();
+      },
+      frame: function (phase, progress, now) {
+        if (!trip) {
+          return;
+        }
+
+        const rect = ball.getBoundingClientRect();
+        const centre = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+
+        if (trip.last && now > trip.last.now) {
+          trip.speed = Math.hypot(centre.x - trip.last.x, centre.y - trip.last.y) / ((now - trip.last.now) / 1000);
+        }
+
+        trip.last = { x: centre.x, y: centre.y, now: now };
+        trip.trace.push(centre);
+
+        if (phase === PHASE.MAIN) {
+          trip.progress = progress;
+
+          if (trip.path) {
+            const samples = trip.path.samples;
+            let nearest = Infinity;
+
+            for (let index = 1; index < samples.length; index += 1) {
+              const a = samples[index - 1];
+              const b = samples[index];
+              const lengthSq = (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y);
+              const u = lengthSq > 1e-9 ? clamp(((centre.x - a.x) * (b.x - a.x) + (centre.y - a.y) * (b.y - a.y)) / lengthSq, 0, 1) : 0;
+
+              nearest = Math.min(nearest, Math.hypot(a.x + (b.x - a.x) * u - centre.x, a.y + (b.y - a.y) * u - centre.y));
+            }
+
+            trip.maxGap = Math.max(trip.maxGap, nearest);
+          }
+        }
+
+        if (phase === PHASE.PREP1 || phase === PHASE.PREP2 || phase === PHASE.PREP3) {
+          trip.prepDrift = Math.max(trip.prepDrift, Math.abs(centre.x - trip.A.x));
+        }
+
+        if ((phase === PHASE.LAND1 || phase === PHASE.LAND2 || phase === PHASE.LAND3) && trip.B) {
+          trip.landDrift = Math.max(trip.landDrift, Math.abs(centre.x - trip.B.x));
+        }
+
+        if (trip.isPhone && phase !== PHASE.ROLL) {
+          trip.phoneDrift = Math.max(trip.phoneDrift, Math.abs(centre.x - trip.A.x));
+
+          if (trip.phoneDrift > 0.5 && !trip.warnedDrift) {
+            trip.warnedDrift = true;
+            console.warn("nav ball debug: phone ball moved sideways before the roll-away", trip.phoneDrift);
+          }
+        }
+
+        draw();
+        writePanel();
+      }
+    };
   }
 
   /* ------------------------------------------------------------------ init */
@@ -455,6 +723,7 @@
       return;
     }
 
+    const trajectoryDebug = trajectoryDebugRequested() ? createTrajectoryDebug(ball) : null;
     const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
     const coarsePointer = window.matchMedia("(pointer: coarse)");
     const mobileViewport = window.matchMedia("(max-width: 767px)");
@@ -478,6 +747,7 @@
     let ballFrames = [];
     let ballTimers = [];
     let scrollLockActive = false;
+    let activeTrip = null; // { targetId, scrollTarget, width } while a trip runs (used to recover cleanly from a resize mid-trip)
 
     Array.prototype.slice.call(document.querySelectorAll("[data-travel-ball]")).forEach(function (travelBall, index) {
       if (index > 0) {
@@ -801,6 +1071,7 @@
     }
 
     function resetBallState(finalState) {
+      activeTrip = null;
       cancelBallAnimation();
       hideTravelBallImmediately();
       ballLabel.textContent = "";
@@ -933,7 +1204,7 @@
           return;
         }
 
-        maskParts.drawLine.style.transition = "stroke-dashoffset " + duration + "ms cubic-bezier(0.22, 1, 0.36, 1)";
+        maskParts.drawLine.style.transition = "stroke-dashoffset " + duration + "ms " + (staged ? PHONE_MENU_SPOKE_EASE : "cubic-bezier(0.22, 1, 0.36, 1)");
         maskParts.drawLine.style.transitionDelay = reducedMotion.matches ? "0ms" : staged ? index * PHONE_MENU_SPOKE_STAGGER + "ms" : 520 + index * 38 + "ms";
         maskParts.drawLine.style.strokeDashoffset = "0";
       });
@@ -1191,9 +1462,41 @@
       };
     }
 
+    /* "home": the ball comes down onto the floor line the girl walks on (the landing scene's ground, world y = stage.groundY),
+     * about a quarter of the way across, with the page at the very top; it then rolls away to the left along that floor. Falls back to the band's ground proportion (700 / 780). */
+    function landingFloor() {
+      const media = document.querySelector(".landing-media") || document.getElementById("landing") || document.body;
+      const scrollY = currentScrollY();
+      const girl = window.__landingGirl;
+      const stage = girl && girl.stage;
+      const canvas = stage && stage.canvas;
+      let groundY = NaN;
+
+      if (canvas && canvas.isConnected && stage.scale > 0 && Number.isFinite(stage.offsetY)) {
+        groundY = canvas.getBoundingClientRect().top + stage.offsetY + (stage.groundY !== undefined ? stage.groundY : 700) * stage.scale;
+      }
+
+      if (!Number.isFinite(groundY)) {
+        const rect = media.getBoundingClientRect();
+
+        groundY = rect.top + rect.height * (700 / 780);
+      }
+
+      return {
+        element: media,
+        section: "landing",
+        side: "center",
+        kind: "landing-floor",
+        x: window.innerWidth * 0.26,
+        y: groundY + scrollY,
+        width: window.innerWidth,
+        height: 1
+      };
+    }
+
     function targetPlatformFor(section) {
       if (section === "landing") {
-        return platformFromElement(document.querySelector(".landing-media") || document.getElementById("landing"), "landing", "center");
+        return landingFloor();
       }
 
       if (section === "about") {
@@ -1238,6 +1541,10 @@
       const preferredLandingY = Math.max(window.innerHeight * LANDING_SCREEN_FRACTION, minLandingY + 16);
       const desiredLandingY = clamp(preferredLandingY, bounds.minY, Math.min(bounds.maxY, Math.max(window.innerHeight * LANDING_SCREEN_FRACTION_MAX, minLandingY + 16)));
 
+      if (endPoint.kind === "landing-floor") {
+        return 0;
+      }
+
       if (endPoint.kind === "floor" && endPoint.section === "contact") {
         return sectionTopScroll("contact");
       }
@@ -1275,6 +1582,7 @@
         console.table({ stage: "plus-reappear-in-place", targetId: targetId, travelBallHidden: true, plusState: STATES.PLUS_RESTORED });
       }
 
+      activeTrip = null;
       hideTravelBallForPlusRestore();
       nav.classList.add("is-plus-restoring");
       document.documentElement.classList.remove("is-ball-animating");
@@ -1288,149 +1596,6 @@
         setState(STATES.PLUS_IDLE);
         updateCurrentSection(detectCurrentSection(), true);
       }, restoreDuration, token);
-    }
-
-    function morphBallIntoPlus(token, options) {
-      const restoreDuration = scaleMotionDuration(options && typeof options.duration === "number" ? options.duration : 260);
-
-      if (!isCurrentAnimation(token)) {
-        return;
-      }
-
-      setState(STATES.PLUS_RESTORED);
-      ball.style.setProperty("--restore-duration", restoreDuration + "ms");
-      ball.style.removeProperty("--ball-scale-x"); // let the is-restoring class shrink the ball into the plus
-      ball.style.removeProperty("--ball-scale-y");
-      ball.classList.add("is-restoring");
-      nav.classList.add("is-ball-closing");
-      clearChoiceState(STATES.PLUS_RESTORED);
-      document.documentElement.classList.remove("is-ball-animating");
-      unlockUserScroll();
-
-      resetTimer = setBallTimeout(function () {
-        resetBallState(STATES.PLUS_IDLE);
-        setState(STATES.PLUS_IDLE);
-        updateCurrentSection(detectCurrentSection(), true);
-      }, reducedMotion.matches ? 1 : restoreDuration, token);
-    }
-
-    /* -------------------------------------------------------------- home: three prep bounces, arc to the plus, ball becomes the plus */
-
-    function bounceLift(raw, height) {
-      const safeRaw = clamp(raw, 0, 1);
-      const apexAt = 0.43;
-
-      if (safeRaw <= apexAt) {
-        return Math.sin((safeRaw / apexAt) * (Math.PI / 2)) * height;
-      }
-
-      return Math.cos(((safeRaw - apexAt) / (1 - apexAt)) * (Math.PI / 2)) * height;
-    }
-
-    function runHomeReturnMotion(startScreen, targetId, token) {
-      const startScroll = currentScrollY();
-      const plus = readPlusGeometry();
-      const endScreen = { x: plus.measuredPlusCentreX, y: plus.measuredPlusCentreY };
-      const dx = endScreen.x - startScreen.x;
-      const prepHeights = [clamp(window.innerHeight * 0.034, 24, 34)];
-      prepHeights.push(clamp(prepHeights[0] * 1.7, 40, 58));
-      prepHeights.push(clamp(prepHeights[1] * 1.34, 52, 76));
-      const baseDurations = [clamp(window.innerHeight * 0.52, 380, 440)];
-      baseDurations.push(clamp(baseDurations[0] + 80, 420, 540));
-      baseDurations.push(clamp(baseDurations[1] + 70, 460, 620));
-      const prepDurations = baseDurations.map(scaleMotionDuration);
-      const previousArc = scaleMotionDuration(clamp(Math.abs(startScreen.y - endScreen.y) * 0.78 + Math.abs(dx) * 0.28 + 900, 1300, 2200) * 2.1);
-      const leadProgress = 0.65;
-      const leadDuration = previousArc * leadProgress;
-      const finalDuration = previousArc * (1 - leadProgress) * 1.6;
-      const arcDuration = leadDuration + finalDuration;
-      const prep1End = prepDurations[0];
-      const prep2End = prep1End + prepDurations[1];
-      const prep3End = prep2End + prepDurations[2];
-      const arcEnd = prep3End + arcDuration;
-      const apexY = clamp(window.innerHeight * 0.12, 72, 128);
-      const launchLift = clamp(window.innerHeight * 0.42, 260, 480);
-      const p0 = startScreen;
-      const p1 = { x: startScreen.x + dx * 0.08, y: Math.min(startScreen.y - launchLift, apexY + 120) };
-      const p2 = { x: window.innerWidth / 2, y: apexY };
-      const p3 = endScreen;
-      const cleanUrl = window.location.pathname + window.location.search;
-      let startTime = 0;
-
-      if (!isCurrentAnimation(token)) {
-        return;
-      }
-
-      document.documentElement.classList.add("is-ball-animating");
-
-      if (reducedMotion.matches) {
-        scrollInstantly(0);
-        setBallPosition(endScreen.x, endScreen.y);
-        updateCurrentSection("landing", true);
-        morphBallIntoPlus(token, {});
-        return;
-      }
-
-      ball.classList.remove("is-forming", "is-landed", "is-ready", "is-landing", "is-contact-landing");
-      ball.classList.add("is-visible", "is-moving");
-      resetTimelineShadow();
-
-      function frame(now) {
-        if (!isCurrentAnimation(token)) {
-          return;
-        }
-
-        if (!startTime) {
-          startTime = now;
-        }
-
-        const elapsed = clamp(now - startTime, 0, arcEnd);
-        let raw;
-
-        if (elapsed < prep3End) {
-          const index = elapsed < prep1End ? 0 : elapsed < prep2End ? 1 : 2;
-          const phaseStart = index === 0 ? 0 : index === 1 ? prep1End : prep2End;
-
-          raw = (elapsed - phaseStart) / prepDurations[index];
-          setBallPhase([PHASE.PREP1, PHASE.PREP2, PHASE.PREP3][index]);
-          setState(STATES.BALL_TAKEOFF);
-          ball.classList.add("is-launching", "is-lifting");
-          setBallPosition(startScreen.x, startScreen.y - bounceLift(raw, prepHeights[index]));
-        } else if (elapsed < arcEnd) {
-          const arcElapsed = elapsed - prep3End;
-
-          if (arcElapsed < leadDuration) {
-            raw = (arcElapsed / leadDuration) * leadProgress;
-          } else {
-            raw = leadProgress + (1 - leadProgress) * easeOutCubic((arcElapsed - leadDuration) / finalDuration);
-          }
-
-          const point = cubicBezierPoint(p0, p1, p2, p3, raw);
-          setBallPhase(PHASE.MAIN);
-          setState(STATES.BALL_FLYING);
-          ball.classList.remove("is-launching", "is-lifting");
-          ball.classList.add("is-flying");
-          scrollInstantly(mix(startScroll, 0, easeInOutCubic(raw)));
-          setBallPosition(point.x, point.y);
-        } else {
-          scrollInstantly(0);
-          setBallPosition(endScreen.x, endScreen.y);
-          resetTimelineShadow();
-          updateCurrentSection("landing", true);
-
-          if (window.history && window.history.replaceState) {
-            window.history.replaceState(null, "", cleanUrl);
-          }
-
-          morphBallIntoPlus(token, { duration: 680 });
-          return;
-        }
-
-        setTimelineShadow(0, 0.72);
-        requestBallFrame(frame, token);
-      }
-
-      requestBallFrame(frame, token);
     }
 
     /* -------------------------------------------------------------- the trip: prep bounces -> main path (+ scroll) -> landing bounces -> roll */
@@ -1452,7 +1617,7 @@
       const scrollStart = currentScrollY(); // captured once; frozen until the main path starts
       const debugInfo = {
         deviceType: isPhone ? "phone" : "desktop/tablet",
-        pathMode: isPhone ? "phone-vertical" : NAV_BALL_PATH_MODE,
+        pathMode: isPhone ? "phone-bounce" : NAV_BALL_PATH_MODE,
         A0: copyPoint(A0),
         z: z,
         prepBases: [],
@@ -1498,6 +1663,11 @@
       ball.classList.remove("is-forming", "is-landed", "is-ready", "is-landing", "is-contact-landing");
       ball.classList.add("is-visible", "is-moving");
       resetTimelineShadow();
+      activeTrip = { targetId: targetId, scrollTarget: null, width: window.innerWidth };
+
+      if (trajectoryDebug) {
+        trajectoryDebug.beginTrip(A0, { isPhone: isPhone, scrollStart: scrollStart, flags: debugInfo });
+      }
 
       function freezeScrollAt(y, flagName) {
         if (Math.abs(currentScrollY() - y) > 0.5) {
@@ -1518,14 +1688,19 @@
 
         const safeTop = visiblePathTopMargin(bounds);
 
-        path = planTrajectory(A0, F, z, safeTop, isPhone ? PHONE_PATH_AVERAGE_SPEED : MAIN_PATH_AVERAGE_SPEED);
+        path = isPhone ? planPhoneBounce(A0, F, z, safeTop) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED);
         mainMs = Math.max(1, path.duration * 1000);
         rollStartX = F.x;
         rollEndX = rollDirection < 0 ? -radius - 18 : window.innerWidth + radius + 18;
+        if (activeTrip) {
+          activeTrip.scrollTarget = scrollTarget;
+        }
 
-        if (DEBUG_NAV_BALL_SEQUENCE || DEBUG_NAV_BALL_SPLINE || DEBUG_PHONE_NAV_BALL) {
-          const geometry = path.geometry || {};
+        if (trajectoryDebug) {
+          trajectoryDebug.setPath(path, A0, F, { scrollStart: scrollStart, scrollTarget: scrollTarget, isPhone: isPhone });
+        }
 
+        if (DEBUG_NAV_BALL_SEQUENCE || DEBUG_PHONE_NAV_BALL) {
           console.table({
             device: debugInfo.deviceType,
             pathMode: path.mode,
@@ -1537,19 +1712,13 @@
             prepScroll: JSON.stringify(debugInfo.prepScroll.map(round)),
             scrollStart: round(scrollStart),
             scrollTarget: round(scrollTarget),
-            F: JSON.stringify(F),
+            B: JSON.stringify(F),
+            apex: JSON.stringify(path.apex),
             flightSeconds: round(path.duration),
             pathTotalLength: round(path.length),
-            averageSpeed: round(path.averageSpeed),
-            launchSpeed: round(path.launchSpeed),
-            landingSpeed: round(path.landingSpeed),
-            gravity: round(path.gravity),
+            speed: round(path.speed),
             safeTop: round(safeTop)
           });
-
-          if (DEBUG_NAV_BALL_SPLINE && geometry.E) {
-            console.debug("nav ball trajectory points", { A: geometry.A, D: geometry.D, C: geometry.C, E: geometry.E, B: geometry.F, guideY: geometry.guideY, lift: geometry.lift, rise: geometry.rise, halfSpan: geometry.halfSpan, timesSeconds: path.times });
-          }
         }
 
         if (debugInfo.scrollMovedDuringPrep) {
@@ -1656,7 +1825,7 @@
         });
         const phoneLateral = isPhone && debugInfo.lateral.max - debugInfo.lateral.min > 0.5;
 
-        if (DEBUG_NAV_BALL_SEQUENCE || DEBUG_NAV_BALL_SPLINE || DEBUG_PHONE_NAV_BALL) {
+        if (DEBUG_NAV_BALL_SEQUENCE || DEBUG_PHONE_NAV_BALL) {
           console.table({
             stage: "after-landing-bounces",
             targetId: targetId,
@@ -1708,25 +1877,23 @@
 
           case PHASE.MAIN: {
             const flightSeconds = Math.min(elapsed / 1000, path.duration);
-            const progress = path.duration > 0 ? flightSeconds / path.duration : 1;
-            const scrollProgress = SCROLL_PROGRESS_MODE === "linear" ? progress : smootherstep(progress);
+            const progress = path.progressAt(flightSeconds);
+            const scrollProgress = path.scrollProgressAt(flightSeconds);
 
             point = path.pointAt(flightSeconds);
             debugInfo.lastPathProgress = progress;
             debugInfo.lastScrollProgress = scrollProgress;
             scrollInstantly(mix(scrollStart, scrollTarget, scrollProgress));
             setBallPosition(point.x, point.y);
-            const stretch = smootherstep((progress - 0.6) / 0.2); // eases in over the last 40%, no pop
+
+            // a slight vertical stretch only while the ball is really dropping into B (never sideways, never on the way up)
+            const ahead = path.pointAt(Math.min(flightSeconds + 0.02, path.duration));
+            const step = Math.hypot(ahead.x - point.x, ahead.y - point.y);
+            const falling = step > 1e-6 ? Math.max(0, (ahead.y - point.y) / step) : 1;
+            const stretch = smootherstep((progress - 0.6) / 0.3) * falling * falling;
 
             setBallScale(1 - 0.015 * stretch, 1 + 0.025 * stretch);
-
-            if (endPoint.kind === "floor") {
-              setTimelineShadow(0, 0.72);
-            } else {
-              const approach = clamp((progress - 0.78) / 0.22, 0, 1);
-
-              setTimelineShadow(approach <= 0 ? 0 : mix(0.06, 0.34, approach), approach <= 0 ? 0.72 : mix(0.72, 1.18, approach));
-            }
+            setTimelineShadow(0, 0.72); // no shadow travels with the ball through the air
 
             if (previousSample && elapsed > previousSample.elapsed) {
               // phase-relative time (exact at the phase-end render), so the debug speed matches the real speed profile
@@ -1756,13 +1923,13 @@
             if (endPoint.kind === "floor") {
               setTimelineShadow(0, 0.72);
             } else {
-              const lift = Math.sin(Math.PI * clamp(raw, 0, 1));
+              // the shadow hangs under the ball, so it only shows while the ball touches the platform (it would float in the air otherwise)
+              const q = clamp(raw, 0, 1);
+              const contact = Math.pow(1 - 4 * q * (1 - q), 6);
               const compressedOpacity = [0.42, 0.32, 0.24][index];
-              const airborneOpacity = [0.1, 0.16, 0.2][index];
               const compressedScale = [1.32, 1.14, 1.04][index];
-              const airborneScale = [0.62, 0.8, 0.92][index];
 
-              setTimelineShadow(mix(compressedOpacity, airborneOpacity, lift), mix(compressedScale, airborneScale, lift));
+              setTimelineShadow(compressedOpacity * contact, mix(0.72, compressedScale, contact));
             }
 
             break;
@@ -1824,6 +1991,11 @@
         }
 
         renderPhase(phase, now - phaseStart, now);
+
+        if (trajectoryDebug) {
+          trajectoryDebug.frame(phase, debugInfo.lastPathProgress, now);
+        }
+
         requestBallFrame(frame, token);
       }
 
@@ -1831,12 +2003,7 @@
     }
 
     function flyBall(startPoint, targetId, token) {
-      if (targetId === "landing" && HOME_TRIP_CLOSES_INTO_PLUS) {
-        runHomeReturnMotion(startPoint, targetId, token);
-        return;
-      }
-
-      runTrip(startPoint, targetId, token);
+      runTrip(startPoint, targetId, token); // every trip, "home" included, ends with the roll-away and the plus fading in in place
     }
 
     /* -------------------------------------------------------------- choosing a destination: circle -> ball */
@@ -2021,7 +2188,31 @@
 
     window.addEventListener("scroll", queueCurrentSectionUpdate, { passive: true });
 
+    /* The window changed width mid-trip (rotation, window resize): the planned path no longer fits the screen, so instead of carrying on with
+     * stale coordinates the trip ends cleanly - the page goes to where the trip was heading and the plus comes back in place. Height-only
+     * changes (a phone's address bar showing / hiding) are ignored. */
+    function abortTripAfterResize() {
+      const trip = activeTrip;
+
+      resetBallState(STATES.PLUS_IDLE);
+      clearChoiceState(STATES.PLUS_IDLE);
+
+      if (trip && trip.targetId) {
+        scrollInstantly(trip.scrollTarget == null ? sectionTopScroll(trip.targetId) : Math.min(trip.scrollTarget, maxScrollY()));
+        updateCurrentSection(trip.targetId, true);
+      }
+
+      nav.classList.add("is-plus-restoring");
+      window.setTimeout(function () {
+        nav.classList.remove("is-plus-restoring");
+      }, reducedMotion.matches ? 1 : 420);
+    }
+
     window.addEventListener("resize", function () {
+      if (activeTrip && Math.abs(window.innerWidth - activeTrip.width) > 1) {
+        abortTripAfterResize();
+      }
+
       updateCurrentSection(detectCurrentSection(), true);
 
       if (isOpen) {
