@@ -83,6 +83,14 @@
     opacity 520ms var(--ease-standard);
 }
 
+/* project 02's picture files carry a small bright mark on their own left edge (about 3 px of the 1200 px thumbnail, 4 % down): enlarged
+   by a hair about its right edge, the mark falls just outside the frame (hover / focus scale it further, still about the right edge).
+   Re-exporting the pictures with a few px trimmed from the left would make this unnecessary. */
+.work-tile[data-project-trigger="project-02"] img {
+  transform: scale(1.008);
+  transform-origin: 100% 50%;
+}
+
 /* a tile whose picture is still arriving shows its quiet empty frame; the picture then fades in instead of popping in (scripts/main.js) */
 .work-tile img.is-loading {
   opacity: 0;
@@ -217,7 +225,7 @@
 
 [data-tiles="cantilever"] .work-tile {
   --lead: clamp(1.5rem, 3.6vw, 4.5rem);
-  --lead-gap: clamp(0.75rem, 1.4vw, 1.25rem);
+  --lead-gap: 0.6rem;
   width: clamp(320px, 52vw, 960px);
 }
 
@@ -232,7 +240,8 @@
   border-radius: var(--tip-r) 0 0 var(--tip-r);
 }
 
-/* the caption fills the empty half beside the slab, level with its underside; the hairline continues the underside from the tip to the text */
+/* the caption fills the empty half beside the slab, its last line (kind · year) level with the slab's underside; the hairline is a leader
+   from the slab's tip straight into that line, stopping just short of the text */
 [data-tiles="cantilever"] .work-caption {
   position: absolute;
   bottom: 0;
@@ -254,7 +263,8 @@
   content: "";
   position: absolute;
   left: 0;
-  bottom: 0;
+  /* the middle of the meta line (its line box is 1.55 x its font size tall and sits on the caption's bottom edge) */
+  bottom: calc(var(--text-xs) * 0.775);
   width: var(--lead);
   height: var(--line-thin);
   background: var(--hair);
