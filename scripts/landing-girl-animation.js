@@ -1817,7 +1817,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     runHsF: 75, runBhs: -12, runE: [[0, 0], [0.14, 0.05], [0.32, 0.2], [0.52, 0.5], [0.72, 0.75], [0.88, 0.924], [1, 1]], runR: 0.1, runZ: [[0.14, 55], [0.32, 122], [0.52, 112], [0.72, 78], [0.88, 46]], runZ1: -25,
     runB: [[0.14, -70], [0.32, -110], [0.52, -75], [0.72, -40], [0.88, -28]], runHeadLevel: 1,          // runHeadLevel 1 = the head stays level in the world while the torso leans          // (u 0.14: the trailing leg still stretched back = the flight 'stretch'; 0.32: heel kicked to the hip; 0.52: tucked; 0.72: knee high; 0.88: reaching, toes pointed)
     idleStance: 22.5, walkStance: 18.5, toeIdle: 26, toeWalk: 5, stanceL: 0, stanceR: 0, toeL: 0, toeR: 0,
-    waveBeta: 84, waveGamma: 142, waveAmp: 26, waveHz: 3.1,
+    waveAlpha: 22, waveBeta: 66, waveUp: 172, waveFwd: 0.32, waveAmp: 27, waveFlop: 20, waveHz: 2.7, waveBody: 1.6,          // hello wave: upper arm forward / out (deg), forearm angle from hanging (180 = straight up, < 180 leans out), its tilt toward us, swing amplitude, hand lag (deg), swing rate (Hz), the body's sway with it (deg)
     handOm: 30, handZeta: 0.5, handFollow: 0.55,          // round 11: hand follow-through spring (rad/s, damping ratio, how much of it is drawn)          // round 11: the hello wave (upper arm elevation, mean elbow angle, swing amplitude (deg), swing frequency (Hz))
     pelvisIdle: 244.5, bob: 2.5, walkAlpha0: -2, walkXoff: 0, walkLean: 2.5, walkYaw: 6,
     armBetaL: 19, armBetaR: 19, armAlphaL: 4, armAlphaR: 4, armGammaL: 10, armGammaR: 10, swingFwd: 17, swingBack: 17, gammaWalk0: 9, gammaWalk1: 14,
@@ -2002,6 +2002,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       startle: clamp(num(p.startle, 0), 0, 1), spread: clamp(num(p.spread, 0), 0, 1), poke: clamp(num(p.poke, 0), 0, 1), clutch: clamp(num(p.clutch, 0), 0, 1), shrug: clamp(num(p.shrug, 0), 0, 1), thinkT: num(p.thinkT, -1),
       reach: clamp(num(p.reach, 0), 0, 1),          // the right hand reaches down-forward (toward the nav console below her), index finger out
       wave: clamp(num(p.wave, 0), 0, 1),          // round 11: the right hand waves hello at the viewer (open hand, the forearm swings)
+      waveT: num(p.waveT, 0),          // beats: the wave's own clock (s; the side-to-side swing is sin(2 pi waveHz waveT), its size follows the wave envelope)
+      clasp: clamp(num(p.clasp, 0), 0, 1), burst: clamp(num(p.burst, 0), 0, 1), flutter: clamp(num(p.flutter, 0), 0, 1),          // beats ('so many ideas!'): hands clasped under the chin, arms flung open up and out, fingers fluttering
       wind: { x: num(w.x, 0), y: num(w.y, 0) }, t: num(p.t, 0),
     };
   }
@@ -2073,7 +2075,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var e1 = pulseT(tS, C.ideaT[0], 0.6, 0.5, 1.0) * calm, e2 = pulseT(tS, C.ideaT[1], 0.25, 0.85, 0.3) * calm, e3 = pulseT(tS, C.ideaT[2], 0.2, 0.15, 0.75) * calm, e4 = pulseT(tS, C.ideaT[3], 0.7, 0.8, 0.75) * calm;
     var emax = max(e1, e2, e3, e4), tap = pow(max(0, sin(TAU * 3.3 * (tS - C.ideaT[1]))), 2) * e2;
     S.e1 = e1; S.e3 = e3;
-    S.startle = P.startle; S.spread = P.spread; S.poke = P.poke; S.clutch = P.clutch; S.shrugX = P.shrug; S.reach = P.reach; S.wave = P.wave;          // round-10 performance fields (used by the arms / shoulders / the drawing)
+    S.startle = P.startle; S.spread = P.spread; S.poke = P.poke; S.clutch = P.clutch; S.shrugX = P.shrug; S.reach = P.reach; S.wave = P.wave;
+    // the hello wave's side-to-side swing (+1 = the hand out away from her head) and the hand's lag behind it (the fingers trail each swing: a soft, floppy, childlike wave); both grow with the envelope
+    var wvAmp = sstep(0.45, 1, P.wave), wvW = TAU * C.waveHz * P.waveT;
+    S.waveSw = wvAmp * sin(wvW); S.waveFl = wvAmp * cos(wvW);          // round-10 performance fields (used by the arms / shoulders / the drawing)
     var ib = C.idleBeat * idleA * (1 - 0.85 * emax), b1 = beat(t, 5.3, 1.9, 0.55, 1.15)[0] * ib, bs2 = beat(t, 7.7, 3.3, 0.35, 0.95), b2 = bs2[0] * ib, s2 = bs2[1], bs3 = beat(t, 9.1, 5.7, 0.22, 0.7), b3 = bs3[0] * ib, s3 = bs3[1], b4 = beat(t, 6.3, 2.6, 0.2, 0.55)[0] * ib, s4 = (floor(t / 6.3) & 1) ? -1 : 1;
     var shrug = b3;
     S.shrug = shrug; S.b1 = b1; S.b2 = b2; S.s2 = s2; S.b3 = b3; S.s3 = s3;
@@ -2081,7 +2086,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // ---- FEMININE STANDING POSE (a sweet, relaxed child's stance, only while she stands calmly): weight on one leg with a gentle hip shift and pelvis tilt, the other knee softly bent with the foot a little
     //      forward and turned out, shoulders counter-tilted (the support-side one a touch lower), a gentle S in the spine, a soft head tilt, one hand lightly holding the side of the skirt; the weight
     //      changes slowly (every femPeriod / 2 s) with smooth easing.  Blends in with the stop (idleA) and out for every reaction.
-    var femK = C.femWeight * idleA * (1 - min(1, 2.2 * max(fz, dzy, fl, bow, pk, air, P.wave, sstep(0, 0.45, abs(sq))))) * (1 - 0.6 * min(1, 2 * ld));          // (round 11: the squash term fades the stance in over ~0.3 s as a squash dies away; the old 3 x |squash| did it in ~0.1 s = the arms dropped in a snap after every hop)
+    var femK = C.femWeight * idleA * (1 - min(1, 2.2 * max(fz, dzy, fl, bow, pk, air, sstep(0, 0.45, abs(sq))))) * (1 - sstep(0, 0.6, P.wave)) * (1 - 0.6 * min(1, 2 * ld));          // (the wave lets go of the stance on a smooth curve: no corner as the hand comes down)          // (round 11: the squash term fades the stance in over ~0.3 s as a squash dies away; the old 3 x |squash| did it in ~0.1 s = the arms dropped in a snap after every hop)
     var wc = Math.tanh(2.2 * sin(TAU * t / C.femPeriod + 1.2)), fw = femK * wc;          // wc > 0: the weight is on her RIGHT leg (screen-left in the front view)
     S.femK = femK; S.fw = fw;
 
@@ -2219,7 +2224,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var pitchT = -(1 - run) * leanT - a * (1 - run) * rad(C.walkLean) - run * rad(C.runLean + C.runLeanDeg * (lean - C.runLean0)) + wsf * rad(1.5) + dzy * rad(5) * dS2 - absorb * rad(10) + ld * rad(6.5) - bow * rad(C.bowDeg) + rcA * rad(3) + a * (1 - run) * rad(C.spineAmp) * walkBobShape(2 * (ph - C.bobPh - C.spineLag));
     var yawPl = aw * rad(C.walkYaw) * cos(TAU * (ph - C.shLag)) * (1 - 0.5 * run);          // the shoulders follow the hips with a small lag (successive breaking of the joints)
     var twistRel = -C.shoulderCounter * yawPl - twistU * rad(C.twistDeg);          // twist > 0: the upper body turns toward the viewer (look back over the shoulder)
-    var rollT = wsh * rad(-4.5) - rad(C.femCounter) * fw - rad(6.5) * e1 - 0.07 * b2 * s2 - 0.04 * b3 * s3 + scr * rad(-5) - dzy * rad(7) * dS1;
+    var rollT = rad(C.waveBody) * S.waveSw - rad(2) * P.wave + wsh * rad(-4.5) - rad(C.femCounter) * fw - rad(6.5) * e1 - 0.07 * b2 * s2 - 0.04 * b3 * s3 + scr * rad(-5) - dzy * rad(7) * dS1;
     var comp = (1 - 0.07 * sqp + 0.2 * sqn) * stretch, wid = 1 + 0.07 * sqp - 0.02 * sqn;
     var nRows = TORSO_H.length;
     S.torsoF = new Array(nRows);
@@ -2330,9 +2335,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         alpha = lerp(alpha, rad(C.paw[0]), hunch * 0.9); gamma = lerp(gamma, rad(C.paw[1]), hunch * 0.9); beta = lerp(beta, rad(C.paw[2]), hunch * 0.8);          // paws: the forearms fold up, the hands come to the chest
       }
       if (S.pk > 0 && side === 1) { alpha = lerp(alpha, -rad(48), S.pk); gamma = lerp(gamma, rad(8), S.pk); }       // peek: the far arm hangs down loosely
-      if (S.wave > 0 && side === 1) {                  // hello: the upper arm out and up, the forearm swinging to and fro from the elbow (a quick shy wave)
-        var wvk = sstep(0, 1, S.wave);
-        alpha = lerp(alpha, rad(14), wvk); beta = lerp(beta, rad(C.waveBeta), wvk); gamma = lerp(gamma, rad(C.waveGamma) + rad(C.waveAmp) * sin(TAU * C.waveHz * P.t), wvk);
+      var wvU = 0, wvF = 0;
+      if (S.wave > 0 && side === 1) {                  // hello (a child waving at you): the elbow comes out to the side a little below the shoulder, the forearm stands up beside her face and swings LEFT-RIGHT
+        wvU = sstep(0, 0.75, S.wave); wvF = sstep(0.04, 1, S.wave); var wvB = sstep(0.35, 1, S.wave);          // (the hand comes up in front of her with the elbow forward and low, then the elbow opens out to the side; going down the elbow comes in first, then the hand drops)
+        alpha = lerp(alpha, rad(C.waveAlpha) + rad(34) * (1 - wvB), wvU); beta = lerp(beta, rad(C.waveBeta) - rad(5) * S.waveSw, wvB);          // (the elbow gives a little against each swing)
       }
       if (air > 0) {          // the arms fling up with the hop, easing in and out (no hard start)
         var airA = sstep(0, 1, air);
@@ -2344,15 +2350,22 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var Ssh = K.fApply(Fsh, -1.0, side * C.shoulderC, 0);
       if (run > 0) { var wFs = 0.5 + 0.5 * fw; Ssh[0] += run * (C.runShoulderFwd * wFs - C.runShoulderBack * (1 - wFs)); }   // run: the arm that swings back also has its shoulder twisted back (far shoulder)
       if (side === -1) Ssh[2] += 21 * sstep(0, 1, min(1, P.scratch));          // the scratching shoulder is hiked up
-      Ssh[2] += C.shDrop * S.yawS + 7 * S.hunchS + 5 * max(sq, 0) + 4 * P.scratch + C.shrugAmp * S.b3 * (side === S.s3 ? 1 : 0.15) + 2 * S.b1 + 2.5 * S.e1 * (side === 1 ? 1 : 0.3) + 3 * S.e3 + 3 * S.shrugX + 2 * S.startle;
+      Ssh[2] += C.shDrop * S.yawS + 7 * S.hunchS + 5 * max(sq, 0) + 4 * P.scratch + C.shrugAmp * S.b3 * (side === S.s3 ? 1 : 0.15) + 2 * S.b1 + 2.5 * S.e1 * (side === 1 ? 1 : 0.3) + 3 * S.e3 + 3 * S.shrugX + 2 * S.startle + (side === 1 ? 4 * wvU : 0);
       var ca = cos(alpha), sa = sin(alpha), cb = cos(beta), sb = sin(beta);
       var d1 = K.mVec(Rarm, sa * cb, side * sb, -ca * cb);
       var a2 = alpha + gamma, b2 = beta * C.foreBeta;
-      var d2 = K.mVec(Rarm, sin(a2) * cos(b2), side * sin(b2), -cos(a2) * cos(b2));
+      var d2 = K.mVec(Rarm, sin(a2) * cos(b2), side * sin(b2), -cos(a2) * cos(b2)), hdW = null;
+      if (wvU > 0) {          // the wave: forearm and open hand swing in the plane facing us (windshield-wiper about the elbow), palm to the viewer, fingers up; the hand trails each swing
+        var thF = lerp(rad(25), rad(C.waveUp) - rad(C.waveAmp) * S.waveSw, wvF), thH = thF + rad(C.waveFlop) * S.waveFl * wvF, wvP = sstep(0.55, 1, wvF);          // (on the way up / down the forearm folds up in front of her like a normal elbow bend, and only turns into the plane facing us at the top: no arm pointing out sideways)
+        var d2T = v3norm([C.waveFwd, sin(thF), -cos(thF)]), d2M = [sin(thF), 0.25 * sin(thF), -cos(thF)], d2L = v3lerp(d2M, d2T, wvP);
+        d2 = v3norm(v3lerp(d2, K.mVec(Rarm, d2L[0], side * d2L[1], d2L[2]), sstep(0, 0.6, S.wave)));
+        hdW = K.mVec(Rarm, 0.5 * C.waveFwd * sin(thH), side * sin(thH), -cos(thH));
+      }
       var E = v3mad(Ssh, d1, C.armU * S.ak), W = v3mad(E, d2, C.armF * S.ak);
       var arm = { side: side, S: Ssh, E: E, W: W, fw: fw, hd: v3norm(v3add(d2, K.mVec(Rarm, 0.16 + C.handLag * a * (1 - run) * side * sin(TAU * ph), side * C.handOut, 0))), curl: K.mVec(Rarm, 0, -side, 0), thumbDir: K.mVec(Rarm, 1, 0, 0) };
       arm.fist = max(hunch * 0.7, 0.5 * air); arm.scrW = 0; arm.scrPh = 0;
-      arm.openW = max(S.spread, 0.85 * sstep(0, 1, S.shrugX), side === 1 ? 0.9 * sstep(0, 1, S.wave) : 0) * (1 - 0.8 * run);          // open hand with spread fingers (startled jump / shrug)
+      if (hdW) { arm.hd = v3norm(v3lerp(arm.hd, hdW, wvF)); arm.fist *= 1 - wvF; }
+      arm.openW = max(S.spread, 0.85 * sstep(0, 1, S.shrugX), side === 1 ? sstep(0.1, 0.7, S.wave) : 0) * (1 - 0.8 * run);          // open hand with spread fingers (startled jump / shrug)
       if (side === -1 && (scr > 1e-3 || P.think > 1e-3 || S.pk > 1e-3 || P.chestHand > 1e-3 || P.poke > 1e-3 || P.clutch > 1e-3)) applyArmTargets(S, arm, P, scr);
       if (side === 1 && S.femK * S.yawS > 1e-3) applyFemArm(S, arm, S.femK * S.yawS);
       if (side === 1 && S.clutch > 1e-3) applyClutchR(S, arm, S.clutch);
@@ -2706,13 +2719,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     girl.walkPresetName = function () { return A.walkPreset; };
 
     // ---- per-tick memo: step() (x2 per frame), draw() and anchors() are called with the same pose, so the rig is solved once per distinct pose
-    var memoVer = -1, KEYN = 43, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
+    var memoVer = -1, KEYN = 47, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
     function poseKey(p, o) {
       var g = p.gait || {}, w = p.wind || {};
       o[0] = p.x; o[1] = p.y; o[2] = p.yaw; o[3] = g.amount; o[4] = g.phase; o[5] = g.speed; o[6] = g.run; o[7] = p.headYaw; o[8] = p.headPitch; o[9] = p.headRoll; o[10] = p.lean; o[11] = p.squash;
       o[12] = p.scratch; o[13] = p.scratchT; o[14] = p.think; o[15] = p.shudder; o[16] = p.shudderT; o[17] = p.air; o[18] = p.peek; o[19] = p.flinch; o[20] = p.dizzy; o[24] = p.bow; o[25] = p.twist; o[26] = p.chestHand; o[21] = w.x; o[22] = w.y; o[23] = p.t;
       o[27] = p.startle; o[28] = p.spread; o[29] = p.poke; o[30] = p.clutch; o[31] = p.shrug; o[32] = p.thinkT; o[33] = p.reach; o[34] = g.stride || 0; o[35] = p.wave;
       o[36] = p.footYaw || 0; o[37] = p.footYawW || 0; var ts = p.turnStep; o[38] = ts ? ts.u : -1; o[39] = ts ? ts.yaw0 : 0; o[40] = ts ? ts.yaw1 : 0; o[41] = ts ? ts.w : 0; o[42] = ts && ts.first ? 1 : 0;
+      o[43] = p.waveT || 0; o[44] = p.clasp || 0; o[45] = p.burst || 0; o[46] = p.flutter || 0;
     }
     function solveMemo(pose) {
       poseKey(pose, kNow);
@@ -3997,7 +4011,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         x: xStop, y: G, yaw: 0,
         gait: { amount: 0, phase: 0, speed: 0, run: 0 },
         headYaw: 0, headPitch: 0, headRoll: 0, lean: 0, peek: 0, flinch: 0, dizzy: 0, bow: 0, twist: 0, chestHand: 0, squash: 0, scratch: 0, scratchT: 0, think: 0, shudder: 0, shudderT: 0, air: 0,
-        startle: 0, spread: 0, poke: 0, clutch: 0, shrug: 0, reach: 0, wave: 0, thinkT: -1,          // round 10: startle ticks, open hands, poke at the air, both hands to the head, sheepish shrug, reach down to the console, thinking-script clock (s since turnFront1, -1 = off)
+        startle: 0, spread: 0, poke: 0, clutch: 0, shrug: 0, reach: 0, wave: 0, waveT: 0, clasp: 0, burst: 0, flutter: 0, thinkT: -1,          // round 10: startle ticks, open hands, poke at the air, both hands to the head, sheepish shrug, reach down to the console, thinking-script clock (s since turnFront1, -1 = off)
         wind: { x: 0, y: 0 }, t: t,
       };
     }
@@ -4078,9 +4092,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         p.twist = 0.5 * Math.sin(Math.PI * (1 - (1 - u) * (1 - u)));          // overlapping action: the shoulders are ahead of the hips during the turn
         if (u > 0 && u < 1) p.turnStep = { u: u, yaw0: 0, yaw1: 1, w: 1, first: 1 };          // the turn is made in two small steps (each foot planted until it steps)
         if (t >= c.turnFront1) { p.footYaw = 1; p.footYawW = 1; }          // from then on the feet stay planted facing us, whatever the body does over them
-        // round 11: she turns to the viewer with a quick shy hello (the right hand waves for ~0.8 s as she comes round, head tilted, then she is off into her thoughts)
-        var hello = bump(t, c.turnFront0 + 0.4, c.turnFront0 + 0.72, c.turnFront1 + 0.14, c.turnFront1 + 0.48);
-        p.wave = hello; p.headRoll += 0.2 * hello; p.headPitch += 0.08 * hello;
+        // she turns to the viewer with a shy little hello: the right hand comes up beside her face, palm to us, and waves side to side a few times (the rig: an open hand swinging
+        // about the elbow, the fingers trailing each swing), her head tipped toward the waving hand and bobbing with it, the chin a touch down (shy), the shoulders turned a little to us
+        var wv0 = c.turnFront0 + 0.5, hello = bump(t, wv0, wv0 + 0.42, c.turnFront1 + 0.46, c.turnFront1 + 1.1);
+        p.wave = hello; p.waveT = t - (wv0 + 0.26);
+        var wvS = U.smoothstep(0.45, 1, hello) * Math.sin(Math.PI * 2 * (GA.girlA && GA.girlA.cfg ? GA.girlA.cfg.waveHz : 2.7) * p.waveT);
+        var helloRoll = -0.24 * hello - 0.05 * wvS, helloPitch = -0.06 * hello, helloYaw = 0.1 * hello;          // (added after the thinking script below: it rebuilds the head angles from turnFront1 on)
 
         var windX = 0;
         if (t >= c.turnFront1) {
@@ -4089,6 +4106,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
           p.twist = 0.1 * Math.exp(-3.2 * k) * Math.sin(Math.PI * 2.2 * k) * U.smoothstep(0, 0.15, k);          // the shoulders settle with a small damped swing
           thinkPerf(p, k);        // the 20 s performance (acts I-IV, ends with the cringe at the hit)
         }
+        p.headRoll += helloRoll; p.headPitch += helloPitch; p.headYaw += helloYaw;
 
         // impact: squash with hold and elastic recovery (the girl module turns this into a comedic body reaction); round 10: bigger squash and stretch overshoot,
         // a springy head wobble after the hold, the ponytail whips (wind), then 'seeing stars' = a slow circling of the head while she staggers
@@ -4199,7 +4217,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       // round 11: everything else the baseline had in progress at the press is released the same way (a press during the hello wave, the deer freeze, the hand at the mouth, a hop ...
       // used to snap those poses off in one frame: the hand jumped ~200 units)
       P.thinkT = p0.thinkT >= 0 ? p0.thinkT + rt : -1;          // the think-idle script (weight shift, toe tap, 'aha' perk-up) keeps its clock: the look-down fades it out within ~0.2 s instead of switching it off in one frame
-      P.wave = (p0.wave || 0) * (1 - U.smoothstep(0, 0.3, rt));
+      P.wave = (p0.wave || 0) * (1 - U.smoothstep(0, 0.3, rt)); P.waveT = (p0.waveT || 0) + rt;
+      P.clasp = (p0.clasp || 0) * (1 - U.smoothstep(0, 0.3, rt)); P.burst = (p0.burst || 0) * (1 - U.smoothstep(0, 0.3, rt)); P.flutter = (p0.flutter || 0) * (1 - U.smoothstep(0, 0.3, rt));
       P.shudder = (p0.shudder || 0) * (1 - U.smoothstep(0, 0.2, rt)); P.shudderT = (p0.shudderT || 0) + rt;
       P.flinch = (p0.flinch || 0) * (1 - U.smoothstep(0, 0.3, rt));
       P.startle = (p0.startle || 0) * (1 - U.smoothstep(0, 0.2, rt)); P.spread = (p0.spread || 0) * (1 - U.smoothstep(0, 0.25, rt));
