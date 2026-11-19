@@ -645,8 +645,9 @@ body.is-project-open .viewport-edge-blur {
 
 .archive-bar-meta {
   position: absolute;
-  left: var(--space-4);
-  bottom: var(--space-3);
+  /* the label starts where the rounded corner ends, so it keeps the same distance from the curve on every screen */
+  left: max(var(--space-4), var(--image-radius));
+  bottom: max(var(--space-3), calc(var(--image-radius) * 0.7));
   display: flex;
   gap: var(--space-3);
   color: rgba(250, 248, 243, 0.84);
