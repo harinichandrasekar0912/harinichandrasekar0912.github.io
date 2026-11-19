@@ -790,9 +790,11 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   border-color: var(--color-line-soft);
 }
 
+/* the bars grow and settle from the right edge they are fixed to, by the same amount in both directions: a bar stretched more in one
+   direction than the other stretched its year and title with it */
 .archive-bars.has-active-archive-item .archive-bar:not(.is-active) {
   opacity: 0.72;
-  transform: scaleX(0.965) scaleY(0.94);
+  transform: scale(0.97);
 }
 
 .archive-bars.has-active-archive-item .archive-bar:not(.is-active)::after {
@@ -807,7 +809,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 .archive-bar:focus-visible,
 .archive-bar.is-active {
   border-color: var(--color-line-strong);
-  transform: scaleX(1.035) scaleY(1.08);
+  transform: scale(1.04);
 }
 
 .archive-bar:hover::after,
