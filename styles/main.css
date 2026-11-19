@@ -92,6 +92,8 @@
 }
 
 html {
+  /* the page is drawn in its own paper and ink: a browser's automatic dark mode must not invert it */
+  color-scheme: only light;
   background: var(--color-paper);
   color: var(--color-ink);
   scroll-behavior: smooth;
@@ -172,7 +174,7 @@ a {
 a:hover,
 a:focus-visible {
   text-decoration: underline;
-  text-decoration-thickness: 1px;
+  text-decoration-thickness: var(--hairline);
   text-underline-offset: 0.28em;
 }
 
@@ -180,10 +182,22 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
-  outline: 1px solid var(--color-ink);
-  outline-offset: 4px;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
+/* selected text is ink on paper turned round; on the dark project stage, the other way */
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.project-viewer.is-active ::selection {
+  background: var(--color-on-stage);
+  color: var(--color-stage);
+}
+
+/* the skip link is its own focus mark: a pill that slides in, with no second ring or underline around it */
 .skip-link {
   position: fixed;
   left: var(--space-4);
@@ -191,13 +205,18 @@ textarea:focus-visible {
   z-index: 1000;
   padding: var(--space-2) var(--space-3);
   background: var(--color-paper);
-  border: var(--line-thin) solid var(--color-ink);
-  border-radius: var(--radius-round);
+  border: var(--hairline) solid var(--color-ink);
+  border-radius: var(--radius-pill);
   font-size: var(--text-xs);
-  transform: translateY(-180%);
+  line-height: var(--leading-tight);
+  transform: translateY(calc(-100% - var(--space-4) - 2px));
+  transition: transform var(--duration-medium) var(--ease-standard);
 }
 
-.skip-link:focus {
+.skip-link:focus,
+.skip-link:focus-visible {
+  outline: none;
+  text-decoration: none;
   transform: translateY(0);
 }
 
