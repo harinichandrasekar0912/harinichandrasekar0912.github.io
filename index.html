@@ -22,6 +22,37 @@
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
     <meta name="theme-color" content="#faf8f3">
     <meta name="color-scheme" content="only light">
+    <!-- font preview, temporary: ?font=plex | geist | jetbrains | dm loads that family from Google Fonts for a side-by-side choice;
+         no parameter (or ?font=system) keeps the system monospace. Remove once a family is chosen and self-hosted. -->
+    <script>
+      (function () {
+        var fonts = {
+          plex: "IBM+Plex+Mono:wght@400",
+          geist: "Geist+Mono:wght@370;420",
+          jetbrains: "JetBrains+Mono:wght@370;420",
+          dm: "DM+Mono:wght@400"
+        };
+        var name = (location.search.match(/[?&]font=([a-z]+)/) || [])[1];
+
+        if (!name || !Object.prototype.hasOwnProperty.call(fonts, name)) {
+          return;
+        }
+
+        function addLink(attrs) {
+          var link = document.createElement("link");
+
+          Object.keys(attrs).forEach(function (key) {
+            link.setAttribute(key, attrs[key]);
+          });
+          document.head.appendChild(link);
+        }
+
+        document.documentElement.setAttribute("data-font", name);
+        addLink({ rel: "preconnect", href: "https://fonts.googleapis.com" });
+        addLink({ rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" });
+        addLink({ rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=" + fonts[name] + "&display=swap" });
+      })();
+    </script>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/motion.css">
     <link rel="stylesheet" href="styles/responsive.css">

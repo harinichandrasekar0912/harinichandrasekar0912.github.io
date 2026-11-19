@@ -94,6 +94,35 @@
   --landing-media-mobile-width: min(90vw, 560px);
 }
 
+/*
+  Font preview, temporary (the switch is the small script at the top of index.html). Each family gets the two weights the tokens use
+  (370 / 420 for the variable Geist and JetBrains), or the nearest it has (400 for both in Plex and DM, which have nothing between
+  400 and 500). Every family has the same 0.6 em character width, so lines break in the same places. Remove once a family is chosen
+  and self-hosted.
+*/
+html[data-font="plex"] {
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --weight-regular: 400;
+  --weight-medium: 400; /* 500 is its next weight, much heavier than 420 next to the others; 400 is the nearest */
+}
+
+html[data-font="geist"] {
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+}
+
+/* JetBrains Mono's lower case is about 6 % taller than the others' (x-height 0.55 em against 0.50 to 0.53): it is set to Plex's
+   x-height so it doesn't win or lose on size alone */
+html[data-font="jetbrains"] {
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  font-size-adjust: 0.52;
+}
+
+html[data-font="dm"] {
+  --font-mono: "DM Mono", ui-monospace, monospace;
+  --weight-regular: 400;
+  --weight-medium: 400; /* 500 is its next weight, much heavier than 420 next to the others; 400 is the nearest */
+}
+
 *,
 *::before,
 *::after {
