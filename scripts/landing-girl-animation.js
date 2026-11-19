@@ -1829,7 +1829,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], clutchAt: [6, 46, 24], reachAt: [70, 14, -110], reachPole: [0.9, 0.3, -0.2], scratchHz: 6.5, scratchAmp: [8, 11], scratchAt: [0, -18, 51], paw: [18, 135, 16], pelvisSmooth: 20, liftPow: 1.6, swingTan: 1, swingTan1: 1, liftSkew: 0.35, walkDrop: 0, bobH2: 0, bobH2ph: 0, bobPh: 0.27, hipSway: 2.2, shoulderCounter: 1.9, handLag: 0, headNod: 2, headTilt: 0, hemBounce: 0, headMorph: 0, headMorph0: 1, headW: 0.88, freezeBack: 6, bowDeg: 35, twistDeg: 52, chestHand: [18, -9, -20], chestPole: [-0.25, -1, -0.45], stepLift: 11, turnLift: 8, armIdleM: 0.25, armIdleGP: 0.5, sleeveR: [11.4, 10], sleeveRS: [13.5, 12], sleeveL: 26, neckShort: 0.88, shDrop: -3, armOut: 6, kneeSoft: 0.008, hemTiltA: 7.5, walkChest: 2.4, headBob: 2.6, pelvTilt: 3, hemFlutter: 1.8, shLag: 0.07, armLag: 0.035, foreLag: 0.11, headLag: 0.15, spineAmp: 3.4, spineLag: 0.1, asym: 1,
     femWeight: 1, femPeriod: 14, femShift: 10, femRoll: 8, femCounter: 11, femHead: 0.5, femChest: 4, femFoot: [13, 9, 14], femHand: [3, 60, -25], femHandPole: [-0.1, 1, -0.1], peekSpread: 0.75, peekNeck: 12, peekLean: 58, peekHead: 72, peekYaw: 0.2, peekHand: [20, -22, -60], peekPelvisF: 52, peekLegBack: 140, peekHemF: 140, peekHemTilt: 18, peekPole: [0.8, -0.3, -0.5], runBobK: [[0, 0.3], [0.2, -0.536], [0.35, -0.7], [0.5, 0.1], [0.62, 0.85], [0.78, 1.1], [0.9, 0.75]], runLeanK: 0.06, runHemF: 16, runHemTilt: 5, runHemLift: 0.6, runSpread: 0.06, runTilt: [0, 0, 0, 0], runShift: [0, 0, 0],   // run swing foot keys: [f, z, beta deg] at the kick-back extreme (u = runKickU of the swing) and at u = 0.75
     runKeyed: false, runLegK: 0, runArmK: 0, runShoulderBack: 0, runShoulderFwd: 0, runPelvisPitch: -6, runCrownK: 0, runWaistK: 0, runNeckK: 0,                                           // limbs are a bit longer in the traced run drawing
-    runArmA: [52, 95], runArmB: [-40, 72],                                  // run arm roles [alpha, gamma] deg: forward (A) / back (B)
+    runArmA: [52, 95], runArmB: [-40, 72],                                  // (old pumping run arms: unused since the Jack run)
+    // JACK RUN (the '+' dash: an elegant, cute, girly Captain Jack Sparrow run; see the runJack block of girl_a_tuned.js). All of it is weighted by gait.run.
+    //   jUp / jFore [swing mean, amplitude, phase, elevation mean, amplitude, phase] (deg) of the upper arm / forearm: a loose flap once per gait cycle, the two arms half a cycle apart;
+    //   jWrist [droop mean, droop amplitude, phase deg, flutter]: the limp hand hangs from the wrist toward the floor by this fraction and flaps after the forearm;
+    //   jTwist [mean, amplitude, lag]: the chest opens toward the viewer (twist units, 52 deg each) and sways with the arms; jRock [deg, lag] torso rock per step; jRoll [deg, lag] side sway per cycle;
+    //   jHead [yaw, roll amplitude, nod amplitude, lag]; jHem: the hem bounces with every step; jLoft: weight of the traced scurry lofts (0 = her own walking shapes)
+    jRun: 1, jUp: [10, 24, 70, -10, 14, 0], jFore: [30, 24, 20, 55, 20, -40], jFlutter: 6, jArmLag: 0.08, jWrist: [0.55, 0.2, -50, 0.08], jShLift: 4,
+    jTwist: [0.5, 0.12, 0.05], jRock: [2.5, 0.1], jRoll: [4, 0.05], jHead: [-0.25, 0.35, 0.12, 0.12], jHem: 4, jLoft: 0, jPelvYaw: 0, jOpen: 0,
     headRowStep: 2, skirtRowStep: 2, shoeRowStep: 2, handRowStep: 2, limbStep: 2, ringHead: 52, ringTrunk: 40, ringShoe: 24, ringHand: 24,   // ring resolution of the lofts (silhouettes are faired, so this only needs to beat the fairing radius)
     fair: { head: 0.9, trunk: 1.4, shoe: 1.0, hand: 0.7 },     // outline fairing radius (screen units) per component
     phaseOff: 0.1,        // pose.gait.phase is offset by this internally: the traced walk / run reference poses (internal phase keyQ = 0.1) sit at POSE phase 0
@@ -1872,11 +1879,13 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     var DR = A.dataRun;
     HEAD_R = null;
-    if (DR) {                                           // traced run tables: same row layout as the walk tables, blended by gait.run
+    if (DR && !(C.jRun && !C.jLoft)) {                  // traced run tables: same row layout as the walk tables, blended by gait.run (not built for the Jack run, which draws with her own shapes: less work at page load)
       HEAD_R = K.makeLoft(decim(rowsIn(DR.head), C.headRowStep), C.ringHead); TORSO_R = K.makeLoft(zeroZ(rowsIn(DR.torso)), C.ringTrunk); SKIRT_R = K.makeLoft(zeroZ(decim(rowsIn(DR.skirt), C.skirtRowStep)), C.ringTrunk);
       HEAD_B = K.cloneLoft(HEAD); TORSO_B = K.cloneLoft(TORSO); SKIRT_B = K.cloneLoft(SKIRT);
       SHOE_R = per(DR.shoe).map(function (pair) { return pair.map(function (t) { return K.makeRectLoft(decim(rowsIn(t), C.shoeRowStep), C.ringShoe); }); });
       SHOE_S2 = [K.cloneLoft(SHOE[0][0]), K.cloneLoft(SHOE[1][0])];
+    }
+    if (DR) {
       if (DR.hand) { HAND_R = per(DR.hand).map(function (pair) { return pair.map(function (t) { return K.makeLoft(decim(rowsIn(t), C.handRowStep), C.ringHand); }); }); HAND_S2 = [K.cloneLoft(HAND[0][0]), K.cloneLoft(HAND[1][0])]; }
     }
     SH_IDX = nearestRowIdx(C.shoulderH); NECK_IDX = nearestRowIdx(378);
@@ -1994,6 +2003,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       x: num(p.x, 0), y: num(p.y, 880), yaw: num(p.yaw, 0),
       amount: clamp(num(g.amount, 0), 0, 1), phase: num(g.phase, 0), speed: num(g.speed, 0), run: clamp(num(g.run, 0), 0, 1),
       xoff: num(g.xoff, 0), settle: clamp(num(g.settle, 0), 0, 1),          // (round 12 stop) world-anchoring offset of the walk's contact points (timeline: keeps a planted foot fixed while the stride shrinks); settle = the feet are already placed (no lifted catch-up step)
+      runLeg: g.runLeg && g.runLeg.length === 2 ? [clamp(num(g.runLeg[0], 0), 0, 1), clamp(num(g.runLeg[1], 0), 0, 1)] : null,          // optional per-leg run weight of the feet (else gait.run)
+      strideG: g.stride > 0 ? g.stride : 0, jack: g.jack >= 0 ? clamp(num(g.jack, 0), 0, 1) : -1,
       strideK: g.stride > 0 ? clamp(g.stride / lerp(C.stride, C.strideRun, clamp(num(g.run, 0), 0, 1)), 0.02, 1.5) : 1,          // optional: the stride the scene integrates the phase with (see gaitSets)
       hy: clamp(num(p.headYaw, 0), -1.6, 1.6), hp: clamp(num(p.headPitch, 0), -1.6, 1.6), hr: clamp(num(p.headRoll, 0), -1.6, 1.6),
       lean: clamp(num(p.lean, 0), -1.5, 1.5), squash: clamp(num(p.squash, 0), -0.4, 1.3),
@@ -2069,6 +2080,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var sq = P.squash + 0.32 * fl, sqp = max(sq, 0), sqn = max(-sq, 0);          // squash (bonk / landing / flinch / shudder onset jolt) and its stretch half
     S.pk = pk; S.fl = fl; S.yawS = yawS;
     S.run = run; S.amount = a;
+    var jr = (P.jack >= 0 ? sstep(0, 1, P.jack) : run) * C.jRun; S.jr = jr;          // weight of the Jack run layer (gait.jack: its own envelope, else the run weight) (arms, limp hands, open chest, head bob / tilt, rock, hem bounce)
     S.ele = C.ele * sin(PI * Yw) * sin(PI * Yw);          // hem 'smile' (camera elevation) only between the traced views: at yaw 0 / 1 the traced rows already hold the hem curve
 
     // ---- idle life (all zero at t=0 so the default pose is the neutral reference pose)
@@ -2109,18 +2121,19 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     S.legQ = [0, 0];
     for (var li = 0; li < 2; li++) {
       var side = li === 0 ? -1 : 1;                    // left leg (c-), right leg (c+)
-      var q = frac(ph + (li === 0 ? 0 : 0.5));
+      var q = frac(ph + (li === 0 ? 0 : 0.5)), rL = P.runLeg ? sstep(0, 1, P.runLeg[li]) : run;          // the run weight of THIS leg's foot (the '+' dash holds it while the foot is planted: see the scene)
+      if (P.runLeg && P.strideG > 0) gaitSets(clamp(P.strideG / lerp(C.stride, C.strideRun, rL), 0.2, 1.5));          // (its stride scale follows its own weight: the planted foot moves exactly with the body)
       S.legQ[li] = q;
       var wf = legFoot(q, GW, C.lift * lerp(0.3, 1, sstep(0.08, 0.9, GW.k)), C.walkXoff + P.xoff), rf = legFoot(q, GR, C.runLift, C.runXoff);          // (short steps: a lower foot lift)
       // the swing foot LIFTS first and travels afterwards when the gait starts / stops (its clearance and pitch ramp in over a ~0.3 amount, its stride travel with the amount): no slide along the floor
       var swF = sstep(GW.rho, GW.rho + 0.07, q) * (1 - sstep(0.93, 1, q)), aL = lerp(a, sstep(0, 0.3, a), swF);
-      var f = lerp(a * wf[0], rf[0], run), z = lerp(lerp(C.ankleZ, wf[1], aL), rf[1], run), beta = lerp(aL * wf[2], rf[2], run);
+      var f = lerp(a * wf[0], rf[0], rL), z = lerp(lerp(C.ankleZ, wf[1], aL), rf[1], rL), beta = lerp(aL * wf[2], rf[2], rL);
       // stopping / starting: a foot that has to travel between its stride position and the standing position is LIFTED on the way (never dragged along the floor)
-      var wmx = max(a, run);
-      if (wmx > 0 && wmx < 1 && P.settle < 1) { var trv = min(1, lerp(abs(wf[0]), abs(rf[0]), run) / 36) * 4 * wmx * (1 - wmx); z += C.stepLift * trv; beta -= rad(14) * trv; }
-      if (wmx > 0 && wmx < 1 && q > 0.45 && run < 0.5 && P.settle < 1) { var rem = abs(f) * (1 - sstep(0.18, 0.4, wmx)); z += min(16, 0.55 * rem); beta -= rad(0.25) * min(16, 0.55 * rem); }          // (only once the leading foot is down)          // stopping: the TRAILING foot is lifted while it is drawn in under her (a last little step), never dragged along the floor
-      var c = side * lerp(lerp(C.idleStance + (side < 0 ? C.stanceL : C.stanceR), C.walkStance, a), C.walkStance - 2, run);
-      var toe = lerp(lerp(rad(C.toeIdle + (side < 0 ? C.toeL : C.toeR)), rad(C.toeWalk), a), rad(4), run);
+      var wmx = max(a, rL);
+      if (wmx > 0 && wmx < 1 && P.settle < 1) { var trv = min(1, lerp(abs(wf[0]), abs(rf[0]), rL) / 36) * 4 * wmx * (1 - wmx); z += C.stepLift * trv; beta -= rad(14) * trv; }
+      if (wmx > 0 && wmx < 1 && q > 0.45 && rL < 0.5 && P.settle < 1) { var rem = abs(f) * (1 - sstep(0.18, 0.4, wmx)); z += min(16, 0.55 * rem); beta -= rad(0.25) * min(16, 0.55 * rem); }          // (only once the leading foot is down)          // stopping: the TRAILING foot is lifted while it is drawn in under her (a last little step), never dragged along the floor
+      var c = side * lerp(lerp(C.idleStance + (side < 0 ? C.stanceL : C.stanceR), C.walkStance, a), C.walkStance - 2, rL);
+      var toe = lerp(lerp(rad(C.toeIdle + (side < 0 ? C.toeL : C.toeR)), rad(C.toeWalk), a), rad(4), rL);
       var unw = idleA > 0 ? sstep(0.15, 0.75, -side * (wsh + 0.7 * b2 * s2)) * idleA * (1 - e1s) : 0, unwD = dzy > 0 ? sstep(0.15, 0.9, -side * dS1) * dzy : 0;       // the unloaded foot lifts its heel (idle weight shift / dizzy half-step)
       // a heel that comes up PIVOTS ON THE BALL of the foot: the ankle moves so the ball stays exactly where it is on the floor (no sliding toe)
       var ballPivot = function (b1, psi) { var b0 = beta, dS = (C.ballS * cos(b1) + C.ankleZ * sin(b1)) - (C.ballS * cos(b0) + C.ankleZ * sin(b0)); if (psi === undefined) f -= dS; else { f -= dS * cos(psi); c -= dS * sin(psi); } z -= (C.ballS * sin(b1) - C.ankleZ * cos(b1)) - (C.ballS * sin(b0) - C.ankleZ * cos(b0)); beta = b1; };
@@ -2164,17 +2177,18 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         f = lerp(f, li ? -46 : -22, tk); z = lerp(z, li ? 84 : 102, tk); beta = lerp(beta, rad(li ? -58 : -48), tp2); c = lerp(c, side * 15, tk);
       }
       // toe bend weight (shoeFrame): the forefoot flexes against the ground while the heel rises in stance; it springs straight in the first 12 % of the swing (pointed foot in the air)
-      var rhoG = lerp(GW.rho, GR.rho, run), usw = (q - rhoG) / (1 - rhoG), tbG = q < rhoG ? 1 : 1 - sstep(0.05, 0.3, usw) + sstep(0.85, 1, usw);          // (and the toes lift again for the ball landing)
+      var rhoG = lerp(GW.rho, GR.rho, rL), usw = (q - rhoG) / (1 - rhoG), tbG = q < rhoG ? 1 : 1 - sstep(0.05, 0.3, usw) + sstep(0.85, 1, usw);          // (and the toes lift again for the ball landing)
       // the toes never dip into the floor: a pointed foot near the ground keeps its toes bent up just enough (the toe tip ~26 u beyond the ball stays >= 0.6 u above the floor)
       var tbL = lerp(1, tbG, aw) * (1 - air);
       if (beta < -0.02 && tbL < 1) { var hbl = z + C.ballS * sin(beta) - C.ankleZ * cos(beta), sgl = (0.6 - hbl) / 26; if (sgl > -1) tbL = max(tbL, min(1, 1 - Math.asin(min(1, sgl)) / beta)); }
-      legs.push({ side: side, f: f, c: c, z: z, beta: beta, toe: toe, tYaw: tYawX, tb: tbL });
+      if (P.runLeg) gaitSets(P.strideK);
+      legs.push({ rL: rL, side: side, f: f, c: c, z: z, beta: beta, toe: toe, tYaw: tYawX, tb: tbL });
     }
 
     // ---- pelvis: bob limited by leg reach (so legs never over-extend), twist, sway, shiver
     var gk = lerp(lerp(0.12, 1, sstep(0.05, 0.95, P.strideK)), 1, run);          // short steps (the stop): the hips turn / sway, the arms swing and the torso rolls less (a small step is a small movement of the whole body)
     S.gk = gk;
-    var yawP = aw * gk * rad(C.walkYaw) * cPh * (1 - 0.5 * run);
+    var yawP = aw * gk * rad(C.walkYaw) * cPh * (1 - 0.5 * run) - jr * rad(C.jPelvYaw);
     var pitchP0 = -a * rad(2.0) + a * (1 - run) * rad(C.pelvTilt) * sin(TAU * 2 * (ph - C.bobPh + 0.05)) + run * rad(C.runPelvisPitch) - max(lean, 0) * (1 - 0.9 * run) * rad(6) + (0.45 * fz + 0.55 * rcA) * rad(C.freezeBack) - bow * rad(4) * (1 - run);          // (deer: a small lean back; bow: the waist tips forward a little)
     var pitchP = pitchP0 - pk * (rad(C.peekLean) + rad(2.4) * sin(TAU * t / 2.3 + 0.7) + rad(1.2) * sin(TAU * t / 1.1)) + fl * rad(8);          // peek: she sways in and out a little (breathing, weight)
     var fP = -14 * max(lean, 0) * (1 - 0.9 * run) + C.runPelvisF * run - C.peekPelvisF * pk + C.idleSwayF * wsf - 3 * b1 + C.dizzyF * dzy * dS2 + trm * 0.35 * tr1;
@@ -2190,7 +2204,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     for (var i2 = 0; i2 < 2; i2++) {
       var lg = legs[i2], hc = lg.side * C.hipW, hv0 = Rp[1] * hc - Rp[2] * 3, hv1 = Rp[4] * hc - Rp[5] * 3, hv2 = Rp[7] * hc - Rp[8] * 3;          // the hip joint's offset from the pelvis origin (exact, incl. the pelvis rotation)
       var dx = lg.f - (fP + hv0), dy = lg.c - (cP + hv1), l2 = Lmax * Lmax - dx * dx - dy * dy;
-      var usw2 = (S.legQ[i2] - rhoG) / (1 - rhoG), relax = usw2 > 0 ? lerp(60 * a * sstep(0, 0.12, usw2) * (1 - sstep(0.62, 0.97, usw2)), 30 * aw * sstep(0, 0.4, usw2) * (1 - sstep(0.5, 1.0, usw2)), run) : 0;          /* (round 12 walk: a leg in the air does not hold the pelvis at all until it reaches for the next heel strike) */          /* (the landing leg takes the pelvis down over the second half of the swing: a glide, not a drop at every step; the release at the toe-off is eased over 40 % of the swing: over 12 % the pelvis jumped ~4.5 u and the knees ~11 u in one frame at every step) */          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
+      var rhoL = lerp(GW.rho, GR.rho, lg.rL), usw2 = (S.legQ[i2] - rhoL) / (1 - rhoL), relax = usw2 > 0 ? lerp(60 * a * sstep(0, 0.12, usw2) * (1 - sstep(0.62, 0.97, usw2)), 30 * aw * sstep(0, 0.4, usw2) * (1 - sstep(0.5, 1.0, usw2)), run) : 0;          /* (round 12 walk: a leg in the air does not hold the pelvis at all until it reaches for the next heel strike) */          /* (the landing leg takes the pelvis down over the second half of the swing: a glide, not a drop at every step; the release at the toe-off is eased over 40 % of the swing: over 12 % the pelvis jumped ~4.5 u and the knees ~11 u in one frame at every step) */          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
       var limi = lg.z + sqrt(l2 > 25 ? l2 : 25) - hv2 + relax;
       lim = i2 === 0 ? limi : K.smin(lim, limi, lerp(10, lerp(8, 24, run), aw));          // (idle: the R9 smoothing, so the approved standing / peek poses keep their height; walking: wide, so the hand-over between the two legs' reach limits is a curve, not a corner)
       if (a > 0 && S.legQ[i2] < GW.rho) {          // (the trailing leg's request fades out over the last 10 % of its stance: the landing leg has taken the weight)
@@ -2226,10 +2240,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // ---- head angles (relative to the neck)
     var headLead = (P.yaw > 0 && P.yaw < 1) ? 0.22 * sin(PI * P.yaw) : 0;       // the head leads the body turn
     var scr = P.scratch;
-    var hy = P.hy - 0.85 * e4 + 0.1 * e1h + 0.07 * sin(TAU * t / 5.3) * idleA + 0.4 * b4 * s4 * (1 - 0.25 * sin(TAU * 3 * t)) + 0.3 * dzy * sin(dTT + 0.6);
+    var hy = P.hy - 0.85 * e4 + 0.1 * e1h + 0.07 * sin(TAU * t / 5.3) * idleA + 0.4 * b4 * s4 * (1 - 0.25 * sin(TAU * 3 * t)) + 0.3 * dzy * sin(dTT + 0.6) + jr * C.jHead[0];
     var scT = P.scratchT, scW = sstep(0.3, 0.8, scr);          // scratch: head tilts into the hand, wince beats, rub-synchronous head wobble
-    var hp = P.hp + 0.6 * e3 - 0.1 * e4 - 0.09 * tapBob + 0.08 * e1h + (C.idleNod * sin(TAU * t / 3.9) + 0.05 * sin(TAU * t / 7.7)) * idleA + 0.16 * b1 - 0.08 * b4 - 0.10 * scr - 0.32 * sq - 0.12 * hunchS + 0.3 * air - 0.22 * fl - 0.1 * dzy - 0.1 * scW * max(0, sin(TAU * 1.7 * scT)) + 0.1 * fz + 0.1 * rcA - 0.3 * blk - 0.05 * femK;
-    var hr = P.hr + 0.5 * e1h - 0.12 * e4 + 0.13 * tapSw + (C.idleRoll * sin(TAU * t / 6.7) + 0.08 * sin(TAU * t / 3.1)) * idleA + 0.45 * b2 * s2 + 0.2 * b4 * s4 + 0.62 * scr + 0.1 * scW * sin(TAU * C.scratchHz * 0.5 * scT) + 0.12 * fz + 0.3 * bow + 0.3 * pk + a * (1 - run) * C.headTilt * sin(TAU * (ph - C.headLag)) - C.femHead * fw - 0.06 * femK + 0.1 * fl + 0.45 * dzy * dS3;
+    var hp = P.hp + 0.6 * e3 - 0.1 * e4 - 0.09 * tapBob + 0.08 * e1h + (C.idleNod * sin(TAU * t / 3.9) + 0.05 * sin(TAU * t / 7.7)) * idleA + 0.16 * b1 - 0.08 * b4 - 0.10 * scr - 0.32 * sq - 0.12 * hunchS + 0.3 * air - 0.22 * fl - 0.1 * dzy - 0.1 * scW * max(0, sin(TAU * 1.7 * scT)) + 0.1 * fz + 0.1 * rcA - 0.3 * blk - 0.05 * femK + jr * C.jHead[2] * sin(TAU * 2 * (ph - C.jHead[3]));
+    var hr = P.hr + 0.5 * e1h - 0.12 * e4 + 0.13 * tapSw + (C.idleRoll * sin(TAU * t / 6.7) + 0.08 * sin(TAU * t / 3.1)) * idleA + 0.45 * b2 * s2 + 0.2 * b4 * s4 + 0.62 * scr + 0.1 * scW * sin(TAU * C.scratchHz * 0.5 * scT) + 0.12 * fz + 0.3 * bow + 0.3 * pk + a * (1 - run) * C.headTilt * sin(TAU * (ph - C.headLag)) - C.femHead * fw - 0.06 * femK + 0.1 * fl + 0.45 * dzy * dS3 + jr * C.jHead[1] * sin(TAU * (ph - C.jHead[3]));
     var psiH = -hy * rad(55) - headLead * rad(14);
     var runLeanTot = run * (rad(C.runLean + C.runLeanDeg * (lean - C.runLean0)) - rad(C.runPelvisPitch));          // the torso's total forward tip in the run (spine lean + pelvis pitch), rad
     var phiH = (hp >= 0 ? hp * rad(35) : hp * rad(38)) + pk * rad(C.peekHead) - a * rad(C.headNod) * cos(TAU * 2 * (ph - C.headLag)) + C.runHeadLevel * runLeanTot + run * rad(C.runHead) * (1 + 0.15 * sin(TAU * 2 * ph));          // run (GAIT R10): the head counter-rotates the lean = LEVEL in the world, eyes on the horizon (+ runHead deg chin-up)
@@ -2244,10 +2258,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
 
     // ---- spine / torso / neck chain (FK through the loft rows, bending smoothly from the waist upward)
     var leanT = lean >= 0 ? lean * rad(30) : lean * rad(11);
-    var pitchT = -(1 - run) * leanT - a * (1 - run) * rad(C.walkLean) - run * rad(C.runLean + C.runLeanDeg * (lean - C.runLean0)) + wsf * rad(1.5) + dzy * rad(5) * dS2 - absorb * rad(10) + ld * rad(6.5) - bow * rad(C.bowDeg) + rcA * rad(3) + a * (1 - run) * rad(C.spineAmp) * walkBobShape(2 * (ph - C.bobPh - C.spineLag));
+    var pitchT = -(1 - run) * leanT - a * (1 - run) * rad(C.walkLean) - run * rad(C.runLean + C.runLeanDeg * (lean - C.runLean0)) + wsf * rad(1.5) + dzy * rad(5) * dS2 - absorb * rad(10) + ld * rad(6.5) - bow * rad(C.bowDeg) + rcA * rad(3) + a * (1 - run) * rad(C.spineAmp) * walkBobShape(2 * (ph - C.bobPh - C.spineLag)) + jr * rad(C.jRock[0]) * sin(TAU * 2 * (ph - C.jRock[1]));
     var yawPl = aw * rad(C.walkYaw) * cos(TAU * (ph - C.shLag)) * (1 - 0.5 * run);          // the shoulders follow the hips with a small lag (successive breaking of the joints)
-    var twistRel = -C.shoulderCounter * yawPl - twistU * rad(C.twistDeg);          // twist > 0: the upper body turns toward the viewer (look back over the shoulder)
-    var rollT = rad(C.waveBody) * S.waveSw - rad(2) * P.wave + wsh * rad(-4.5) - rad(C.femCounter) * fw - rad(6.5) * e1h - 0.07 * b2 * s2 - 0.04 * b3 * s3 + scr * rad(-5) - dzy * rad(7) * dS1;
+    var twistRel = -C.shoulderCounter * yawPl - twistU * rad(C.twistDeg) - jr * rad(C.twistDeg) * (C.jTwist[0] + C.jTwist[1] * sin(TAU * (ph - C.jTwist[2])));          // (Jack run: the chest is open toward the viewer and sways with the arms)          // twist > 0: the upper body turns toward the viewer (look back over the shoulder)
+    var rollT = rad(C.waveBody) * S.waveSw - rad(2) * P.wave + wsh * rad(-4.5) - rad(C.femCounter) * fw - rad(6.5) * e1h - 0.07 * b2 * s2 - 0.04 * b3 * s3 + scr * rad(-5) - dzy * rad(7) * dS1 + jr * rad(C.jRoll[0]) * sin(TAU * (ph - C.jRoll[1]));
     var comp = (1 - 0.07 * sqp + 0.2 * sqn) * stretch, wid = 1 + 0.07 * sqp - 0.02 * sqn;
     var nRows = TORSO_H.length;
     S.torsoF = new Array(nRows);
@@ -2296,7 +2310,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var Rj = K.mRy(hemTilt * tj2 + (run > 0 ? run * rad(runProf(C.runTilt, tj)) : 0) + pk * rad(C.peekHemTilt) * tj2);
       var vk = 1 - sstep(0, 0.3, tj), bl = sstep(0, 0.5, tj), kF = spreadF + lerp(1 + (wd0 - 1) * 1.8 - 1, xF, bl), kC = spreadC + lerp(wd0 - 1, xC, bl);
       var Lc = K.frame([Rj[0] * kF, Rj[1] * kC, Rj[2], Rj[3] * kF, Rj[4] * kC, Rj[5], Rj[6] * kF, Rj[7] * kC, Rj[8]],
-        [hemF * tj2 - (run > 0 ? run * runProf(C.runShift, tj) : 0) - C.peekHemF * pk * tj2 + vbF * vk, wsh * 1.2 * tj + vbC * vk, (hj - C.hipRest) + C.runWaistK * run * (1 - tj) + (3.0 * hemLift + 5 * air + 2.4 * rcA + C.hemBounce * a * (1 - run) * sin(TAU * 2 * (ph - 0.15))) * tj2 + vbH * vk]);
+        [hemF * tj2 - (run > 0 ? run * runProf(C.runShift, tj) : 0) - C.peekHemF * pk * tj2 + vbF * vk, wsh * 1.2 * tj + vbC * vk, (hj - C.hipRest) + C.runWaistK * run * (1 - tj) + (3.0 * hemLift + 5 * air + 2.4 * rcA + (C.hemBounce * a * (1 - run) + C.jHem * jr) * sin(TAU * 2 * (ph - 0.15))) * tj2 + vbH * vk]);
       if (femK > 0) {          // the skirt top follows the pelvis tilt exactly (no step at the waist), the hem hangs (blend of the two pelvis frames along the skirt)
         var A0 = K.fMul(Fp, Lc), A1 = K.fMul(Fps, Lc), wj = sstep(0, 0.7, tj), wi = 1 - wj, Ra = A0.R, Rb = A1.R;
         S.skirtF[j] = { R: [Ra[0] * wi + Rb[0] * wj, Ra[1] * wi + Rb[1] * wj, Ra[2] * wi + Rb[2] * wj, Ra[3] * wi + Rb[3] * wj, Ra[4] * wi + Rb[4] * wj, Ra[5] * wi + Rb[5] * wj, Ra[6] * wi + Rb[6] * wj, Ra[7] * wi + Rb[7] * wj, Ra[8] * wi + Rb[8] * wj],
@@ -2343,12 +2357,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var gamma = lerp(gIdle, rad(C.gammaWalk0) + rad(C.gammaWalk1) * sstep(-0.3, 1, fwF), a);
       var beta = rad(side < 0 ? C.armBetaL : C.armBetaR) + sq * rad(18) + rad(C.armOut) * S.yawS * (1 - run) * (1 - a);          // front view: the arms hang a little away from the body (clear gap at the waist)
       if (S.femK > 0 && side < 0) { var fk2 = S.femK * S.yawS; beta = lerp(beta, rad(15), fk2); gamma += rad(12) * fk2; alpha += rad(4) * fk2; }          // feminine stance: the free arm hangs softly, close to the body, elbow slightly bent
-      if (run > 0) {                                   // pumping run arms: role A (forward, elbow bent) / role B (swung back) of the traced pose, smooth in between
-        // run arms (round 11): a continuous pump - the swing is a plain sinusoid of the gait phase (the old saturating role weight held each arm still for ~40 % of the cycle and snapped it across),
-        // the forearm lags the upper arm a little (overlapping action)
-        var wFa = 0.5 + 0.5 * fwU, wFg = 0.5 + 0.5 * fwF, alphaR = rad(lerp(C.runArmB[0], C.runArmA[0], wFa)), gammaR = rad(lerp(C.runArmB[1], C.runArmA[1], wFg));
-        alpha = lerp(alpha, alphaR, run); gamma = lerp(gamma, gammaR, run); beta = lerp(beta, rad(8), run);
-      }
+      var jph = TAU * (ph - C.jArmLag) + (side < 0 ? 0 : PI), jr = S.jr;
       gamma += rad(24) * min(1, max(sq, 0)) * (1 - air) * (1 - run);
       alpha -= rad(36) * min(1, max(sq, 0)) * (1 - air) * (1 - 0.7 * run);          // crouch (hop anticipation / landing): the arms swing back
       if (sq < 0) { var sqn2 = -sq; alpha += sqn2 * sstep(0, 0.12, sqn2) * rad(70); }          // boing stretch: the arms fly up a little (eased in: no kink where the squash turns into a stretch)
@@ -2376,7 +2385,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         alpha = lerp(lerp(alpha, rad(24), bLo), rad(16), bHi); beta = lerp(lerp(beta, rad(30), bLo), rad(94), bHi);
       }
       var Ssh = K.fApply(Fsh, -1.0, side * C.shoulderC, 0);
-      if (run > 0) { var wFs = 0.5 + 0.5 * fw; Ssh[0] += run * (C.runShoulderFwd * wFs - C.runShoulderBack * (1 - wFs)); }   // run: the arm that swings back also has its shoulder twisted back (far shoulder)
+      if (jr > 0) Ssh[2] += jr * C.jShLift * (0.6 + 0.4 * sin(jph + rad(C.jUp[5])));          // Jack run: the shoulder rises a little with its flapping elbow (soft, never hunched)
       if (side === -1) Ssh[2] += 21 * sstep(0, 1, min(1, P.scratch));          // the scratching shoulder is hiked up
       Ssh[2] += C.shDrop * S.yawS + 7 * S.hunchS + 5 * max(sq, 0) + 4 * P.scratch + C.shrugAmp * S.b3 * (side === S.s3 ? 1 : 0.15) + 2 * S.b1 + 2.5 * S.e1 * (side === 1 ? 1 : 0.3) + 3 * S.e3 + 3 * S.shrugX + 2 * S.startle + (side === 1 ? 4 * wvU : 0) + 5 * bsU + 3 * S.clasp;
       var ca = cos(alpha), sa = sin(alpha), cb = cos(beta), sb = sin(beta);
@@ -2395,17 +2404,33 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         d2 = v3norm(v3lerp(d2, K.mVec(Rarm, b2L[0], side * b2L[1], b2L[2]), sstep(0, 0.6, bsF)));
         hdW = K.mVec(Rarm, 0.12, side * sin(thB + rad(10) + fl8), -cos(thB + rad(10) + fl8)); wvF = max(wvF, bsF);
       }
+      if (jr > 0) {          // JACK RUN arms: the upper arm out to the side with the elbow about shoulder high, the forearm raised; one loose flap per gait cycle (the two arms
+                             // half a cycle apart): the upper arm swings fore / aft and up / down on a loop, the forearm follows later (overlapping action) and jiggles with every footfall.
+                             // Directions in the arm frame (x forward, y out to her side, z up): az = swing forward of the pure side direction, el = elevation above the horizontal
+        var jU = C.jUp, jF = C.jFore;
+        var azU = rad(jU[0] + jU[1] * sin(jph + rad(jU[2]))), elU = rad(jU[3] + jU[4] * sin(jph + rad(jU[5])));
+        var azF = rad(jF[0] + jF[1] * sin(jph + rad(jF[2]))), elF = rad(jF[3] + jF[4] * sin(jph + rad(jF[5])) + C.jFlutter * sin(2 * jph + 1.1));
+        var uJ = K.mVec(Rarm, sin(azU) * cos(elU), side * cos(azU) * cos(elU), sin(elU)), fJ = K.mVec(Rarm, sin(azF) * cos(elF), side * cos(azF) * cos(elF), sin(elF));
+        var d1j = v3lerp(d1, uJ, jr), d2j = v3lerp(d2, fJ, jr);
+        if (v3len(d1j) > 0.05) d1 = v3norm(d1j);
+        if (v3len(d2j) > 0.05) d2 = v3norm(d2j);
+      }
       var E = v3mad(Ssh, d1, C.armU * S.ak), W = v3mad(E, d2, C.armF * S.ak);
       var arm = { side: side, S: Ssh, E: E, W: W, fw: fw, hd: v3norm(v3add(d2, K.mVec(Rarm, 0.16 + C.handLag * a * (1 - run) * side * sin(TAU * ph), side * C.handOut, 0))), curl: K.mVec(Rarm, 0, -side, 0), thumbDir: K.mVec(Rarm, 1, 0, 0) };
+      if (jr > 0) {          // Jack run: a LIMP WRIST - the relaxed hand hangs from the wrist toward the floor (a little out and forward, never into the body) and flaps after the forearm
+        var jw = C.jWrist, dro = clamp(jw[0] + jw[1] * sin(jph + rad(jw[2])) + jw[3] * sin(2 * jph + 2.3), 0, 0.92), dn = [0.32, side * 0.3, -1];
+        var hj = [d2[0] + (dn[0] - d2[0]) * dro, d2[1] + (dn[1] - d2[1]) * dro, d2[2] + (dn[2] - d2[2]) * dro];
+        if (v3len(hj) > 0.05) arm.hd = v3norm(v3lerp(arm.hd, v3norm(hj), jr));
+      }
       arm.fist = max(hunch * 0.7, 0.5 * air); arm.scrW = 0; arm.scrPh = 0;
       if (hdW) { arm.hd = v3norm(v3lerp(arm.hd, hdW, wvF)); arm.fist *= 1 - wvF; }
-      arm.openW = max(S.spread, 0.85 * sstep(0, 1, S.shrugX), side === 1 ? sstep(0.1, 0.7, S.wave) : 0) * (1 - 0.8 * run);          // open hand with spread fingers (startled jump / shrug)
+      arm.openW = max(max(S.spread, 0.85 * sstep(0, 1, S.shrugX), side === 1 ? sstep(0.1, 0.7, S.wave) : 0) * (1 - 0.8 * run), C.jOpen * jr);          // open hand with spread fingers (startled jump / shrug)
       if (side === -1 && (scr > 1e-3 || P.think > 1e-3 || S.pk > 1e-3 || P.chestHand > 1e-3 || P.poke > 1e-3 || P.clutch > 1e-3)) applyArmTargets(S, arm, P, scr);
       if (side === 1 && S.femK * S.yawS > 1e-3) applyFemArm(S, arm, S.femK * S.yawS);
       if (side === 1 && S.clutch > 1e-3) applyClutchR(S, arm, S.clutch);
       if (side === 1 && S.reach > 1e-3) applyReachR(S, arm, S.reach);
       if (S.clasp > 1e-3) applyClasp(S, arm, S.clasp);
-      arm.runW = run;
+      arm.runW = run * lerp(1, C.jLoft, C.jRun);          // (the traced scurry arm carries its own sleeve; the Jack run arm gets the drawn sleeve)
       var ud = v3sub(arm.E, arm.S), ul = v3len(ud) || 1;
       arm.raise = sstep(0.12, 0.45, 1 + ud[2] / ul);        // how far the upper arm is away from hanging (the sleeve then leaves the torso silhouette)
       arms.push(arm);
@@ -2712,7 +2737,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var i, r, dbg = A.dbg || {}, tF = K.pj.s * K.pj.s;
     K.setProj(S.theta, S.ox, S.oy);
     tF = K.pj.s * K.pj.s;
-    var runW = S.run, useR = runW > 1e-4 && HEAD_R, HD = HEAD, TS = TORSO, SK = SKIRT;
+    var runW = S.run * lerp(1, C.jLoft, C.jRun), useR = runW > 1e-4 && HEAD_R, HD = HEAD, TS = TORSO, SK = SKIRT, jFist = S.run * (1 - C.jRun);          // (Jack run: relaxed open hands, never fists)
     var pxs = (GA.stage && GA.stage.px) || 1, dyS = max(0.4, 0.45 / pxs), dyShoe = max(0.3, 0.34 / pxs), dyHand = max(0.25, 0.3 / pxs);          // sweep step: resolution aware (a scanline per ~0.45 device px)
     if (useR) { K.lerpLoft(HEAD_B, HEAD, HEAD_R, runW); K.lerpLoft(TORSO_B, TORSO, TORSO_R, runW); K.lerpLoft(SKIRT_B, SKIRT, SKIRT_R, runW); HD = HEAD_B; TS = TORSO_B; SK = SKIRT_B; }
     if (!dbg.noHead) {
@@ -2750,7 +2775,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       drawSleeve(ctx, am);
       if (HAND_S.length) {
         K.lerpLoft(HAND_S[i], HAND[i][0], HAND[i][1], 1 - wAa);
-        var fw = max(runW, am.fist || 0);
+        var fw = max(jFist, am.fist || 0);
         if (fw > 1e-3 && HAND_R.length) { K.lerpLoft(HAND_S2[i], HAND_R[i][0], HAND_R[i][1], 1 - wAa); K.lerpLoft(HAND_S[i], HAND_S[i], HAND_S2[i], fw); }
         var Fhd = handFrame(am);
         for (r = 0; r < HAND_S[i].R; r++) K.projectRow(HAND_S[i], r, Fhd, 0);
@@ -2774,14 +2799,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     girl.walkPresetName = function () { return A.walkPreset; };
 
     // ---- per-tick memo: step() (x2 per frame), draw() and anchors() are called with the same pose, so the rig is solved once per distinct pose
-    var memoVer = -1, KEYN = 48, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
+    var memoVer = -1, KEYN = 51, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
     function poseKey(p, o) {
       var g = p.gait || {}, w = p.wind || {};
       o[0] = p.x; o[1] = p.y; o[2] = p.yaw; o[3] = g.amount; o[4] = g.phase; o[5] = g.speed; o[6] = g.run; o[7] = p.headYaw; o[8] = p.headPitch; o[9] = p.headRoll; o[10] = p.lean; o[11] = p.squash;
       o[12] = p.scratch; o[13] = p.scratchT; o[14] = p.think; o[15] = p.shudder; o[16] = p.shudderT; o[17] = p.air; o[18] = p.peek; o[19] = p.flinch; o[20] = p.dizzy; o[24] = p.bow; o[25] = p.twist; o[26] = p.chestHand; o[21] = w.x; o[22] = w.y; o[23] = p.t;
       o[27] = p.startle; o[28] = p.spread; o[29] = p.poke; o[30] = p.clutch; o[31] = p.shrug; o[32] = p.thinkT; o[33] = p.reach; o[34] = g.stride || 0; o[35] = p.wave;
       o[36] = p.footYaw || 0; o[37] = p.footYawW || 0; var ts = p.turnStep; o[38] = ts ? ts.u : -1; o[39] = ts ? ts.yaw0 : 0; o[40] = ts ? ts.yaw1 : 0; o[41] = ts ? ts.w : 0; o[42] = ts && ts.first ? 1 : 0;
-      o[43] = p.waveT || 0; o[44] = p.clasp || 0; o[45] = p.burst || 0; o[46] = p.flutter || 0; o[47] = p.handsFree || 0;
+      o[43] = p.waveT || 0; o[44] = p.clasp || 0; o[45] = p.burst || 0; o[46] = p.flutter || 0; o[47] = p.handsFree || 0; var rl = g.runLeg; o[48] = rl ? rl[0] : -1; o[49] = rl ? rl[1] : -1; o[50] = g.jack >= 0 ? g.jack : -1;
     }
     function solveMemo(pose) {
       poseKey(pose, kNow);
@@ -2960,12 +2985,20 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   var walkGrace = {"stride":380,"walkXoff":0,"hsF":73,"rho":0.6,"q1":0.11,"q2":0.36,"bhs":18,"bto":46,"lift":31,"walkLean":0,"walkStance":17,"toeWalk":6,"toeIdle":10,"toeL":-1,"toeR":-1,
     "hipSway":4.6,"walkYaw":11,"shoulderCounter":1.8,"swingFwd":24,"swingBack":26,"gammaWalk0":9,"gammaWalk1":9,"handLag":0.25,"kneeSoft":0,"pelvisSmooth":20,"legReach":1.0};
   for (k in walkGrace) A.cfg[k] = walkGrace[k];
-  // ---- ELEGANT CARTOON RUN (round 10, GAIT; replaces the fitted scurry crouch): stride 620 (3 steps/s at V_RUN 940), stance 34 % (flight 32 %), ball-of-foot landing, heel kicked
-  //      up to hip height behind, knee driving through high, bouncy pelvis (226 at mid-stance -> 257 in flight), torso lean ~17-20 deg from the hips, head LEVEL, arms pumping at ~90 deg.
-  var runGrace = {"strideRun":580,"runRho":0.325,"runQ1":0.06,"runQ2":0.16,"runXoff":0,"runHsF":75,"runBhs":-12,"runPelvis":240,"runBob":14,
-    "runBobK":[[0,-0.65],[0.3,-0.2],[0.65,-0.3],[0.78,0.7],[0.86,1.15],[0.95,0.1]],"runLean":17,"runLeanDeg":14,"runLean0":0.4,"runBendH":45,"runHead":3,"runHeadLevel":1,"runPelvisPitch":-4,
-    "runArmA":[44,95],"runArmB":[-40,85],"runShoulderBack":20,"runShoulderFwd":8,"runHemLift":1.2,"runLegK":0.02};
-  for (k in runGrace) A.cfg[k] = runGrace[k];
+  // ---- JACK RUN (the '+' dash, rebuilt from scratch: an elegant, cute, girly Captain Jack Sparrow run; replaces the cartoon sprint, the scurry fit above is fully overridden):
+  //      an upright, very slightly back-leaning torso with the chest opened toward the viewer, arms up and flung loosely out to the sides with the elbows high, limp wrists with
+  //      the hands flapping after the forearms, a loose sway of the chest, head bobbing and tilting; quick light steps on the balls of the feet with the knees lifting in front
+  //      (not kicked up behind), a springy bounce with a real flight between the steps, the hem bouncing.  Delighted, not frightened.
+  var runJack = {"strideRun":480,"runRho":0.34,"runQ1":0.06,"runQ2":0.18,"runXoff":0,"runHsF":58,"runBhs":-16,
+    "runE":[[0,0],[0.14,0.04],[0.32,0.2],[0.52,0.52],[0.72,0.8],[0.88,0.95],[1,1]],"runR":0.1,
+    "runZ":[[0.14,56],[0.32,84],[0.52,98],[0.72,82],[0.88,48]],"runZ1":-25,"runB":[[0.14,-58],[0.32,-80],[0.52,-68],[0.72,-50],[0.88,-32]],
+    "runPelvis":236,"runBob":13,"runBobK":[[0,0.43],[0.16,-0.54],[0.32,-1],[0.48,-0.54],[0.64,0.43],[0.82,1]],
+    "runLean":-1,"runLeanDeg":8,"runLean0":0,"runBendH":60,"runHead":6,"runHeadLevel":1,"runPelvisPitch":0,"runPelvisF":0,
+    "runCrownK":0,"runWaistK":0,"runNeckK":0,"runLegK":0,"runArmK":0,"runShoulderBack":0,"runShoulderFwd":0,
+    "runHemLift":1.2,"runHemF":8,"runHemTilt":3,"runSpread":0.1,"runTilt":[0,2,4,7],"runShift":[0,0,0],
+    "jRun":1,"jLoft":0,"jOpen":0.5,"jPelvYaw":14,"jTwist":[0.6,0.08,0.05],"jHead":[-0.45,0.25,0.1,0.12],
+    "jUp":[5,20,70,-2,10,0],"jFore":[5,18,20,30,12,-40],"jWrist":[0.9,0.13,-50,0.07],"jShLift":3,"jFlutter":4,"jArmLag":0.08,"jRock":[1.8,0.1],"jRoll":[3,0.05],"jHem":3.5};          // (refined: a light, poised flutter rather than a big flail)
+  for (k in runJack) A.cfg[k] = runJack[k];
 
   // ---- WALK STYLE PRESETS (runtime switch: landingGirlAnimation.scene.girl.setWalkPreset('A'|'B'|'C'|'current'); the stride (372) and the foot contact are the same in all of them)
   //   current = the R8 values; A = 'tall glide' (upright, long extended legs, minimal bob, long relaxed arm swing); B = 'light and lifted' (chest lifted, buoyant push-off bounce, quicker toe-off, soft arms);
@@ -3966,7 +3999,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   var U = GA.util;
 
   var V_WALK = 400; // relaxed child's walk = 0.8 body heights per second (round 10 GAIT: 2.1 steps/s with the rig's 380 u stride)
-  var V_RUN = 940; // comedic scurry
+  var V_RUN = 880; // the Jack run (quick light steps: ~3.7 per second with the 480 stride)
   var M_RIGHT = 120; // root x beyond the right edge where the nose is just off-screen (she enters at once: no dead time)
   var M_LEFT = 200; // root x beyond the left edge where the ponytail has completely left
   var M_PARK = 260; // parking spot off the right edge (peek start / hidden)
@@ -4525,16 +4558,16 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         P.headYaw = U.lerp(P.headYaw, -0.55 * Math.sin(Math.PI * Math.min(1, ut * 1.1)), sm(TT0 - 0.02, TT0 + 0.08));
         P.twist += -0.5 * Math.sin(Math.PI * (1 - (1 - ut) * (1 - ut))) * sm(TT0 - 0.02, TT0 + 0.05);
       }
-      P.headYaw = U.lerp(P.headYaw, 1.3, glance);          // round 11: a real look back over the shoulder (head ~70 deg + the shoulders ~25 deg), not a half turn
-      P.headPitch = U.lerp(P.headPitch, -0.3, glance);
-      P.twist += (standing ? 0.5 : 0.6) * glance;
+      P.headYaw = U.lerp(P.headYaw, 0.85, glance);          // the Jack run: as she sets off, a quick delighted glance round at US (head ~47 deg + the shoulders ~16 deg, chin level), not a
+      P.headPitch = U.lerp(P.headPitch, 0.04, glance);       //   furtive look back over the shoulder (that read as a thief checking whether she is being followed)
+      P.twist += 0.3 * glance;
 
-      // ---- beat 4: coil and burst into the run (comic lean overshoot), head snaps forward
-      // round 11: the wind-up leans her back, the burst throws her far forward (~27 deg) and the lean settles (~23 deg) once the speed is there
-      var g2 = bm(TR + 0.8, TR + 0.98, TR + 1.2, TR + 1.42);          // the second look back, over the shoulder, while running flat out
-      P.lean = -0.4 * bm(TR - 0.14, TR - 0.03, TR + 0.03, TR + 0.15) + 0.9 * sm(TR + 0.03, TR + 0.36) + 0.4 * bm(TR + 0.12, TR + 0.3, TR + 0.5, TR + 1.1) - 0.5 * g2;
-      P.headYaw = U.lerp(P.headYaw, 1.45, g2); P.headPitch = U.lerp(P.headPitch, 0.05, g2); P.twist += 0.85 * g2; P.headRoll = U.lerp(P.headRoll, -0.2, g2);
-      P.squash += 0.4 * bm(TR - 0.1, TR, TR + 0.06, TR + 0.18);
+      // ---- beat 4: the JACK RUN (rebuilt): a little coil, then she is off - the legs go first and the upper body is left a touch behind (a small 'whoa' lean back,
+      //      chin up, delighted), and it settles upright with the chest open toward us, arms up and flapping (the rig's Jack layer, weighted by the run).  No look back:
+      //      she is not being chased, she is thrilled.
+      P.lean = -0.3 * bm(TR - 0.14, TR - 0.03, TR + 0.03, TR + 0.15) - 0.4 * bm(TR + 0.02, TR + 0.16, TR + 0.3, TR + 0.75) + 0.15 * sm(TR + 0.3, TR + 0.9);
+      P.headPitch += 0.14 * sm(TR + 0.1, TR + 0.5) + 0.1 * bm(TR + 0.02, TR + 0.16, TR + 0.3, TR + 0.75);          // chin up: delighted
+      P.squash += 0.3 * bm(TR - 0.1, TR, TR + 0.06, TR + 0.18);
       var vRun = V_RUN * U.easeOutQuad(U.clamp((rt - TR) / 0.62)), vLow = 0;          // round 11: 0.62 s to top speed (was 0.45): the first steps are really short and quick before she is up to speed
       if (standing) o.speed = vRun;
       else { // walking: she slows to a near-stop for the look + hop (the hop is on the spot), then the run
@@ -4546,6 +4579,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var spdN = o.speed / V_WALK, amtRun = U.smoothstep(0.01, 0.3, spdN) * sm(TR - 0.02, TR + 0.26);          // the stride builds up over ~0.25 s at the burst (no one-frame leg pop; the rig lifts the swing foot while the amount ramps)
       P.gait.amount = standing ? amtRun : Math.max(amtRun, U.smoothstep(0.01, 0.3, vLow / V_WALK));
       P.gait.run = o.run;
+      P.gait.jack = U.smoothstep(0, 1, U.clamp((rt - TR - 0.02) / 0.5)) * U.smoothstep(0.05, 0.4, o.speed / V_RUN);          // the Jack arms / open chest / head bob float in over ~0.5 s from the take-off (a fling, not a snap; on a phone she is across the screen in ~1 s)
       P.gait.speed = o.speed;
       P.wind.x += 140 * o.run; P.wind.y += -40 * o.run;
       o.TR = TR;
@@ -4806,26 +4840,6 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   };
 
   // ---------------------------------------------------------------- one fixed tick
-  /** dust and speed strokes of the dash (all of it is dust-coloured decoration: it never touches the pose) */
-  function runDust(R, o, p, h) {
-    var D = GA.dust, T = sc.T, G = S.groundY, sp = o.speed / T.V_RUN, s2 = (p.gait.phase + 0.1) * 2, fresh = 1.7 - 1.0 * U.smoothstep(0.05, 0.85, sp);
-    if (!D) return;
-    if (o.TR !== undefined && !R.launched && R.rt >= o.TR) { // the take-off: a cloud kicked up behind her heels
-      R.launched = true;
-      D.puff(R.x + 40, G - 4, { n: 6, r0: 12, r1: 40, vx: 230, vy: -34, life: 0.95, a: 0.6, spread: 22 });
-      D.puff(R.x + 90, G - 2, { n: 4, r0: 8, r1: 28, vx: 360, vy: -20, life: 0.8, a: 0.45, spread: 16 });
-    }
-    if (R.s2 !== undefined && Math.floor(s2) > Math.floor(R.s2) && (R.kind === 'stand' ? o.speed > 90 : o.run > 0.03)) { // a foot strike: a small puff behind the planted foot
-      var an = sc.girl.anchors(p), f = an.footL.y > an.footR.y ? an.footL : an.footR;
-      D.puff(f.x + 26, G - 2, { n: 2 + (fresh > 1.2 ? 1 : 0), r0: 5 * fresh, r1: 17 * fresh, vx: 90 + 160 * sp, vy: -34, life: 0.5 + 0.15 * fresh, a: 0.42 * Math.min(1, fresh), spread: 6 });
-    }
-    R.s2 = s2;
-    if (o.TR !== undefined && R.rt > o.TR + 0.12 && R.rt < o.TR + 1.0 && sp > 0.4) { // a few thin speed strokes while she gathers pace
-      R.sk = (R.sk || 0) + h;
-      if (R.sk > 0.07) { R.sk = 0; D.streak(R.x + 120 + 40 * D.rand(), G - 120 - 330 * D.rand(), 70 + 90 * D.rand(), 0.3, 0.5, 1); }
-    }
-  }
-
   /** landing / impact dust: a small puff either side of her feet when a hop ends and when the ball bonks her (round 11) */
   function landingDust(p, T) {
     var D = GA.dust, G = S.groundY, up = G - p.y, c = T.cues;
@@ -4932,19 +4946,46 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         var kw = R.kw === undefined ? (R.kw = (R.cap.pose0.gait && R.cap.pose0.gait.stride > 0 ? R.cap.pose0.gait.stride / T.STRIDE : 1)) : R.kw;          // the walking stride factor the baseline had at the press
         stride *= U.lerp(kw, 1, U.smoothstep(0, 0.5, R.rt)) * (R.kind === 'stand' ? kRun : U.lerp(1, kRun, o.run));
         // the stride is held through a step and only changes at MID-STANCE (the planted foot right under her, the other one in the air): it never changes under a planted foot
-        if (R.sHeld === undefined || Math.floor(2 * R.phase + 0.46) !== Math.floor(2 * (R.phPrev === undefined ? R.phase : R.phPrev) + 0.46)) R.sHeld = stride;
+        // (running: the stride eases toward its target only while BOTH feet are in the air - each foot by its own gait weight R.rl (stance 0.6 of the cycle walking,
+        //  0.34 running) - so no planted foot slides and the swinging feet are not jolted by a sudden change)
+        if (o.run > 0.5 && R.sHeld !== undefined && R.rl) {
+          var wAir = 1;
+          for (var lj = 0; lj < 2; lj++) {
+            var qJ = (R.phase + 0.1 + 0.5 * lj) % 1; if (qJ < 0) qJ += 1;
+            var r0J = U.lerp(0.6, 0.34, U.smoothstep(0, 1, R.rl[lj])) + 0.03;
+            wAir *= qJ > r0J && qJ < 0.97 ? Math.sin(Math.PI * (qJ - r0J) / (0.97 - r0J)) : 0;
+          }
+          R.sHeld += (stride - R.sHeld) * Math.min(1, 60 * wAir * h);
+        } else if (R.sHeld === undefined) R.sHeld = stride;
+        else {          // (slower: eased in a short window around mid-stance, where the planted foot is right under her and a change of scale hardly moves it - the window is
+                        //  centred on that point, so what it moves one way it moves back - instead of switching in one frame, which jolted the swinging foot)
+          var sw = 2 * R.phase + 0.46, sd = sw - Math.round(sw), wS = Math.abs(sd) < 0.08 ? Math.cos(Math.PI * sd / 0.16) : 0;
+          R.sHeld += (stride - R.sHeld) * Math.min(1, 70 * wS * wS * h);
+        }
         R.phPrev = R.phase;
         stride = R.sHeld;
         R.x -= o.speed * h;
         R.phase += (o.speed / stride) * h;
         p.x = R.x; p.gait.phase = R.phase; p.gait.stride = stride;
+        // each foot takes on the run only while it is in the air in both gaits (its gait phase 0.62 .. 0.97): blending walk -> run moves a foot's stance position,
+        // so a planted foot keeps the weight it landed with (no slide while she speeds up from a walk)
+        // (the hand-over is spread over the whole of that window on a smoothstep, from the weight the foot took off with to the current one: the swinging foot glides
+        //  from the walking swing into the running swing instead of being yanked across)
+        if (!R.rl) { var rl0 = o.run > 0.3 ? 1 : 0; R.rl = [rl0, rl0]; R.rl0 = [rl0, rl0]; R.rlT = [rl0, rl0]; R.rlIn = [false, false]; }
+        for (var li = 0; li < 2; li++) {
+          var qL = (R.phase + 0.1 + 0.5 * li) % 1; if (qL < 0) qL += 1;
+          var inW = qL >= 0.62 && qL < 0.97;
+          if (inW && !R.rlIn[li]) { R.rl0[li] = R.rl[li]; R.rlT[li] = o.run > 0.3 ? 1 : 0; }          // (the target is all or nothing, decided as the window opens: a foot planted with a
+          R.rlIn[li] = inW;                                                                                 //  half-walk, half-run contact pushed its ball ~4 u into the floor)
+          if (inW) R.rl[li] = U.lerp(R.rl0[li], R.rlT[li], U.smoothstep(0.62, 0.97, qL));
+        }
+        p.gait.runLeg = [R.rl[0], R.rl[1]];
         sc.pose = p;
-        runDust(R, o, p, h);
         if (R.x <= -T.M_LEFT) { sc.mode = 'away'; sc.awayAt = sc.tl; sc.resumeTl = c.teleport; sc.pose.x = S.W + T.M_PARK; }
       }
       headSpring(sc.pose, h);
       girl.step(h, sc.pose);
-      landingDust(sc.pose, T);
+      sc._wasUp = false; sc._hopPeak = 0;          // the '+' reaction raises no dust at all (no puffs at the hop landing, none while she runs)
       return;
     }
 
