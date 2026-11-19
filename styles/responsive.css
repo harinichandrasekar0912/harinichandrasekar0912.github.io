@@ -117,7 +117,7 @@
   }
 
   .contact-links {
-    gap: var(--space-4);
+    gap: calc(var(--space-4) - (var(--contact-tap) - var(--contact-icon-size)));
   }
 
   .radial-item-about {

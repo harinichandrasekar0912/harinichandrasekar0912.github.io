@@ -820,8 +820,8 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 
 .submit-button:hover,
 .submit-button:focus-visible {
-  background: rgba(21, 20, 18, 0.14);
-  color: rgba(21, 20, 18, 0.95);
+  background: var(--color-line);
+  color: var(--color-ink);
 }
 
 .contact-links a:hover,
