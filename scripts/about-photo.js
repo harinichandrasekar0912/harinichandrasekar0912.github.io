@@ -9,9 +9,8 @@
                   Reached without the ball, the ripple starts from the middle once half of the photo is on screen.
                   Reduced motion: the photo at once (CSS), no squares.
    The ball's touch comes from the window event "navball:contact" (detail {element, x, strength, index, section}; index 0 = the first
-   landing bounce), which scripts/navigation-ball.js sends on feat/ball-arc. Until that branch is merged, ?aboutdebug=1 sends a stand-in
-   for it (and for "navball:leave") from the ball's existing data-ball-phase attribute; navigation-ball.js itself is not touched here.
-   Without either, a trip to About still ends with the photo half on screen, so the colour then comes in as for "reached without the ball". */
+   landing bounce), which scripts/navigation-ball.js sends. Should it not arrive, a trip to About still ends with the photo half on screen,
+   so the colour then comes in as for "reached without the ball". */
 (function () {
   "use strict";
 
@@ -26,7 +25,6 @@
   var mode = root.getAttribute("data-photo");
   var pixel = root.getAttribute("data-pixel") === "1";
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var ball = document.querySelector(".nav-travel-ball");
   var onLand = [];      // fn(x, y): the ball has just landed on the photo at (x, y), CSS px from the photo's top left corner
   var onArrive = [];    // fn(): the photo is on screen and no ball trip is under way (scrolled to, a link, or a trip that ended elsewhere)
   var visibleRatio = 0;
@@ -62,37 +60,6 @@
 
     onLand.slice().forEach(function (fn) { fn(x, 0); });
   });
-
-  /* ?aboutdebug=1 - STAND-IN until feat/ball-arc is merged (then delete this block): "navball:contact" for each landing bounce on the photo
-     and "navball:leave" when the ball rolls away, read from the ball's existing data-ball-phase (land1/land2/land3, roll) */
-  if (ball && "MutationObserver" in window && /[?&]aboutdebug=1(?:&|$)/.test(window.location.search)) {
-    var lastPhase = "";
-
-    new MutationObserver(function () {
-      var phase = ball.dataset.ballPhase || "";
-      var bounce = /^land([123])$/.exec(phase);
-
-      if (phase === lastPhase) {
-        return;
-      }
-
-      lastPhase = phase;
-
-      if (bounce) {
-        var b = ball.getBoundingClientRect();
-        var r = img.getBoundingClientRect();
-        var x = b.left + b.width / 2;
-        var onPhoto = Math.abs(b.bottom - r.top) <= 10 && x >= r.left && x <= r.right;
-        var index = +bounce[1] - 1;
-
-        window.dispatchEvent(new CustomEvent("navball:contact", {
-          detail: { element: onPhoto ? img : null, x: x, strength: [1, 0.66, 0.33][index], index: index, section: onPhoto ? "about" : (window.location.hash || "#").slice(1) }
-        }));
-      } else if (phase === "roll") {
-        window.dispatchEvent(new CustomEvent("navball:leave", { detail: { section: (window.location.hash || "#").slice(1) } }));
-      }
-    }).observe(ball, { attributes: true, attributeFilter: ["data-ball-phase"] });
-  }
 
   if ("MutationObserver" in window) {
     /* a trip that ends with the photo on screen (it went somewhere else) counts as reaching it without the ball */
