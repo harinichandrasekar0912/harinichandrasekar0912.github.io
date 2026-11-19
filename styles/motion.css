@@ -1009,6 +1009,9 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   pointer-events: none;
   color: var(--project-text);
   outline: none;
+  /* nothing on the viewer itself is animated. Without this, the reduced-motion rule below (1 ms transitions on every property)
+     makes its visibility transition too, and focus() on the dialog in the same frame it is shown is refused: focus fell to <body> */
+  transition: none;
 }
 
 .project-viewer.is-active {
