@@ -180,12 +180,17 @@
 @media (max-height: 540px) {
   .contact-layout {
     min-height: 0;
-    padding-top: 3.5rem;
+    /* the whole form, "go" included, fits above the navigation plus on the screen the contact trip lands on */
+    padding-top: 2.25rem;
     padding-bottom: calc(var(--nav-bottom-buffer, 1.5rem) + 6rem);
   }
 
   .contact-form {
     gap: 1rem;
+  }
+
+  .contact-title {
+    margin-bottom: 0.75rem;
   }
 
   .contact-links {
