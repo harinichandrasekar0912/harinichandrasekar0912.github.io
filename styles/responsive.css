@@ -215,8 +215,9 @@
     width: min(92vw, 390px);
   }
 
+  /* never wider than its column (88vw): at 90vw it hung 8px out to the right, so title, fields and "go" sat 4px off centre */
   .contact-form {
-    width: min(90vw, 26rem);
+    width: min(100%, 26rem);
   }
 
   .radial-item-about {
