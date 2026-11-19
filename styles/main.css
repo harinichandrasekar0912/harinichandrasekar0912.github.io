@@ -1,15 +1,46 @@
-:root {
-  --color-paper: #faf8f3;
-  --color-paper-soft: #f1eee7;
-  --color-paper-warm: #f6f3ec;
-  --color-ink: #151412;
-  --color-ink-soft: #625d54;
-  --color-line: rgba(21, 20, 18, 0.14);
-  --color-line-soft: rgba(21, 20, 18, 0.08);
-  --color-line-strong: rgba(21, 20, 18, 0.58);
-  --color-glass: rgba(250, 248, 243, 0.72);
+/*
+  The design system. Every colour, size, line, corner, duration and curve on the page comes from this list; nothing is set "by eye" in
+  a rule. Keep it small: if a new value seems needed, first try the nearest one that is already here.
 
-  --font-sans: "Suisse Int'l Mono", "Suisse Intl Mono", ui-monospace, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  colour   paper (the page) and one shade of it for empty picture frames; ink for text in three strengths (ink, soft, faint);
+           lines are ink at three fixed strengths (soft, line, strong). The project stage is black with white at two strengths.
+  type     one family (monospace), four sizes (xs, sm, md, lg), two weights, two line-heights.
+  lines    one hairline (1px). Corners: the picture radius, the pill and the circle.
+  motion   one curve (a gentle deceleration) and three durations (fast for colour, medium for state, slow for arrivals).
+*/
+:root {
+  --color-ink-rgb: 21 20 18; /* the ink as channels, for the fixed-strength tints below */
+  --color-paper-rgb: 250 248 243;
+  --color-paper: #faf8f3;
+  --color-paper-shade: #f6f3ec; /* an empty picture frame, before its picture arrives */
+  --color-paper-warm: var(--color-paper-shade); /* older name, same value */
+  --color-paper-soft: #f1eee7; /* about portrait frame only: to become --color-paper-shade (About owner) */
+  --color-ink: #151412;
+  --color-ink-soft: #625d54; /* secondary text */
+  --color-ink-faint: rgb(var(--color-ink-rgb) / 0.42); /* placeholders, the dotted spokes of the menu */
+  --color-line-soft: rgb(var(--color-ink-rgb) / 0.08);
+  --color-line: rgb(var(--color-ink-rgb) / 0.14);
+  --color-line-strong: rgb(var(--color-ink-rgb) / 0.58);
+
+  --color-stage: #050505; /* the project viewer */
+  --color-on-stage: #ffffff;
+  --color-stage-line: rgb(255 255 255 / 0.28);
+  --color-stage-line-strong: rgb(255 255 255 / 0.86);
+
+  /* Suisse Int'l Mono is named first but is not loaded by the site, so visitors see their system monospace (SF Mono on a Mac, Consolas on
+     Windows). Consolas has no weights between regular and bold, so the two weights below only differ on a Mac. */
+  --font-mono: "Suisse Int'l Mono", "Suisse Intl Mono", ui-monospace, "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --weight-regular: 370;
+  --weight-medium: 420;
+  --leading-tight: 1.2;
+  --leading-body: 1.5;
+
+  --hairline: 1px;
+  --radius-circle: 50%;
+  --radius-pill: 999px;
+
+  --focus-ring: var(--hairline) solid var(--color-ink);
+  --focus-offset: 4px;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -23,21 +54,29 @@
   --space-10: 12rem;
   --page-x: clamp(1.25rem, 5.4vw, 6.25rem);
 
-  --text-xs: clamp(0.66rem, 0.64rem + 0.06vw, 0.72rem);
-  --text-sm: clamp(0.78rem, 0.75rem + 0.1vw, 0.88rem);
-  --text-md: clamp(0.94rem, 0.88rem + 0.18vw, 1.06rem);
-  --text-lg: clamp(1.12rem, 1.02rem + 0.34vw, 1.38rem);
+  --text-xs: clamp(0.66rem, 0.64rem + 0.06vw, 0.72rem); /* labels, captions, the menu */
+  --text-sm: clamp(0.78rem, 0.75rem + 0.1vw, 0.88rem); /* form fields, project text */
+  --text-md: clamp(0.94rem, 0.88rem + 0.18vw, 1.06rem); /* reading text, the name */
+  --text-lg: clamp(1rem, 0.86rem + 0.48vw, 1.32rem); /* section titles */
+  --title-gap: clamp(2.25rem, 4.8vh, 3.75rem); /* from a section title to its content */
 
-  --line-thin: 1px;
-  --radius-soft: 4px;
-  --radius-round: 999px;
+  --line-thin: var(--hairline); /* older name */
+  --radius-round: var(--radius-pill); /* older name */
   --image-radius: clamp(14px, 1.6vw, 28px);
 
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-quiet: cubic-bezier(0.33, 0, 0.2, 1);
-  --duration-fast: 160ms;
-  --duration-medium: 360ms;
-  --duration-slow: 720ms;
+  --ease-quiet: cubic-bezier(0.33, 0, 0.2, 1); /* the work tiles' slow warm to colour (styles/work-tiles.css) */
+  --duration-fast: 160ms; /* colour and opacity answers to the pointer */
+  --duration-medium: 360ms; /* a change of state */
+  --duration-slow: 720ms; /* things arriving */
+
+  /* the navigation's own sequence (scripts/navigation-ball.js times the spokes and the ball against these; change them together) */
+  --nav-blink: 120ms; /* a linear cut in or out */
+  --nav-draw: 500ms; /* the ring draws, then the spokes and the black disc arrive */
+  --nav-pop: 440ms; /* each circle pops in ... */
+  --nav-pop-after: 940ms; /* ... starting once the drawing is done */
+  --nav-choose: 900ms; /* the chosen circle shrinks into the ball */
+  --nav-restore: 420ms; /* the plus comes back after a trip */
 
   --z-edge-blur: 500;
   --z-site-name: 650;
@@ -56,6 +95,35 @@
   --landing-media-mobile-width: min(90vw, 560px);
 }
 
+/*
+  Font preview, temporary (the switch is the small script at the top of index.html). Each family gets the two weights the tokens use
+  (370 / 420 for the variable Geist and JetBrains), or the nearest it has (400 for both in Plex and DM, which have nothing between
+  400 and 500). Every family has the same 0.6 em character width, so lines break in the same places. Remove once a family is chosen
+  and self-hosted.
+*/
+html[data-font="plex"] {
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --weight-regular: 400;
+  --weight-medium: 400; /* 500 is its next weight, much heavier than 420 next to the others; 400 is the nearest */
+}
+
+html[data-font="geist"] {
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+}
+
+/* JetBrains Mono's lower case is about 6 % taller than the others' (x-height 0.55 em against 0.50 to 0.53): it is set to Plex's
+   x-height so it doesn't win or lose on size alone */
+html[data-font="jetbrains"] {
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  font-size-adjust: 0.52;
+}
+
+html[data-font="dm"] {
+  --font-mono: "DM Mono", ui-monospace, monospace;
+  --weight-regular: 400;
+  --weight-medium: 400; /* 500 is its next weight, much heavier than 420 next to the others; 400 is the nearest */
+}
+
 *,
 *::before,
 *::after {
@@ -63,6 +131,8 @@
 }
 
 html {
+  /* the page is drawn in its own paper and ink: a browser's automatic dark mode must not invert it */
+  color-scheme: only light;
   background: var(--color-paper);
   color: var(--color-ink);
   scroll-behavior: smooth;
@@ -91,10 +161,10 @@ body {
   margin: 0;
   background: var(--color-paper);
   color: var(--color-ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: var(--text-md);
-  font-weight: 370;
-  line-height: 1.5;
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-body);
   letter-spacing: 0;
   overflow-x: hidden;
   transition:
@@ -104,6 +174,17 @@ body {
 
 body.is-project-open {
   overflow: hidden;
+}
+
+/* paragraphs break without a lone last word; one-line titles stay whole */
+p {
+  text-wrap: pretty;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }
 
 img,
@@ -132,7 +213,7 @@ a {
 a:hover,
 a:focus-visible {
   text-decoration: underline;
-  text-decoration-thickness: 1px;
+  text-decoration-thickness: var(--hairline);
   text-underline-offset: 0.28em;
 }
 
@@ -140,10 +221,22 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
-  outline: 1px solid var(--color-ink);
-  outline-offset: 4px;
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
+/* selected text is ink on paper turned round; on the dark project stage, the other way */
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.project-viewer.is-active ::selection {
+  background: var(--color-on-stage);
+  color: var(--color-stage);
+}
+
+/* the skip link is its own focus mark: a pill that slides in, with no second ring or underline around it */
 .skip-link {
   position: fixed;
   left: var(--space-4);
@@ -151,13 +244,18 @@ textarea:focus-visible {
   z-index: 1000;
   padding: var(--space-2) var(--space-3);
   background: var(--color-paper);
-  border: var(--line-thin) solid var(--color-ink);
-  border-radius: var(--radius-round);
+  border: var(--hairline) solid var(--color-ink);
+  border-radius: var(--radius-pill);
   font-size: var(--text-xs);
-  transform: translateY(-180%);
+  line-height: var(--leading-tight);
+  transform: translateY(calc(-100% - var(--space-4) - 2px));
+  transition: transform var(--duration-medium) var(--ease-standard);
 }
 
-.skip-link:focus {
+.skip-link:focus,
+.skip-link:focus-visible {
+  outline: none;
+  text-decoration: none;
   transform: translateY(0);
 }
 
@@ -185,11 +283,11 @@ textarea:focus-visible {
 
 .section-title {
   width: 100%;
-  margin: 0 0 clamp(2.25rem, 4.8vh, 3.75rem);
+  margin: 0 0 var(--title-gap);
   color: var(--color-ink);
-  font-size: clamp(1rem, 0.86rem + 0.48vw, 1.32rem);
-  font-weight: 380;
-  line-height: 1.2;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-tight);
   text-align: center;
   text-transform: lowercase;
 }
@@ -206,7 +304,7 @@ textarea:focus-visible {
   width: 100%;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 440ms var(--ease-standard);
+  transition: opacity var(--duration-medium) var(--ease-standard);
 }
 
 .viewport-edge-blur-top {
@@ -214,10 +312,10 @@ textarea:focus-visible {
   height: clamp(72px, 12vh, 150px);
   background: linear-gradient(
     to bottom,
-    rgba(250, 248, 243, 0.9) 0%,
-    rgba(250, 248, 243, 0.72) 30%,
-    rgba(250, 248, 243, 0.3) 66%,
-    rgba(250, 248, 243, 0) 100%
+    rgb(var(--color-paper-rgb) / 0.9) 0%,
+    rgb(var(--color-paper-rgb) / 0.72) 30%,
+    rgb(var(--color-paper-rgb) / 0.3) 66%,
+    rgb(var(--color-paper-rgb) / 0) 100%
   );
 }
 
@@ -226,10 +324,10 @@ textarea:focus-visible {
   height: clamp(84px, 14vh, 170px);
   background: linear-gradient(
     to top,
-    rgba(250, 248, 243, 0.9) 0%,
-    rgba(250, 248, 243, 0.72) 30%,
-    rgba(250, 248, 243, 0.3) 66%,
-    rgba(250, 248, 243, 0) 100%
+    rgb(var(--color-paper-rgb) / 0.9) 0%,
+    rgb(var(--color-paper-rgb) / 0.72) 30%,
+    rgb(var(--color-paper-rgb) / 0.3) 66%,
+    rgb(var(--color-paper-rgb) / 0) 100%
   );
 }
 
@@ -313,8 +411,9 @@ body.is-project-open .viewport-edge-blur {
   margin: 0;
   text-align: center;
   color: var(--color-ink);
-  font-size: clamp(0.82rem, 0.76rem + 0.18vw, 1rem);
-  font-weight: 420;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
   letter-spacing: 0;
   text-transform: lowercase;
 }
@@ -329,80 +428,6 @@ body.is-project-open .viewport-edge-blur {
   border: var(--line-thin) solid var(--color-line-soft);
   background: var(--color-paper);
   overflow: hidden;
-}
-
-.landing-media::before,
-.landing-media::after,
-.sketch-line,
-.sketch-point {
-  position: absolute;
-  display: block;
-  pointer-events: none;
-}
-
-.landing-media::before {
-  content: "";
-  left: 12%;
-  top: 20%;
-  width: 58%;
-  height: 46%;
-  border: var(--line-thin) solid rgba(21, 20, 18, 0.14);
-}
-
-.landing-media::after {
-  content: "";
-  right: 14%;
-  bottom: 18%;
-  width: 28%;
-  height: 30%;
-  border-left: var(--line-thin) solid rgba(21, 20, 18, 0.16);
-  border-bottom: var(--line-thin) solid rgba(21, 20, 18, 0.16);
-}
-
-.sketch-line {
-  height: 1px;
-  background: rgba(21, 20, 18, 0.18);
-  transform-origin: left center;
-}
-
-.sketch-line-a {
-  left: 19%;
-  top: 70%;
-  width: 50%;
-  transform: rotate(-10deg);
-}
-
-.sketch-line-b {
-  left: 39%;
-  top: 31%;
-  width: 32%;
-  transform: rotate(28deg);
-}
-
-.sketch-line-c {
-  left: 24%;
-  top: 47%;
-  width: 52%;
-  background: transparent;
-  border-top: 1px dotted rgba(21, 20, 18, 0.14);
-  transform: rotate(3deg);
-}
-
-.sketch-point {
-  width: 5px;
-  height: 5px;
-  border: 1px solid rgba(21, 20, 18, 0.22);
-  border-radius: 50%;
-}
-
-.sketch-point-a {
-  left: 18%;
-  top: 70%;
-}
-
-.sketch-point-b {
-  right: 22%;
-  top: 28%;
 }
 
 /*

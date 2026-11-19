@@ -36,6 +36,38 @@
     <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
     <meta name="theme-color" content="#faf8f3">
+    <meta name="color-scheme" content="only light">
+    <!-- font preview, temporary: ?font=plex | geist | jetbrains | dm loads that family from Google Fonts for a side-by-side choice;
+         no parameter (or ?font=system) keeps the system monospace. Remove once a family is chosen and self-hosted. -->
+    <script>
+      (function () {
+        var fonts = {
+          plex: "IBM+Plex+Mono:wght@400",
+          geist: "Geist+Mono:wght@370;420",
+          jetbrains: "JetBrains+Mono:wght@370;420",
+          dm: "DM+Mono:wght@400"
+        };
+        var name = (location.search.match(/[?&]font=([a-z]+)/) || [])[1];
+
+        if (!name || !Object.prototype.hasOwnProperty.call(fonts, name)) {
+          return;
+        }
+
+        function addLink(attrs) {
+          var link = document.createElement("link");
+
+          Object.keys(attrs).forEach(function (key) {
+            link.setAttribute(key, attrs[key]);
+          });
+          document.head.appendChild(link);
+        }
+
+        document.documentElement.setAttribute("data-font", name);
+        addLink({ rel: "preconnect", href: "https://fonts.googleapis.com" });
+        addLink({ rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" });
+        addLink({ rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=" + fonts[name] + "&display=swap" });
+      })();
+    </script>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/motion.css">
     <link rel="stylesheet" href="styles/work-tiles.css">
@@ -297,20 +329,7 @@
         <line class="radial-line radial-line-archive" x1="190" y1="138" x2="238" y2="-6" pathLength="1"></line>
         <line class="radial-line radial-line-contact" x1="190" y1="138" x2="312" y2="50" pathLength="1"></line>
       </svg>
-      <ul class="radial-menu" id="radial-menu" aria-hidden="true">
-        <li class="radial-item radial-item-about">
-          <button type="button" data-nav-target="about" tabindex="-1">about</button>
-        </li>
-        <li class="radial-item radial-item-work">
-          <button type="button" data-nav-target="work" tabindex="-1">work</button>
-        </li>
-        <li class="radial-item radial-item-archive">
-          <button type="button" data-nav-target="archive" tabindex="-1">archive</button>
-        </li>
-        <li class="radial-item radial-item-contact">
-          <button type="button" data-nav-target="contact" tabindex="-1">contact</button>
-        </li>
-      </ul>
+      <!-- the plus comes before its menu, so Tab goes from the plus into about, work, archive and contact -->
       <button
         class="nav-core"
         type="button"
@@ -327,6 +346,20 @@
         <span class="plus-stem" aria-hidden="true"></span>
         <span class="plus-arm" aria-hidden="true"></span>
       </button>
+      <ul class="radial-menu" id="radial-menu" aria-hidden="true">
+        <li class="radial-item radial-item-about">
+          <button type="button" data-nav-target="about" tabindex="-1">about</button>
+        </li>
+        <li class="radial-item radial-item-work">
+          <button type="button" data-nav-target="work" tabindex="-1">work</button>
+        </li>
+        <li class="radial-item radial-item-archive">
+          <button type="button" data-nav-target="archive" tabindex="-1">archive</button>
+        </li>
+        <li class="radial-item radial-item-contact">
+          <button type="button" data-nav-target="contact" tabindex="-1">contact</button>
+        </li>
+      </ul>
     </nav>
 
     <div class="nav-travel-ball" data-travel-ball aria-hidden="true">
