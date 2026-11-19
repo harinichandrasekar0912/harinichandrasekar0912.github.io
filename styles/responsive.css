@@ -117,7 +117,6 @@
   }
 
   .contact-links {
-    bottom: clamp(7.25rem, 14vh, 9rem);
     gap: var(--space-4);
   }
 
@@ -175,14 +174,9 @@
   .contact-form {
     gap: clamp(1rem, 2.8vh, 1.75rem);
   }
-
-  .contact-links {
-    bottom: clamp(6.5rem, 12vh, 8rem);
-  }
 }
 
-/* very short screens (a phone held sideways): the contact links follow the form instead of being pinned to the bottom of the screen,
-   and the section keeps clear of the navigation plus */
+/* very short screens (a phone held sideways): the contact links sit closer under the form, and the section keeps clear of the navigation plus */
 @media (max-height: 540px) {
   .contact-layout {
     min-height: 0;
@@ -195,11 +189,7 @@
   }
 
   .contact-links {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    margin: 1.75rem auto 0;
-    transform: none;
+    margin-top: 1.75rem;
   }
 
   /* the square portrait fits on the screen instead of running past it */

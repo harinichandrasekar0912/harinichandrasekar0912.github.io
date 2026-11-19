@@ -680,6 +680,7 @@ body.is-project-open .viewport-edge-blur {
   display: grid;
   /* the form sits in the upper part of the screen (not dead centre), so the gap to the archive above it stays small */
   place-items: start center;
+  align-content: start;
   width: min(88vw, 560px);
   min-height: 100vh;
   min-height: 100svh;
@@ -828,18 +829,17 @@ body.is-project-open .viewport-edge-blur {
   background: rgba(21, 20, 18, 0.28);
 }
 
+/* the links follow the form at one fixed rhythm on every screen (pinned to the bottom of the screen they drifted ~600px away from the
+   form on a tall display and touched the navigation plus on a phone) */
 .contact-links {
-  position: absolute;
-  left: 50%;
-  bottom: clamp(8rem, 15vh, 11rem);
   display: grid;
   grid-template-columns: repeat(4, var(--contact-icon-size));
   align-items: center;
   justify-items: center;
   justify-content: center;
   width: max-content;
+  margin: clamp(2.5rem, 7vh, 4.5rem) auto 0;
   gap: clamp(1.1rem, 2vw, 1.8rem);
-  transform: translateX(-50%);
 }
 
 .contact-links a {
