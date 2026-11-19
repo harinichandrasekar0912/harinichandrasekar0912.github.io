@@ -1809,7 +1809,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     lift: 10,             // swing foot clearance
     // GAIT R10 graceful walk: heel-strike contact point ahead of the pelvis axis; stance knee flexion keys (q, deg) and soft-min radii of the knee-target pelvis solve;
     // swing keys: swE world-travel fraction (u, e) + residual landing velocity swR, swZ height keys (u, x lift) + touch-down slope swZ1, swB pitch fraction keys (u, 0..1)
-    hsF: 82, kneeK: [[0, 5], [0.1, 17], [0.2, 14], [0.32, 4], [0.44, 5], [0.52, 12], [0.6, 20]], kneeSmin: 6, pelvisSmoothW: 1.0,
+    hsF: 82, kneeK: [[0, 5], [0.1, 17], [0.2, 14], [0.32, 4], [0.44, 5], [0.52, 12], [0.6, 20]], kneeSmin: 6, pelvisSmoothW: 6,          // (walk: the pelvis eases between the knee-target height and the leg-reach limit instead of switching in a corner)
     swE: [[0, 0], [0.25, 0.2], [0.5, 0.56], [0.75, 0.86], [0.9, 0.96], [1, 1]], swR: 0.15, swZ: [[0.25, 1.0], [0.45, 0.9], [0.65, 0.57], [0.85, 0.2]], swZ1: -14,
     swB: [[0, 0], [0.2, 0.06], [0.45, 0.25], [0.65, 0.44], [0.82, 0.75], [0.93, 1], [1, 1]],
     // GAIT R10 run: heel-strike-equivalent contact point (the ball lands 50 further ahead), ball-landing pitch (deg, toes down), flight keys: world-travel fraction (u, e) + residual
@@ -2163,9 +2163,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     for (var i2 = 0; i2 < 2; i2++) {
       var lg = legs[i2], hc = lg.side * C.hipW, hv0 = Rp[1] * hc - Rp[2] * 3, hv1 = Rp[4] * hc - Rp[5] * 3, hv2 = Rp[7] * hc - Rp[8] * 3;          // the hip joint's offset from the pelvis origin (exact, incl. the pelvis rotation)
       var dx = lg.f - (fP + hv0), dy = lg.c - (cP + hv1), l2 = Lmax * Lmax - dx * dx - dy * dy;
-      var usw2 = (S.legQ[i2] - rhoG) / (1 - rhoG), relax = usw2 > 0 ? 30 * aw * sstep(0, 0.12, usw2) * (1 - sstep(0.5, 1.0, usw2)) : 0;          /* (the landing leg takes the pelvis down over the second half of the swing: a glide, not a drop at every step) */          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
+      var usw2 = (S.legQ[i2] - rhoG) / (1 - rhoG), relax = usw2 > 0 ? 30 * aw * sstep(0, 0.4, usw2) * (1 - sstep(0.5, 1.0, usw2)) : 0;          /* (the landing leg takes the pelvis down over the second half of the swing: a glide, not a drop at every step; the release at the toe-off is eased over 40 % of the swing: over 12 % the pelvis jumped ~4.5 u and the knees ~11 u in one frame at every step) */          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
       var limi = lg.z + sqrt(l2 > 25 ? l2 : 25) - hv2 + relax;
-      lim = i2 === 0 ? limi : K.smin(lim, limi, lerp(10, 4, aw));          // (idle: the R9 smoothing, so the approved standing / peek poses keep their height)
+      lim = i2 === 0 ? limi : K.smin(lim, limi, lerp(10, 24, aw));          // (idle: the R9 smoothing, so the approved standing / peek poses keep their height; walking: wide, so the hand-over between the two legs' reach limits is a curve, not a corner)
       if (a > 0 && S.legQ[i2] < GW.rho) {          // (the trailing leg's request fades out over the last 10 % of its stance: the landing leg has taken the weight)
         var kd = rad(K.curve(C.kneeK, S.legQ[i2])), Dk2 = L1 * L1 + L2 * L2 + 2 * L1 * L2 * cos(kd) - dx * dx - dy * dy, hk = lg.z + sqrt(Dk2 > 25 ? Dk2 : 25) - hv2 + 60 * sstep(GW.rho - 0.1, GW.rho, S.legQ[i2]);
         kneeH = kneeH > 1e8 ? hk : K.smin(kneeH, hk, C.kneeSmin);
