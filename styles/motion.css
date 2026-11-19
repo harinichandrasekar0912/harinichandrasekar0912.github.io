@@ -750,7 +750,6 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   transform: translateX(-50%) scaleX(0.72);
 }
 
-.work-tile,
 .archive-item,
 .archive-bar::after,
 .submit-button,
@@ -761,33 +760,6 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
     color var(--duration-fast) var(--ease-standard),
     opacity var(--duration-fast) var(--ease-standard),
     transform var(--duration-medium) var(--ease-standard);
-}
-
-.work-tile img {
-  transition:
-    transform var(--duration-slow) var(--ease-standard),
-    opacity 520ms var(--ease-standard);
-}
-
-/* a tile whose picture is still arriving shows its quiet empty frame; the picture then fades in instead of popping in (scripts/main.js) */
-.work-tile img.is-loading {
-  opacity: 0;
-}
-
-.work-tile:hover,
-.work-tile:focus-visible {
-  border-color: var(--color-line-strong);
-}
-
-.work-tile:hover img,
-.work-tile:focus-visible img {
-  transform: scale(1.012);
-}
-
-.work-tile:hover::after,
-.work-tile:focus-visible::after {
-  border-width: 1px;
-  border-color: var(--color-line-soft);
 }
 
 .archive-bars.has-active-archive-item .archive-bar:not(.is-active) {

@@ -687,6 +687,59 @@
     return fallback;
   }
 
+  /* a layout may say which way the ball should roll off a picture (data-ball-roll="left" | "right" on the picture or an ancestor; e.g. a
+   * sheet of frames rolls right along its top row): that wins; otherwise the edge the picture is attached to */
+  function landingSide(element, fallback) {
+    const hinted = element && element.closest ? element.closest("[data-ball-roll]") : null;
+    const hint = hinted ? hinted.getAttribute("data-ball-roll") : "";
+
+    return hint === "left" || hint === "right" ? hint : attachedSide(element, fallback);
+  }
+
+  /* pictures of the same kind that sit flush against each other at the same height (a sheet's top row) make one continuous surface */
+  function withSurface(platform, selector) {
+    platform.surfaceSelector = selector;
+    return platform;
+  }
+
+  /* the far end of the surface the ball rolls on, in the roll direction: the landing element, extended across neighbours of the same kind
+   * whose top edge is level with it (within 1.5 px) and that start within 2 px of where it ends */
+  function surfaceEnd(element, selector, dir) {
+    const start = element.getBoundingClientRect();
+    let edge = dir < 0 ? start.left : start.right;
+    let last = element;
+
+    if (!selector) {
+      return { edge: edge, element: last };
+    }
+
+    const rects = Array.prototype.slice.call(document.querySelectorAll(selector)).filter(function (other) {
+      return other !== element && !other.contains(element) && !element.contains(other);
+    }).map(function (other) {
+      return { element: other, rect: other.getBoundingClientRect() };
+    }).filter(function (item) {
+      return item.rect.width > 0 && Math.abs(item.rect.top - start.top) <= 1.5;
+    });
+    let grew = true;
+
+    while (grew) {
+      grew = false;
+
+      for (let index = 0; index < rects.length; index += 1) {
+        const rect = rects[index].rect;
+        const near = dir < 0 ? rect.right >= edge - 2 && rect.left < edge - 0.5 : rect.left <= edge + 2 && rect.right > edge + 0.5;
+
+        if (near) {
+          edge = dir < 0 ? rect.left : rect.right;
+          last = rects[index].element;
+          grew = true;
+        }
+      }
+    }
+
+    return { edge: edge, element: last };
+  }
+
   function emitBallEvent(name, detail) {
     try {
       window.dispatchEvent(new CustomEvent(name, { detail: detail }));
@@ -1781,19 +1834,20 @@
       if (section === "about") {
         const portrait = document.querySelector(".about-portrait img") || document.querySelector(".about-portrait");
 
-        return platformFromElement(portrait, "about", attachedSide(portrait, "left"), "platform", ballRadius());
+        return platformFromElement(portrait, "about", landingSide(portrait, "left"), "platform", ballRadius());
       }
 
       if (section === "work") {
-        const tile = document.querySelector(".work-tile");
+        // the first tile's picture (a tile may carry a caption beside or under it; the ball lands on the picture), else the tile
+        const tile = document.querySelector(".work-tile-media") || document.querySelector(".work-tile");
 
-        return platformFromElement(tile, "work", attachedSide(tile, "left"), "platform", ballRadius());
+        return withSurface(platformFromElement(tile, "work", landingSide(tile, "left"), "platform", ballRadius()), ".work-tile-media, .work-tile");
       }
 
       if (section === "archive") {
         const bar = document.querySelector(".archive-bar");
 
-        return platformFromElement(bar, "archive", attachedSide(bar, "right"), "platform", ballRadius());
+        return withSurface(platformFromElement(bar, "archive", landingSide(bar, "right"), "platform", ballRadius()), ".archive-bar");
       }
 
       if (section === "contact") {
@@ -2036,17 +2090,18 @@
           return null; // the contact floor and the landing floor run across the whole screen
         }
 
-        const rect = endPoint.element.getBoundingClientRect();
-        const reachesEdge = rollDirection < 0 ? rect.left <= EDGE_TOLERANCE : rect.right >= window.innerWidth - EDGE_TOLERANCE;
+        const end = surfaceEnd(endPoint.element, endPoint.surfaceSelector, rollDirection);
+        const reachesEdge = rollDirection < 0 ? end.edge <= EDGE_TOLERANCE : end.edge >= window.innerWidth - EDGE_TOLERANCE;
 
         if (reachesEdge) {
           return null;
         }
 
-        const style = window.getComputedStyle(endPoint.element);
+        const rect = end.element.getBoundingClientRect();
+        const style = window.getComputedStyle(end.element);
         const cornerRadius = parsePixel(rollDirection < 0 ? style.borderTopLeftRadius : style.borderTopRightRadius);
 
-        return { edgeX: rollDirection < 0 ? rect.left : rect.right, cornerRadius: Math.min(cornerRadius, rect.width / 2, rect.height / 2) };
+        return { edgeX: end.edge, cornerRadius: Math.min(cornerRadius, rect.width / 2, rect.height / 2) };
       }
 
       function phaseDuration(name) {

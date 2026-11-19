@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-about="d" data-photo="reveal">
+<html lang="en" data-about="d" data-photo="reveal" data-tiles="cantilever">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,6 +15,9 @@
       if (param("ledge", "1")) { root.setAttribute("data-ledge", "1"); }
       if (pixel) { root.setAttribute("data-pixel", "1"); }
     })();</script>
+    <!-- three layouts of the work tiles to compare: ?tiles=cantilever (default), ?tiles=index or ?tiles=sheet (styles/work-tiles.css);
+         &wake=1 lets a picture warm to colour while the ball is on it, ?tilesdebug=1 adds a button that fakes the ball hitting the first picture -->
+    <script>(function () { var q = location.search, h = document.documentElement, m = /[?&]tiles=(cantilever|index|sheet)(?:&|$)/.exec(q); if (m) { h.setAttribute("data-tiles", m[1]); } if (/[?&]wake=1(?:&|$)/.test(q)) { h.setAttribute("data-tiles-wake", ""); } if (/[?&]tilesdebug=1(?:&|$)/.test(q)) { h.setAttribute("data-tiles-debug", ""); } })();</script>
     <meta
       name="description"
       content="Personal portfolio website for Harini Chandrasekar."
@@ -35,6 +38,7 @@
     <meta name="theme-color" content="#faf8f3">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/motion.css">
+    <link rel="stylesheet" href="styles/work-tiles.css">
     <link rel="stylesheet" href="styles/responsive.css">
     <link rel="stylesheet" href="styles/landing-girl-animation.css">
   </head>
@@ -81,96 +85,132 @@
 
       <section class="section work-section" id="work" tabindex="-1" aria-labelledby="work-heading">
         <h2 class="section-title" id="work-heading">my works</h2>
+        <!-- the captions repeat the title, the opening line of the summary (shade: its first clause) and the first part / year of the meta line of each project in scripts/project-data.js: change both together -->
         <ol class="work-list" aria-label="selected work">
           <li class="work-row work-row-left">
-            <button class="work-tile" type="button" data-project-trigger="project-01" aria-label="open project: pause">
-              <picture>
-                <source type="image/avif" srcset="assets/images/work/project-01/thumb-800.avif 800w, assets/images/work/project-01/thumb-1200.avif 1200w" sizes="(max-width: 760px) min(82vw, 420px), min(36vw, 540px)">
-                <img
-                  src="assets/images/work/project-01/thumb-1200.webp"
-                  srcset="assets/images/work/project-01/thumb-800.webp 800w, assets/images/work/project-01/thumb-1200.webp 1200w"
-                  sizes="(max-width: 760px) min(82vw, 420px), min(36vw, 540px)"
-                  alt=""
-                  width="1200"
-                  height="857"
-                  loading="lazy"
-                  decoding="async"
-                >
-              </picture>
+            <button class="work-tile" type="button" data-project-trigger="project-01" aria-label="open project: pause" aria-describedby="work-line-01 work-meta-01">
+              <span class="work-tile-media" data-tile-media>
+                <picture>
+                  <source type="image/avif" srcset="assets/images/work/project-01/thumb-800.avif 800w, assets/images/work/project-01/thumb-1200.avif 1200w" sizes="(max-width: 760px) 100vw, min(52vw, 960px)">
+                  <img
+                    src="assets/images/work/project-01/thumb-1200.webp"
+                    srcset="assets/images/work/project-01/thumb-800.webp 800w, assets/images/work/project-01/thumb-1200.webp 1200w"
+                    sizes="(max-width: 760px) 100vw, min(52vw, 960px)"
+                    alt=""
+                    width="1200"
+                    height="857"
+                    loading="lazy"
+                    decoding="async"
+                  >
+                </picture>
+              </span>
+              <span class="work-caption">
+                <span class="work-num" aria-hidden="true">01</span>
+                <span class="work-title" aria-hidden="true">pause</span>
+                <span class="work-line" id="work-line-01">Can a station slow us down?</span>
+                <span class="work-meta" id="work-meta-01"><span class="work-kind">adaptive reuse, public realm</span><span class="work-sep" aria-hidden="true"> · </span><span class="work-year">2025</span></span>
+              </span>
             </button>
-            <div class="work-space" aria-hidden="true"></div>
           </li>
           <li class="work-row work-row-right">
-            <div class="work-space" aria-hidden="true"></div>
-            <button class="work-tile" type="button" data-project-trigger="project-02" aria-label="open project: spatial archive">
-              <picture>
-                <source type="image/avif" srcset="assets/images/work/project-02/thumb-800.avif 800w, assets/images/work/project-02/thumb-1200.avif 1200w" sizes="(max-width: 760px) min(82vw, 420px), min(36vw, 540px)">
-                <img
-                  src="assets/images/work/project-02/thumb-1200.webp"
-                  srcset="assets/images/work/project-02/thumb-800.webp 800w, assets/images/work/project-02/thumb-1200.webp 1200w"
-                  sizes="(max-width: 760px) min(82vw, 420px), min(36vw, 540px)"
-                  alt=""
-                  width="1200"
-                  height="857"
-                  loading="lazy"
-                  decoding="async"
-                >
-              </picture>
+            <button class="work-tile" type="button" data-project-trigger="project-02" aria-label="open project: spatial archive" aria-describedby="work-line-02 work-meta-02">
+              <span class="work-tile-media" data-tile-media>
+                <picture>
+                  <source type="image/avif" srcset="assets/images/work/project-02/thumb-800.avif 800w, assets/images/work/project-02/thumb-1200.avif 1200w, assets/images/work/project-02/hero-1600.avif 1600w" sizes="(max-width: 760px) 100vw, min(52vw, 960px)">
+                  <img
+                    src="assets/images/work/project-02/thumb-1200.webp"
+                    srcset="assets/images/work/project-02/thumb-800.webp 800w, assets/images/work/project-02/thumb-1200.webp 1200w, assets/images/work/project-02/hero-1600.webp 1600w"
+                    sizes="(max-width: 760px) 100vw, min(52vw, 960px)"
+                    alt=""
+                    width="1200"
+                    height="857"
+                    loading="lazy"
+                    decoding="async"
+                  >
+                </picture>
+              </span>
+              <span class="work-caption">
+                <span class="work-num" aria-hidden="true">02</span>
+                <span class="work-title" aria-hidden="true">spatial archive</span>
+                <span class="work-line" id="work-line-02">What if where something sits could say what it means?</span>
+                <span class="work-meta" id="work-meta-02"><span class="work-kind">interaction design, web prototype</span><span class="work-sep" aria-hidden="true"> · </span><span class="work-year">2026</span></span>
+              </span>
             </button>
           </li>
           <li class="work-row work-row-left">
-            <button class="work-tile" type="button" data-project-trigger="project-03" aria-label="open project: rainy madras">
-              <picture>
-                <source type="image/avif" srcset="assets/images/work/project-03/thumb-800.avif 800w, assets/images/work/project-03/thumb-1200.avif 1200w" sizes="(max-width: 760px) min(82vw, 420px), min(36vw, 540px)">
-                <img
-                  src="assets/images/work/project-03/thumb-1200.webp"
-                  srcset="assets/images/work/project-03/thumb-800.webp 800w, assets/images/work/project-03/thumb-1200.webp 1200w"
-                  sizes="(max-width: 760px) min(82vw, 420px), min(36vw, 540px)"
-                  alt=""
-                  width="1200"
-                  height="857"
-                  loading="lazy"
-                  decoding="async"
-                >
-              </picture>
+            <button class="work-tile" type="button" data-project-trigger="project-03" aria-label="open project: rainy madras" aria-describedby="work-line-03 work-meta-03">
+              <span class="work-tile-media" data-tile-media>
+                <picture>
+                  <source type="image/avif" srcset="assets/images/work/project-03/thumb-800.avif 800w, assets/images/work/project-03/thumb-1200.avif 1200w, assets/images/work/project-03/hero-1600.avif 1600w" sizes="(max-width: 760px) 100vw, min(52vw, 960px)">
+                  <img
+                    src="assets/images/work/project-03/thumb-1200.webp"
+                    srcset="assets/images/work/project-03/thumb-800.webp 800w, assets/images/work/project-03/thumb-1200.webp 1200w, assets/images/work/project-03/hero-1600.webp 1600w"
+                    sizes="(max-width: 760px) 100vw, min(52vw, 960px)"
+                    alt=""
+                    width="1200"
+                    height="857"
+                    loading="lazy"
+                    decoding="async"
+                  >
+                </picture>
+              </span>
+              <span class="work-caption">
+                <span class="work-num" aria-hidden="true">03</span>
+                <span class="work-title" aria-hidden="true">rainy madras</span>
+                <span class="work-line" id="work-line-03">Can one walk show how unevenly a city is cared for?</span>
+                <span class="work-meta" id="work-meta-03"><span class="work-kind">environment design, cinematic lighting</span><span class="work-sep" aria-hidden="true"> · </span><span class="work-year">2026</span></span>
+              </span>
             </button>
-            <div class="work-space" aria-hidden="true"></div>
           </li>
           <li class="work-row work-row-right">
-            <div class="work-space" aria-hidden="true"></div>
-            <button class="work-tile" type="button" data-project-trigger="project-04" aria-label="open project: shade">
-              <picture>
-                <source type="image/avif" srcset="assets/images/work/project-04/thumb-800.avif 800w, assets/images/work/project-04/thumb-1200.avif 1200w" sizes="(max-width: 760px) min(82vw, 420px), min(36vw, 540px)">
-                <img
-                  src="assets/images/work/project-04/thumb-1200.webp"
-                  srcset="assets/images/work/project-04/thumb-800.webp 800w, assets/images/work/project-04/thumb-1200.webp 1200w"
-                  sizes="(max-width: 760px) min(82vw, 420px), min(36vw, 540px)"
-                  alt=""
-                  width="1200"
-                  height="857"
-                  loading="lazy"
-                  decoding="async"
-                >
-              </picture>
+            <button class="work-tile" type="button" data-project-trigger="project-04" aria-label="open project: shade" aria-describedby="work-line-04 work-meta-04">
+              <span class="work-tile-media" data-tile-media>
+                <picture>
+                  <source type="image/avif" srcset="assets/images/work/project-04/thumb-800.avif 800w, assets/images/work/project-04/thumb-1200.avif 1200w, assets/images/work/project-04/hero-1600.avif 1600w" sizes="(max-width: 760px) 100vw, min(52vw, 960px)">
+                  <img
+                    src="assets/images/work/project-04/thumb-1200.webp"
+                    srcset="assets/images/work/project-04/thumb-800.webp 800w, assets/images/work/project-04/thumb-1200.webp 1200w, assets/images/work/project-04/hero-1600.webp 1600w"
+                    sizes="(max-width: 760px) 100vw, min(52vw, 960px)"
+                    alt=""
+                    width="1200"
+                    height="857"
+                    loading="lazy"
+                    decoding="async"
+                  >
+                </picture>
+              </span>
+              <span class="work-caption">
+                <span class="work-num" aria-hidden="true">04</span>
+                <span class="work-title" aria-hidden="true">shade</span>
+                <span class="work-line" id="work-line-04">A façade study grown out of an IT office campus on Chennai&#39;s OMR.</span>
+                <span class="work-meta" id="work-meta-04"><span class="work-kind">façade study, climate-responsive design</span><span class="work-sep" aria-hidden="true"> · </span><span class="work-year">2025 to 2026</span></span>
+              </span>
             </button>
           </li>
           <li class="work-row work-row-left">
-            <button class="work-tile" type="button" data-project-trigger="project-05" aria-label="open project: staircase">
-              <picture>
-                <source type="image/avif" srcset="assets/images/work/project-05/thumb-800.avif 800w, assets/images/work/project-05/thumb-1200.avif 1200w" sizes="(max-width: 760px) min(82vw, 420px), min(36vw, 540px)">
-                <img
-                  src="assets/images/work/project-05/thumb-1200.webp"
-                  srcset="assets/images/work/project-05/thumb-800.webp 800w, assets/images/work/project-05/thumb-1200.webp 1200w"
-                  sizes="(max-width: 760px) min(82vw, 420px), min(36vw, 540px)"
-                  alt=""
-                  width="1200"
-                  height="857"
-                  loading="lazy"
-                  decoding="async"
-                >
-              </picture>
+            <button class="work-tile" type="button" data-project-trigger="project-05" aria-label="open project: staircase" aria-describedby="work-line-05 work-meta-05">
+              <span class="work-tile-media" data-tile-media>
+                <picture>
+                  <source type="image/avif" srcset="assets/images/work/project-05/thumb-800.avif 800w, assets/images/work/project-05/thumb-1200.avif 1200w, assets/images/work/project-05/hero-1600.avif 1600w" sizes="(max-width: 760px) 100vw, min(52vw, 960px)">
+                  <img
+                    src="assets/images/work/project-05/thumb-1200.webp"
+                    srcset="assets/images/work/project-05/thumb-800.webp 800w, assets/images/work/project-05/thumb-1200.webp 1200w, assets/images/work/project-05/hero-1600.webp 1600w"
+                    sizes="(max-width: 760px) 100vw, min(52vw, 960px)"
+                    alt=""
+                    width="1200"
+                    height="857"
+                    loading="lazy"
+                    decoding="async"
+                  >
+                </picture>
+              </span>
+              <span class="work-caption">
+                <span class="work-num" aria-hidden="true">05</span>
+                <span class="work-title" aria-hidden="true">staircase</span>
+                <span class="work-line" id="work-line-05">Can a semicircular stair work with a single supporting spine and still look light?</span>
+                <span class="work-meta" id="work-meta-05"><span class="work-kind">structural design, design development</span></span>
+              </span>
             </button>
-            <div class="work-space" aria-hidden="true"></div>
           </li>
         </ol>
       </section>
@@ -326,5 +366,6 @@
     <script src="scripts/project-viewer.js" defer></script>
     <script src="scripts/main.js" defer></script>
     <script src="scripts/about-photo.js" defer></script>
+    <script src="scripts/work-tiles.js" defer></script>
   </body>
 </html>

@@ -108,33 +108,6 @@
     margin-top: 0;
   }
 
-  .work-list {
-    gap: clamp(1.5rem, 7vw, 2.5rem);
-  }
-
-  .work-row,
-  .work-row-right {
-    grid-template-columns: 1fr;
-    gap: var(--space-4);
-    min-height: auto;
-  }
-
-  .work-row-right .work-space {
-    order: 2;
-  }
-
-  .work-space {
-    min-height: clamp(0.5rem, 3vw, 1.25rem);
-  }
-
-  .work-tile {
-    width: min(82vw, 420px);
-  }
-
-  .work-row-right .work-tile {
-    justify-self: end;
-  }
-
   .archive-bars {
     gap: var(--space-5);
   }
@@ -304,14 +277,6 @@
   .section-title {
     margin-bottom: clamp(2rem, 5vh, 3rem);
     transform: translateY(-0.75rem);
-  }
-
-  .work-list {
-    gap: clamp(1.25rem, 3vh, 2rem);
-  }
-
-  .work-space {
-    min-height: clamp(0.5rem, 2vw, 1rem);
   }
 
   .archive-layout {
@@ -486,18 +451,6 @@
 
   .section-title {
     margin-bottom: clamp(2rem, 4.2vh, 3rem);
-  }
-
-  .work-list {
-    gap: clamp(1.75rem, 3.2vw, 3.25rem);
-  }
-
-  .work-row {
-    min-height: clamp(190px, 20vw, 280px);
-  }
-
-  .work-space {
-    min-height: clamp(2.5rem, 6vw, 4.5rem);
   }
 
   .nav-object:not(.is-open):not(.is-phone-opening):not(.is-choosing) .radial-item,

@@ -332,7 +332,7 @@
     }
 
     function setViewerVars(trigger, measuredRect) {
-      var rect = measuredRect || trigger.getBoundingClientRect();
+      var rect = measuredRect || tileBox(trigger).getBoundingClientRect();
       var vw = viewportWidth;
       var vh = viewportHeight;
       var stacked = isStackedMode();
@@ -438,14 +438,31 @@
       activeClone = null;
     }
 
+    /*
+      The picture frame inside a trigger: a work tile also carries its caption (title, meta), so the flight starts from and returns to
+      the picture alone (.work-tile-media), never from the whole button. Other triggers are their own frame.
+    */
+    function tileBox(trigger) {
+      return (trigger && trigger.querySelector("[data-tile-media]")) || trigger;
+    }
+
+    /* the tile picture's filter right now (grey, or part way to colour while it is hovered), so the clone starts exactly as the tile looks */
+    function tileFilter(trigger) {
+      var image = trigger && trigger.querySelector("img");
+      var filter = image ? window.getComputedStyle(image).filter : "";
+
+      return filter && filter !== "none" ? filter : "grayscale(1)";
+    }
+
     function createOpenClone(trigger, project, rect) {
       var sourceImage = trigger.querySelector("img");
       var clone = document.createElement("div");
       var cloneImage = document.createElement("img");
 
       clone.className = "project-open-clone";
-      clone.style.borderRadius = cornerRadius(trigger);
+      clone.style.borderRadius = cornerRadius(tileBox(trigger));
       applyBox(clone, rect);
+      cloneImage.style.filter = tileFilter(trigger);
       cloneImage.src = sourceImage ? sourceImage.currentSrc || sourceImage.src : project.image;
       cloneImage.alt = "";
       cloneImage.decoding = "async";
@@ -1086,7 +1103,8 @@
 
       var token = openToken + 1;
       readViewport();
-      var tileRect = trigger.getBoundingClientRect();
+      var tileRect = tileBox(trigger).getBoundingClientRect();
+      var startFilter = tileFilter(trigger);
       var cloneParts;
       openToken = token;
       removeActiveClone();
@@ -1112,9 +1130,9 @@
       cloneParts.element.classList.add("is-moving");
 
       var flight = flyBetween(cloneParts.element, tileRect, targetRect, openFlightDuration(), {
-        radiusFrom: cornerRadius(trigger),
+        radiusFrom: cornerRadius(tileBox(trigger)),
         radiusTo: cornerRadius(introFigure()),
-        filterFrom: "grayscale(1)",
+        filterFrom: startFilter,
         filterTo: "grayscale(0)"
       });
 
@@ -1313,13 +1331,13 @@
         }
       }
 
-      var tileRect = activeTrigger ? activeTrigger.getBoundingClientRect() : from;
+      var tileRect = activeTrigger ? tileBox(activeTrigger).getBoundingClientRect() : from;
 
       viewer.classList.add("is-shrinking");
       viewer.classList.remove("is-expanded");
       await flyBetween(shrinker, from, tileRect, closeFlightDuration(), {
         radiusFrom: fromRadius,
-        radiusTo: activeTrigger ? cornerRadius(activeTrigger) : fromRadius,
+        radiusTo: activeTrigger ? cornerRadius(tileBox(activeTrigger)) : fromRadius,
         filterFrom: fromFilter,
         filterTo: "grayscale(1)"
       });

@@ -1,0 +1,661 @@
+/*
+  The work tiles ("my works"). Three layouts to compare on one page, chosen by data-tiles on <html> (set from ?tiles= by the inline script in
+  index.html; "cantilever" when there is no parameter). In all three the picture the navigation ball lands on hangs from the edge of the
+  screen, so the ball can always roll off the screen on continuous ground:
+    cantilever  each picture a slab cantilevered out from the left or right screen edge (alternating); the caption fills the empty half,
+                tied to the picture's inner tip by a hairline
+    index       an editorial list: number, large title, opening line, year and kind on the left; every picture bleeds off the RIGHT edge,
+                and each row's hairline runs from the text into the picture's top edge
+    sheet       a contact sheet with no gutters: two pictures across the full width, then three, divided only by 2 px seams; a caption
+                on a hairline under each
+
+  Shared by all three:
+  - the button is the whole tile (picture + caption), so the caption opens the project too; the PICTURE (.work-tile-media,
+    data-tile-media) is what the project viewer flies from and back to, what the navigation ball lands on and what carries the black edge
+    vignette
+  - the picture sits above the paper-coloured edge fades (like the other pictures); the caption is page text and fades with the page
+  - pictures are grey; they turn to colour in the project viewer ("grey tiles / colour popups"). With &wake=1 a picture also warms to
+    colour while the ball is on it; every picture flexes a few px under the ball's bounces (both in scripts/work-tiles.js)
+  - hover effects are transform / colour only, and only on devices that can hover; keyboard focus gets the same cues
+*/
+
+.work-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.work-row {
+  position: relative;
+  min-width: 0;
+}
+
+.work-tile {
+  --hair: var(--color-line-strong);
+  --tip-r: clamp(6px, 0.7vw, 12px);
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-ink);
+  font: inherit;
+  text-align: inherit;
+  text-transform: lowercase;
+  cursor: pointer;
+  /* nothing on the button itself animates. Said explicitly: with reduced motion every transition is made 1 ms long (motion.css), and the
+     default "all" would then also animate its visibility as the viewer closes, so the tile would still count as hidden at the moment the
+     viewer hands keyboard focus back to it (focus would fall to the page) */
+  transition: none;
+}
+
+.work-tile-media {
+  position: relative;
+  z-index: var(--z-edge-pictures);
+  display: block;
+  aspect-ratio: 7 / 5;
+  border: var(--line-thin) solid var(--color-line);
+  background: var(--color-paper-warm);
+  overflow: hidden;
+  /* its own compositor layer: the greyscale + rounded clip of the picture is painted once, not again as the tile scrolls into view (and
+     the flex under the ball is a transform of this layer only) */
+  will-change: transform;
+  transition: border-color var(--duration-medium) var(--ease-standard);
+}
+
+.work-tile-media picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.work-tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  filter: grayscale(1);
+  transition:
+    transform var(--duration-slow) var(--ease-standard),
+    filter 1600ms var(--ease-quiet),
+    opacity 520ms var(--ease-standard);
+}
+
+/* a tile whose picture is still arriving shows its quiet empty frame; the picture then fades in instead of popping in (scripts/main.js) */
+.work-tile img.is-loading {
+  opacity: 0;
+}
+
+/* the ball is on the picture (&wake=1): it warms to colour quickly, and goes back to grey slowly once the ball has gone (the slow way back
+   is the picture's own filter transition above) */
+[data-tiles-wake] .work-tile.is-woken img {
+  filter: grayscale(0);
+  transition:
+    transform var(--duration-slow) var(--ease-standard),
+    filter 700ms var(--ease-standard),
+    opacity 520ms var(--ease-standard);
+}
+
+.work-caption,
+.work-num,
+.work-title,
+.work-meta {
+  display: block;
+}
+
+.work-num {
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  transition: color var(--duration-medium) var(--ease-standard);
+}
+
+.work-title {
+  font-weight: 380;
+  line-height: 1.12;
+}
+
+.work-meta {
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+  font-weight: 340;
+  line-height: 1.55;
+}
+
+/* the opening line of the project's summary (prose, so in sentence case like the about text); shown by cantilever and index, not the sheet */
+.work-line {
+  display: none;
+  color: var(--color-ink-soft);
+  font-size: var(--text-sm);
+  font-weight: 340;
+  line-height: 1.5;
+  text-transform: none;
+}
+
+.work-year {
+  white-space: nowrap;
+}
+
+/* while a project is open the tile's picture is hidden (the flying copy stands in for it); its caption stays where it is */
+.work-tile.is-project-source .work-caption {
+  visibility: visible;
+}
+
+/* the pictures touch the screen edge, where a focus ring would be cut off: the focused tile shows its picture's frame and number in ink,
+   its title underlined and its hairline drawn in ink instead */
+.work-tile:focus-visible {
+  outline: none;
+}
+
+.work-tile:focus-visible .work-tile-media {
+  border-color: var(--color-ink);
+}
+
+.work-tile:focus-visible .work-title {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.work-tile:focus-visible img {
+  transform: scale(1.03);
+}
+
+.work-tile:focus-visible .work-num {
+  color: var(--color-ink);
+}
+
+@media (hover: hover) {
+  .work-tile:hover .work-tile-media {
+    border-color: var(--color-line-strong);
+  }
+
+  .work-tile:hover img {
+    transform: scale(1.03);
+  }
+
+  .work-tile:hover .work-num {
+    color: var(--color-ink);
+  }
+}
+
+/* ?tilesdebug=1: a button that fakes the ball's landing on the first picture (scripts/work-tiles.js) */
+.tiles-debug {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2000;
+  padding: 0.4rem 0.7rem;
+  border: var(--line-thin) solid var(--color-ink);
+  border-radius: var(--radius-round);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+/* ================================================================================================================== cantilever */
+
+[data-tiles="cantilever"] .work-list {
+  display: grid;
+  gap: clamp(3rem, 6vw, 6.5rem);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+[data-tiles="cantilever"] .work-row {
+  display: flex;
+}
+
+[data-tiles="cantilever"] .work-row-right {
+  justify-content: flex-end;
+}
+
+[data-tiles="cantilever"] .work-tile {
+  --lead: clamp(1.5rem, 3.6vw, 4.5rem);
+  --lead-gap: clamp(0.75rem, 1.4vw, 1.25rem);
+  width: clamp(320px, 52vw, 960px);
+}
+
+/* the slab: square where it is fixed to the screen edge, a small radius at its free tip */
+[data-tiles="cantilever"] .work-row-left .work-tile-media {
+  border-left: 0;
+  border-radius: 0 var(--tip-r) var(--tip-r) 0;
+}
+
+[data-tiles="cantilever"] .work-row-right .work-tile-media {
+  border-right: 0;
+  border-radius: var(--tip-r) 0 0 var(--tip-r);
+}
+
+/* the caption fills the empty half beside the slab, level with its underside; the hairline continues the underside from the tip to the text */
+[data-tiles="cantilever"] .work-caption {
+  position: absolute;
+  bottom: 0;
+  left: 100%;
+  width: calc(100vw - 100% - var(--page-x));
+  padding-left: calc(var(--lead) + var(--lead-gap));
+}
+
+[data-tiles="cantilever"] .work-row-right .work-caption {
+  left: auto;
+  right: 100%;
+  padding-left: 0;
+  padding-right: calc(var(--lead) + var(--lead-gap));
+  text-align: right;
+}
+
+[data-tiles="cantilever"] .work-caption::before,
+[data-tiles="cantilever"] .work-caption::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--lead);
+  height: var(--line-thin);
+  background: var(--hair);
+  transform-origin: left center;
+}
+
+[data-tiles="cantilever"] .work-caption::after {
+  background: var(--color-ink);
+  transform: scaleX(0);
+  transition: transform var(--duration-slow) var(--ease-standard);
+}
+
+[data-tiles="cantilever"] .work-row-right .work-caption::before,
+[data-tiles="cantilever"] .work-row-right .work-caption::after {
+  left: auto;
+  right: 0;
+  transform-origin: right center;
+}
+
+[data-tiles="cantilever"] .work-title {
+  margin: var(--space-2) 0 0;
+  font-size: clamp(1.6rem, 0.9rem + 2.4vw, 3.4rem);
+  font-weight: 340;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+[data-tiles="cantilever"] .work-line {
+  display: block;
+  max-width: 24rem;
+  margin: clamp(0.75rem, 1.3vw, 1.15rem) 0;
+}
+
+[data-tiles="cantilever"] .work-meta {
+  max-width: 22rem;
+}
+
+[data-tiles="cantilever"] .work-row-right .work-line,
+[data-tiles="cantilever"] .work-row-right .work-meta {
+  margin-left: auto;
+}
+
+@media (hover: hover) {
+  [data-tiles="cantilever"] .work-tile:hover .work-caption::after {
+    transform: scaleX(1);
+  }
+}
+
+[data-tiles="cantilever"] .work-tile:focus-visible .work-caption::after {
+  transform: scaleX(1);
+}
+
+/* phones: the caption under the slab; its hairline runs under the slab from the page margin to the tip */
+@media (max-width: 760px) {
+  [data-tiles="cantilever"] .work-list {
+    gap: clamp(2.25rem, 9vw, 3rem);
+  }
+
+  [data-tiles="cantilever"] .work-tile {
+    width: min(88vw, 520px);
+  }
+
+  [data-tiles="cantilever"] .work-caption,
+  [data-tiles="cantilever"] .work-row-right .work-caption {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: auto;
+    margin-top: var(--space-3);
+    padding: var(--space-3) 0 0 var(--page-x);
+  }
+
+  [data-tiles="cantilever"] .work-row-right .work-caption {
+    padding: var(--space-3) var(--page-x) 0 0;
+  }
+
+  [data-tiles="cantilever"] .work-caption::before,
+  [data-tiles="cantilever"] .work-caption::after {
+    top: 0;
+    bottom: auto;
+    left: var(--page-x);
+    right: 0;
+    width: auto;
+    transform-origin: right center;
+  }
+
+  [data-tiles="cantilever"] .work-row-right .work-caption::before,
+  [data-tiles="cantilever"] .work-row-right .work-caption::after {
+    left: 0;
+    right: var(--page-x);
+    transform-origin: left center;
+  }
+
+  [data-tiles="cantilever"] .work-num {
+    display: inline;
+    margin-right: 0.9em;
+  }
+
+  [data-tiles="cantilever"] .work-title {
+    display: inline;
+    margin: 0;
+    font-size: clamp(1.35rem, 6.2vw, 1.75rem);
+  }
+
+  [data-tiles="cantilever"] .work-line {
+    max-width: 26rem;
+    margin: var(--space-2) 0;
+  }
+}
+
+/* ======================================================================================================================== index */
+
+[data-tiles="index"] .work-list {
+  display: grid;
+  gap: clamp(2.75rem, 5.5vw, 6rem);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+/* the row runs to the right edge of the screen: text from the page margin, the picture flush with the edge */
+[data-tiles="index"] .work-tile {
+  --media-w: clamp(300px, 48vw, 920px);
+  --row-top: clamp(1rem, 2vw, 1.75rem);
+  display: grid;
+  grid-template-columns: clamp(2.25rem, 4vw, 4rem) minmax(0, 1fr) var(--media-w);
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "num title media"
+    ". line media"
+    ". . media"
+    ". year media"
+    ". meta media";
+  column-gap: clamp(1rem, 2.6vw, 2.75rem);
+  width: 100%;
+  padding-left: var(--page-x);
+}
+
+/* the row's hairline: from the text column into the picture's top edge (the picture's top-left corner is square, so the line flows on) */
+[data-tiles="index"] .work-tile::before,
+[data-tiles="index"] .work-tile::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--page-x);
+  right: var(--media-w);
+  height: var(--line-thin);
+  background: var(--hair);
+  transform-origin: left center;
+}
+
+[data-tiles="index"] .work-tile::after {
+  background: var(--color-ink);
+  transform: scaleX(0);
+  transition: transform 900ms var(--ease-standard);
+}
+
+[data-tiles="index"] .work-caption,
+[data-tiles="index"] .work-meta {
+  display: contents;
+}
+
+[data-tiles="index"] .work-num {
+  grid-area: num;
+  padding-top: calc(var(--row-top) + 0.55em);
+}
+
+[data-tiles="index"] .work-title {
+  grid-area: title;
+  padding-top: var(--row-top);
+  font-size: clamp(1.6rem, 0.9rem + 2.4vw, 3.4rem);
+  font-weight: 340;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  transition: transform var(--duration-slow) var(--ease-standard);
+}
+
+[data-tiles="index"] .work-line {
+  display: block;
+  grid-area: line;
+  max-width: 24rem;
+  margin-top: clamp(0.75rem, 1.4vw, 1.25rem);
+  font-size: var(--text-md);
+}
+
+[data-tiles="index"] .work-kind,
+[data-tiles="index"] .work-year {
+  display: block;
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+}
+
+[data-tiles="index"] .work-year {
+  grid-area: year;
+  color: var(--color-ink);
+}
+
+[data-tiles="index"] .work-kind {
+  grid-area: meta;
+  max-width: 17rem;
+}
+
+[data-tiles="index"] .work-sep {
+  display: none;
+}
+
+[data-tiles="index"] .work-tile-media {
+  grid-area: media;
+  border-right: 0;
+  border-radius: 0 0 0 var(--tip-r);
+}
+
+@media (hover: hover) {
+  [data-tiles="index"] .work-tile:hover::after {
+    transform: scaleX(1);
+  }
+
+  [data-tiles="index"] .work-tile:hover .work-title {
+    transform: translateX(0.18em);
+  }
+}
+
+[data-tiles="index"] .work-tile:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* phones: number, title and year on one line under the hairline, then the picture (still flush with the right edge), the line and the kind */
+@media (max-width: 600px) {
+  [data-tiles="index"] .work-tile {
+    --row-top: var(--space-4);
+    grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      "num title year"
+      "media media media"
+      "line line line"
+      "meta meta meta";
+    column-gap: var(--space-3);
+    row-gap: var(--space-3);
+  }
+
+  /* the hairline runs to the screen edge, like the picture under it */
+  [data-tiles="index"] .work-tile::before,
+  [data-tiles="index"] .work-tile::after {
+    right: 0;
+  }
+
+  [data-tiles="index"] .work-year {
+    padding-top: calc(var(--row-top) + 0.45em);
+    margin-right: var(--page-x);
+  }
+
+  [data-tiles="index"] .work-num {
+    padding-top: calc(var(--row-top) + 0.45em);
+  }
+
+  [data-tiles="index"] .work-title {
+    font-size: clamp(1.35rem, 6.2vw, 1.75rem);
+  }
+
+  [data-tiles="index"] .work-line,
+  [data-tiles="index"] .work-kind {
+    max-width: none;
+    margin: 0 var(--page-x) 0 0;
+  }
+
+  [data-tiles="index"] .work-line {
+    font-size: var(--text-sm);
+  }
+}
+
+/* ======================================================================================================================== sheet */
+
+/* one continuous surface, edge to edge: two pictures, then three, divided only by 2 px seams of the page colour */
+[data-tiles="sheet"] .work-list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  column-gap: 2px;
+  row-gap: clamp(1.75rem, 3.4vw, 3rem);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+[data-tiles="sheet"] .work-row {
+  grid-column: span 2;
+}
+
+[data-tiles="sheet"] .work-row:nth-child(-n + 2) {
+  grid-column: span 3;
+}
+
+[data-tiles="sheet"] .work-tile {
+  --cap-x: clamp(0.75rem, 1.4vw, 1.25rem);
+  width: 100%;
+}
+
+[data-tiles="sheet"] .work-tile-media {
+  border: 0;
+  border-radius: 0;
+}
+
+/* number | title | year over a hairline under each frame, the kind of work under it; the hairlines run on from frame to frame */
+[data-tiles="sheet"] .work-caption {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "num title year"
+    ". kind kind";
+  column-gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--cap-x) 0;
+  border-top: var(--line-thin) solid var(--color-line);
+}
+
+/* the frames at the screen edges keep their text at the page margin */
+[data-tiles="sheet"] .work-row:nth-child(1) .work-caption,
+[data-tiles="sheet"] .work-row:nth-child(3) .work-caption {
+  padding-left: var(--page-x);
+}
+
+[data-tiles="sheet"] .work-row:nth-child(2) .work-caption,
+[data-tiles="sheet"] .work-row:nth-child(5) .work-caption {
+  padding-right: var(--page-x);
+}
+
+[data-tiles="sheet"] .work-caption::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: var(--line-thin);
+  background: var(--color-ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 800ms var(--ease-standard);
+}
+
+[data-tiles="sheet"] .work-meta {
+  display: contents;
+}
+
+[data-tiles="sheet"] .work-sep {
+  display: none;
+}
+
+[data-tiles="sheet"] .work-num {
+  grid-area: num;
+  padding-top: 0.2em;
+}
+
+[data-tiles="sheet"] .work-title {
+  grid-area: title;
+  font-size: var(--text-md);
+}
+
+[data-tiles="sheet"] .work-row:nth-child(-n + 2) .work-title {
+  font-size: var(--text-lg);
+}
+
+[data-tiles="sheet"] .work-year {
+  grid-area: year;
+  padding-top: 0.2em;
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+}
+
+[data-tiles="sheet"] .work-kind {
+  grid-area: kind;
+  margin-top: var(--space-1);
+}
+
+@media (hover: hover) {
+  [data-tiles="sheet"] .work-tile:hover .work-caption::before {
+    transform: scaleX(1);
+  }
+}
+
+[data-tiles="sheet"] .work-tile:focus-visible .work-caption::before {
+  transform: scaleX(1);
+}
+
+/* phones: the frames stack, each across the full width */
+@media (max-width: 600px) {
+  [data-tiles="sheet"] .work-row,
+  [data-tiles="sheet"] .work-row:nth-child(-n + 2) {
+    grid-column: 1 / -1;
+  }
+
+  [data-tiles="sheet"] .work-list {
+    row-gap: var(--space-6);
+  }
+
+  [data-tiles="sheet"] .work-row .work-caption {
+    padding-left: var(--page-x);
+    padding-right: var(--page-x);
+  }
+
+  [data-tiles="sheet"] .work-row .work-title {
+    font-size: var(--text-lg);
+  }
+}

@@ -430,7 +430,7 @@
     picture scrolls through it. Only a transform changes while scrolling, nothing is repainted; the rest of the page keeps the paper-coloured fade.
   */
   function initImageVignette() {
-    var holders = Array.prototype.slice.call(document.querySelectorAll(".work-tile, .archive-bar, .about-portrait"));
+    var holders = Array.prototype.slice.call(document.querySelectorAll(".work-tile-media, .archive-bar, .about-portrait"));
     var topEdge = document.querySelector(".viewport-edge-blur-top");
     var bottomEdge = document.querySelector(".viewport-edge-blur-bottom");
     var frame = 0;
