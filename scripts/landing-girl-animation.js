@@ -2121,6 +2121,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         var swc = sin(TAU * t / C.femPeriod + 1.2), th2 = Math.tanh(2.2 * swc), dwc = (1 - th2 * th2) * 2.2 * cos(TAU * t / C.femPeriod + 1.2) * TAU / C.femPeriod;
         var xw = (-side * th2 - fE0) / (fE1 - fE0), dsw = xw > 0 && xw < 1 ? 6 * xw * (1 - xw) / (fE1 - fE0) : 0, spd = abs(femKF * dsw * side * dwc) * C.femFoot[0];
         z += min(14, 1.1 * spd);
+        if (P.settle > 0) z += 12 * fwin * sin(PI * idleA);          // (round 12: arriving from the walk the free foot steps out into the stance as a small lifted step, not a slide)
       }
       if (pvt > 0) ballPivot(beta - rad(13) * pvt * (side < 0 ? 1 : 0.8));          // turning on the spot: the feet pivot on the toes (heel up) instead of sliding with the rotating body
       // planted feet: a standing foot keeps its place and heading in the world while the body sways or turns over it; a turn on the spot is made in two small steps
@@ -4089,11 +4090,17 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     function tab(a, u) { var f = U.clamp(u) * PH_N, i = Math.min(PH_N - 1, Math.floor(f)); return a[i] + (a[i + 1] - a[i]) * (f - i); }
     function tabK(a, u) { return a[Math.min(PH_N, Math.max(1, Math.ceil(U.clamp(u) * PH_N)))]; }
     function strideKOut(t) { var tau = t - c.walkOut0; return tau <= 0 ? accK[1] : tau >= tAcc ? 1 : tabK(accK, tau / tAcc); }
+    // round 12: setting off, the planted foot is right under the hips (its leg phase ~0.23: f = hsF + 15 - S q = 0) and the other one starts its swing beside it - the first step is
+    // a step, not the stance foot dragged back under her (it slid ~50 u with the toes barely off the floor)
+    var GC = GA.girlA && GA.girlA.cfg, OUT_PH0 = GC ? (GC.hsF + 15) / GC.stride - GC.phaseOff : 0.135;
+    // ... and the foot that steps first is the UNLOADED one of her standing pose (the rig's weight shift, cfg.femPeriod: wc > 0 = weight on the right leg, the left one free), so the
+    // loaded foot - the one that stays planted - is already where the gait wants it
+    if (GC && GC.femPeriod && Math.tanh(2.2 * Math.sin((2 * Math.PI * c.walkOut0) / GC.femPeriod + 1.2)) > 0) OUT_PH0 += 0.5;
     function phaseOut(t) {
       var tau = t - c.walkOut0;
-      if (tau <= 0) return 0.25;
-      if (tau >= tAcc) return 0.25 + accPh[PH_N] + (V_WALK * (tau - tAcc)) / STRIDE;
-      return 0.25 + tab(accPh, tau / tAcc);
+      if (tau <= 0) return OUT_PH0;
+      if (tau >= tAcc) return OUT_PH0 + accPh[PH_N] + (V_WALK * (tau - tAcc)) / STRIDE;
+      return OUT_PH0 + tab(accPh, tau / tAcc);
     }
     function bump(t, a, b, c1, d) { return U.smoothstep(a, b, t) * (1 - U.smoothstep(c1, d, t)); }
 
