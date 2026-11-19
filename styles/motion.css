@@ -1338,8 +1338,9 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
    and only shows itself (a white ring) when it has keyboard focus */
 .project-viewer.is-active .project-close:focus-visible {
   opacity: 1;
-  outline: 1px solid var(--project-line-strong);
-  outline-offset: 6px;
+  /* one ring, the button's own edge (an outline around the border drew two circles) */
+  border-color: var(--project-line-strong);
+  outline: none;
   transform: translate(-50%, 0);
 }
 
