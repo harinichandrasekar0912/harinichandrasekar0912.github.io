@@ -1931,7 +1931,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       beta = 0; f = Xhs - S * q + aF; z = az;
     } else {
       var u = (q - q2) / (rho - q2);
-      beta = -bto * sstep5(0, 1, u);
+      beta = -bto * (g === GW ? u * u * (3 - u) * 0.5 : sstep5(0, 1, u));          // (round 12 walk: the heel is still rising at the toe-off - it flows into the swing; the old ease-out parked the foot for a moment and the knee straightened before it bent)
       var ballF = Xhs - S * q2 + bs - S * (q - q2), sS = -C.ballS;
       f = ballF + sS * cos(beta) - az * sin(beta); z = sS * sin(beta) + az * cos(beta);
     }
@@ -1971,12 +1971,15 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     //      Height: keys in units of `lift` above the heel-strike ankle height (the knee lifts the heel first, the ankle sinks while the leg reaches), touching down with the small
     //      vertical velocity swZ1 (no floor skimming).  Pitch: the toe stays POINTED (plantar-flexed) through mid-swing, ballet-like, and flips to heel-first late (swB = fraction
     //      of the way from the toe-off pitch to the heel-strike pitch).  All curves are C1 Hermite splines through the keys (no pops).
-    var dW = S * (1 - rho), e = hermKeys(C.swE, u, 0, C.swR * dW / (dW + hs[0] - to[0]));
+    // round 12: the swing starts with the motion the foot already has at the toe-off (the heel rising, the ankle rolling forward and up over the ball): C1 at the toe-off
+    var bE = to[2], dbq = -rad(C.bto) * g.bk * 1.5 / (rho - g.q2), sSb = -C.ballS, aZ = C.ankleZ;
+    var dfu = (-S + (-sSb * sin(bE) - aZ * cos(bE)) * dbq) * (1 - rho), dzu = (sSb * cos(bE) - aZ * sin(bE)) * dbq * (1 - rho), dbu = dbq * (1 - rho);
+    var dW = S * (1 - rho), dEn = dW + hs[0] - to[0], e = hermKeys(C.swE, u, dEn > 1 ? max(0, (dfu + dW) / dEn) : 0, C.swR * dW / dEn);
     var x = to[0] + (hs[0] - to[0]) * e + dW * (e - u);
     SZ[0][1] = to[1]; SZ[5][1] = hs[1];
     for (var zi = 1; zi < 5; zi++) { var zk = C.swZ[zi - 1]; SZ[zi][0] = zk[0]; SZ[zi][1] = hs[1] + lift * zk[1]; }
-    var z = hermKeys(SZ, u, 0, C.swZ1);
-    return [x, z, to[2] + (hs[2] - to[2]) * hermKeys(C.swB, u, 0, 0)];
+    var z = hermKeys(SZ, u, dzu, C.swZ1), dB = hs[2] - to[2];
+    return [x, z, to[2] + dB * hermKeys(C.swB, u, abs(dB) > 1e-3 ? dbu / dB : 0, 0)];
   }
   /** walk ankle [f, z, beta] (body frame, amount 1) of a leg at phase q with stride factor k and contact offset xoff: the timeline plans the stop with it (round 12) */
   A.gaitFoot = function (q, k, xoff) { gaitSets(k); return legFoot(q, GW, C.lift * lerp(0.3, 1, sstep(0.08, 0.9, k)), C.walkXoff + (xoff || 0)); };
@@ -2109,9 +2112,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var unw = idleA > 0 ? sstep(0.15, 0.75, -side * (wsh + 0.7 * b2 * s2 + 1.3 * e1)) * idleA : 0, unwD = dzy > 0 ? sstep(0.15, 0.9, -side * dS1) * dzy : 0;       // the unloaded foot lifts its heel (idle weight shift / dizzy half-step)
       // a heel that comes up PIVOTS ON THE BALL of the foot: the ankle moves so the ball stays exactly where it is on the floor (no sliding toe)
       var ballPivot = function (b1) { var b0 = beta; f -= (C.ballS * cos(b1) + C.ankleZ * sin(b1)) - (C.ballS * cos(b0) + C.ankleZ * sin(b0)); z -= (C.ballS * sin(b1) - C.ankleZ * cos(b1)) - (C.ballS * sin(b0) - C.ankleZ * cos(b0)); beta = b1; };
-      if (unw > 0 || unwD > 0) { ballPivot(lerp(beta, rad(-18), max(0.85 * unw, unwD))); z += 3 * unwD; f += 5 * sstep(0.35, 0.9, unwD); c -= side * 3 * unw; }          // (real feet: the heel rises about the planted ball exactly - the old fixed lifts floated the ball ~5 u or sank it)          // (dizzy: the small half-step forward is made while the foot is well up)
+      if (unw > 0 || unwD > 0) { ballPivot(lerp(beta, rad(-18), max(0.85 * unw, unwD))); z += 3 * unwD; f += 5 * sstep(0.35, 0.9, unwD); }          /* (no sideways nudge of a foot whose ball is on the floor: it slid ~3-6 u) */          // (real feet: the heel rises about the planted ball exactly - the old fixed lifts floated the ball ~5 u or sank it)          // (dizzy: the small half-step forward is made while the foot is well up)
       if (rcA > 0) { var rt2 = rcA * (1 - aw) * (1 - min(1, 2 * max(sq, 0))); ballPivot(beta - rad(22) * rt2); }          // recoil: a tiny lift up onto the toes (standing only)
-      var femKF = C.femWeight * idleA * (1 - 0.6 * min(1, 2 * ld)), fE0 = FEM_E0, fE1 = FEM_E1, fwin = sstep(fE0, fE1, -side * wc), freeW = femKF * fwin;          /* (the window lies on one side of the crossover: the two feet, at +wc and -wc, are never in it together - one settles, then the other steps out) */          // the unloaded leg: foot a little forward and turned out, the knee soft (a flinch or a shrug does not snap the foot back across the floor)
+      var femKF = C.femWeight * idleA, fE0 = FEM_E0, fE1 = FEM_E1, fwin = sstep(fE0, fE1, -side * wc), freeW = femKF * fwin;          /* (the window lies on one side of the crossover: the two feet, at +wc and -wc, are never in it together - one settles, then the other steps out) */          // the unloaded leg: foot a little forward and turned out, the knee soft (a flinch or a shrug does not snap the foot back across the floor; nor does looking down - it slid the planted foot ~6 u)
       if (freeW > 0) {
         f += C.femFoot[0] * freeW; c += side * C.femFoot[1] * freeW; toe += rad(C.femFoot[2]) * freeW;
         // the free foot never slides: when the weight changes legs it moves in a short window as a small LIFTED step (the lift follows how fast it travels)
@@ -2172,15 +2175,16 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     for (var i2 = 0; i2 < 2; i2++) {
       var lg = legs[i2], hc = lg.side * C.hipW, hv0 = Rp[1] * hc - Rp[2] * 3, hv1 = Rp[4] * hc - Rp[5] * 3, hv2 = Rp[7] * hc - Rp[8] * 3;          // the hip joint's offset from the pelvis origin (exact, incl. the pelvis rotation)
       var dx = lg.f - (fP + hv0), dy = lg.c - (cP + hv1), l2 = Lmax * Lmax - dx * dx - dy * dy;
-      var usw2 = (S.legQ[i2] - rhoG) / (1 - rhoG), relax = usw2 > 0 ? 30 * aw * sstep(0, 0.4, usw2) * (1 - sstep(0.5, 1.0, usw2)) : 0;          /* (the landing leg takes the pelvis down over the second half of the swing: a glide, not a drop at every step; the release at the toe-off is eased over 40 % of the swing: over 12 % the pelvis jumped ~4.5 u and the knees ~11 u in one frame at every step) */          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
+      var usw2 = (S.legQ[i2] - rhoG) / (1 - rhoG), relax = usw2 > 0 ? lerp(60 * a * sstep(0, 0.12, usw2) * (1 - sstep(0.62, 0.97, usw2)), 30 * aw * sstep(0, 0.4, usw2) * (1 - sstep(0.5, 1.0, usw2)), run) : 0;          /* (round 12 walk: a leg in the air does not hold the pelvis at all until it reaches for the next heel strike) */          /* (the landing leg takes the pelvis down over the second half of the swing: a glide, not a drop at every step; the release at the toe-off is eased over 40 % of the swing: over 12 % the pelvis jumped ~4.5 u and the knees ~11 u in one frame at every step) */          // a swing foot does not hold the pelvis down (its IK clamp keeps the leg straight instead: the flight 'stretch'); the limit returns before the landing
       var limi = lg.z + sqrt(l2 > 25 ? l2 : 25) - hv2 + relax;
-      lim = i2 === 0 ? limi : K.smin(lim, limi, lerp(10, 24, aw));          // (idle: the R9 smoothing, so the approved standing / peek poses keep their height; walking: wide, so the hand-over between the two legs' reach limits is a curve, not a corner)
+      lim = i2 === 0 ? limi : K.smin(lim, limi, lerp(10, lerp(8, 24, run), aw));          // (idle: the R9 smoothing, so the approved standing / peek poses keep their height; walking: wide, so the hand-over between the two legs' reach limits is a curve, not a corner)
       if (a > 0 && S.legQ[i2] < GW.rho) {          // (the trailing leg's request fades out over the last 10 % of its stance: the landing leg has taken the weight)
         var kd = rad(K.curve(C.kneeK, S.legQ[i2])), Dk2 = L1 * L1 + L2 * L2 + 2 * L1 * L2 * cos(kd) - dx * dx - dy * dy, hk = lg.z + sqrt(Dk2 > 25 ? Dk2 : 25) - hv2 + 60 * sstep(GW.rho - 0.1, GW.rho, S.legQ[i2]);
         kneeH = kneeH > 1e8 ? hk : K.smin(kneeH, hk, C.kneeSmin);
       }
     }
-    var idealW = kneeH > 1e8 ? C.pelvisIdle : lerp(C.pelvisIdle, kneeH, a * sstep(0.03, 0.7, P.strideK));          // (round 12: tiny steps / feet together at the stop: the legs straighten into the stance height instead of standing on bent knees)
+    var bobX = frac(2 * ph), hWalk = C.walkHmid - C.walkHamp * cos(TAU * (bobX - C.walkHmin));          // round 12: the pelvis rides ONE smooth wave per step - lowest just after each heel strike, highest over the planted leg at mid-stance (real COM path); the legs' reach only clips it
+    var idealW = kneeH > 1e8 ? C.pelvisIdle : lerp(C.pelvisIdle, hWalk, a * sstep(0.03, 0.7, P.strideK));          // (round 12: tiny steps / feet together at the stop: the legs straighten into the stance height instead of standing on bent knees)
     var ideal = lerp(idealW, C.runPelvis + C.runBob * runBobShape(2 * ph), run) + 9 * e3 - 44 * sqp + 14 * sqn - 14 * pk * (1 + 0.12 * sin(TAU * t / 2.3 + 2.2)) - C.hopAbsorb * absorb - 3 * dzy * (0.5 - 0.5 * cos(2 * dTT)) - 2 * scrN * (0.5 + 0.5 * sin(TAU * C.scratchHz * P.scratchT)) + 5 * rcA - 2.5 * blk - 7 * bow;
     var hP = K.smin(ideal, lim, lerp(lerp(C.pelvisSmooth, C.pelvisSmoothW, a), 10, run));
     if (air > 0) hP = lerp(hP, C.pelvisIdle - 4, air);
@@ -2939,6 +2943,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     kneeK: [[0, 5], [0.1, 12], [0.2, 10], [0.32, 4], [0.44, 5], [0.52, 12], [0.6, 20]], legSlim: 0.9, armSlim: 0.88 };
   for (k in elegant) A.cfg[k] = elegant[k];
   for (k in elegant) if (k in A.walkPresets.current) A.walkPresets.current[k] = elegant[k];
+  // ---- ROUND 12 GAIT (fluid, natural): a child's stride.  At 380 u per cycle (1.7 leg lengths) the trailing foot left the floor so far behind her that its leg held the pelvis
+  //      down through the toe-off and the hips then popped up ~11 u in 0.05 s at every step (and the knee snapped straight before it bent for the swing).  A shorter stride at a
+  //      slightly quicker cadence (same speed) lets the pelvis rise and fall as one smooth wave (low in the double support, high over the planted leg)
+  var gait12 = { stride: 345, hsF: 66, walkHmid: 238.4, walkHamp: 5.2, walkHmin: 0.06, bto: 56 };
+  for (k in gait12) A.cfg[k] = gait12[k];
+  for (k in gait12) if (k in A.walkPresets.current) A.walkPresets.current[k] = gait12[k];
   var hc = {"tieU":27,"tiePhi":2.4,"sprout":[-0.2,0.635,0.74],"lockN":8,"lockLen":1.03,"lockW":1.5,"lamK":0.59,"waveK":1,"curlK":1.1,"back":0.16,"backMed":0.21,"bTo":0.36,"medLen":0.9,"fineN":26,"fineLen":0.9,"looseLen":1,"lenSide":0.97,"lenFront":0.87,"widSide":1.07,"widFront":1.45,"runWind":120,"core":1,"coreT0":0.575,"coreT1":0.885,"rootW":7,"ribT0":0.4,"ribT1":0.58};
   for (k in hc) A.hairCfg[k] = hc[k];
   A.rebuild();
@@ -3922,13 +3932,13 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   //   k changes only inside single-support windows (one foot planted), and the walk's contact points are shifted by xoff at the same time so that the planted foot keeps
   //   its exact place on the floor (contact = k (hsF - S q) + xoff + const  =>  xoff' = -(hsF - S q) k'); in the double support k is held.  The body speed is S k omega.
   //   kp / kc are solved so that both feet end side by side, a few units ahead of the hips (the settle carries the hips over them).  Independent of the screen width.
-  var STOP = { QT: 0.06, P2E: 20, P2C: 17.15, KPP: 0.8, GAM: 3.2, NI: 480, TS: 0.45, TOV: 0.3, DELTA: 1, RA: 0.3, RB: 0.75, RBC: 0.88 }, STOP_CACHE = null;
+  var STOP = { QT: 0.06, P2E: 20, P2C: 17.15, KPP: 0.8, KP: 0.48, KC: 0.02, GAM: 3.2, NI: 480, TS: 0.45, TOV: 0.3, DELTA: 1, RA: 0.3, RB: 0.75, RBC: 0.88 }, STOP_CACHE = null;
   function stopS5(x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * x * (x * (x * 6 - 15) + 10); }
   function planStop(STRIDE) {
     var A = GA.girlA, C = A && A.cfg, S0 = STRIDE, w0 = V_WALK / S0, key = S0 + '|' + (A ? A.touchVer : 0) + '|' + JSON.stringify(STOP);
     if (STOP_CACHE && STOP_CACHE.key === key) return STOP_CACHE;
     var hsF = C ? C.hsF : 73, PO = C ? C.phaseOff : 0.1, QT = STOP.QT, P2E = STOP.P2E, NI = STOP.NI, GAM = STOP.GAM, i;
-    var phE = P2E / 2 + QT, phC = STOP.P2C / 2, AM = new Float64Array(NI + 1), m = 0;
+    var phE = P2E / 2 + QT, phC = STOP.P2C / 2, m = 0;
     for (i = 0; i < NI; i++) m += 1 - stopS5(Math.pow((i + 0.5) / NI, GAM));          // cadence shape A(u) = 1 - s5(u^GAM): holds, then eases off to a stop (zero slope at both ends)
     m /= NI;
     var T = (phE - phC) / (w0 * m), dt = T / NI, KS = [1, STOP.KPP, 0, 0];
@@ -3960,18 +3970,15 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       }
       return [d, xo, I];
     }
-    var best = null, kp, kc;
-    for (kp = 0.48; kp <= STOP.KPP + 1e-9; kp += 0.02) {
-      for (kc = 0.02; kc <= Math.min(kp, 0.6) + 1e-9; kc += 0.02) {
-        KS[2] = kp; KS[3] = kc; GG = 0;
-        var r = integrate(false), fT, fL, dl;
-        if (A && A.gaitFoot) { fT = A.gaitFoot(QT, kc, r[1])[0]; fL = A.gaitFoot(QT + 0.5, kc, r[1])[0]; } else { fT = fL = STOP.DELTA; }
-        dl = 0.5 * (fT + fL);
-        var ee = STOP.DELTA - dl;          // (the extra braking moves both feet relative to the hips by exactly ee)
-        var cost = (fT - fL) * (fT - fL) + 0.02 * ee * ee + 40 * (kp - 0.6) * (kp - 0.6);
-        if (!best || cost < best.cost) best = { cost: cost, kp: kp, kc: kc, fT: fT + ee, fL: fL + ee, delta: STOP.DELTA, ee: ee, gg: ee / r[2] };
-      }
-    }
+    // the step lengths are fixed (penultimate step about half a stride, a near-zero closing step: tuned offline - feet side by side within ~3 u); only the extra braking that
+    // brings the feet under the hips is solved here, in closed form (it moves both feet relative to the hips by exactly the same amount): three cheap passes, no search at startup
+    var kp = STOP.KP, kc = STOP.KC, best;
+    KS[2] = kp; KS[3] = kc; GG = 0;
+    var r = integrate(false), fT, fL, dl;
+    if (A && A.gaitFoot) { fT = A.gaitFoot(QT, kc, r[1])[0]; fL = A.gaitFoot(QT + 0.5, kc, r[1])[0]; } else { fT = fL = STOP.DELTA; }
+    dl = 0.5 * (fT + fL);
+    var ee = STOP.DELTA - dl;
+    best = { kp: kp, kc: kc, fT: fT + ee, fL: fL + ee, delta: STOP.DELTA, ee: ee, gg: r[2] > 0 ? ee / r[2] : 0 };
     KS[2] = best.kp; KS[3] = best.kc; GG = best.gg;
     var fin = integrate(true), tb = TB;
     STOP_CACHE = {
