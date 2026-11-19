@@ -36,6 +36,25 @@
   const BEZIER_LIFT_SPAN = 0.55;
   const BEZIER_LIFT_Z = 0.65;
   const BEZIER_MIN_LIFT = 10; // never less: the start and the end stay vertical
+  // the top of the arc is at least this far above the higher of A and E (the top of the straight drop): clamp(z * FACTOR, MIN, MAX); the
+  // screen edge can still lower it
+  const FLIGHT_TOP_RISE_FACTOR = 1.5;
+  const FLIGHT_TOP_RISE_MIN = 100;
+  const FLIGHT_TOP_RISE_MAX = 170;
+  // the straight drop into B at the end of the flight; the page scrolls only during this drop
+  const DROP_FACTOR = 1.6; // drop = clamp(z * 1.6, MIN, MAX), but at most DROP_ROOM_SHARE of the screen space above B
+  const DROP_MIN = 110;
+  const DROP_MAX = 220;
+  const DROP_ROOM_SHARE = 0.62;
+  const DROP_FLOOR = 40;
+  const DROP_SECONDS_BASE = 0.5; // drop time = 0.5 s + scroll distance / 6000 px/s, between 0.6 and 1.1 s
+  const DROP_SCROLL_PX_PER_SECOND = 6000;
+  const DROP_SECONDS_MIN = 0.6;
+  const DROP_SECONDS_MAX = 1.1;
+  const DROP_START_SLOPE = 1.2; // the fall starts gently (the arc eases into it) ...
+  const DROP_END_SLOPE = 2.6; // ... and speeds up into B (1.2^2 + 2.6^2 < 9: the ball only ever moves down)
+  const ARC_EASE_LENGTH = 180; // px: over the arc's last stretch its speed eases down to the fall's starting speed
+  const FLIGHT_TOP_MARGIN = 24; // during the flight the ball's top edge may come this close to the top of the screen (safeTop = radius + 24)
   const BEZIER_SAMPLES = 720;
 
   // phone main path (one big vertical bounce)
@@ -258,19 +277,59 @@
     return { points: points, length: length, minY: minY, apexIndex: apexIndex };
   }
 
-  function planBezierPath(A, B, z, safeTop, speed) {
-    const topY = Math.min(A.y, B.y);
-    const dx = B.x - A.x;
-    const wantedLift = Math.max(BEZIER_LIFT_MIN, Math.abs(dx) * BEZIER_LIFT_SPAN, z * BEZIER_LIFT_Z);
+  /* Two parts, one motion (laptop / tablet):
+   *   1) the ARC, page standing still: a cubic Bezier from A to E, where E sits straight above B; both control points are straight above their
+   *      ends, so the ball leaves A going straight up, crosses one rounded top and arrives at E going straight down. All sideways movement
+   *      happens here, while nothing scrolls. Constant speed (arc length), easing down a little over the last stretch into E.
+   *   2) the DROP, page scrolling: a straight vertical fall from E to B. Only now does the page scroll (smootherstep), so the scroll never mixes
+   *      with any left / right movement of the ball. The fall starts at the arc's final speed and speeds up into B, and the scroll arrives
+   *      exactly as the ball lands.
+   * The speed and the direction never jump at E (the arc ends vertical, at the speed the drop starts with). */
+  function planBezierPath(A, B, z, safeTop, speed, scrollDistance) {
+    const room = Math.max(B.y - safeTop, 0); // screen space above B
+    const drop = Math.max(Math.min(clamp(z * DROP_FACTOR, DROP_MIN, DROP_MAX), room * DROP_ROOM_SHARE), DROP_FLOOR);
+    const E = { x: B.x, y: B.y - drop };
+    const topY = Math.min(A.y, E.y);
+    const dx = E.x - A.x;
+    const riseFor = function (lift) {
+      return topY - sampleBezier(A, { x: A.x, y: topY - lift }, { x: E.x, y: topY - lift }, E, 96).minY;
+    };
+    const wantedRise = clamp(z * FLIGHT_TOP_RISE_FACTOR, FLIGHT_TOP_RISE_MIN, FLIGHT_TOP_RISE_MAX);
+    let riseLift = wantedRise;
+
+    // the real top of a Bezier is lower than its control points (by how much depends on the ends): find the lift that gives the wanted rise
+    if (riseFor(riseLift) < wantedRise) {
+      let low = riseLift;
+      let high = riseLift * 2;
+
+      while (riseFor(high) < wantedRise && high < 8000) {
+        high *= 2;
+      }
+
+      for (let step = 0; step < 28; step += 1) {
+        const middle = (low + high) / 2;
+
+        if (riseFor(middle) < wantedRise) {
+          low = middle;
+        } else {
+          high = middle;
+        }
+      }
+
+      riseLift = high;
+    }
+
+    const wantedLift = Math.max(BEZIER_LIFT_MIN, Math.abs(dx) * BEZIER_LIFT_SPAN, z * BEZIER_LIFT_Z, riseLift);
     const build = function (lift) {
       const controlY = topY - lift;
       const P1 = { x: A.x, y: controlY };
-      const P2 = { x: B.x, y: controlY };
+      const P2 = { x: E.x, y: controlY };
 
-      return { lift: lift, P1: P1, P2: P2, sampled: sampleBezier(A, P1, P2, B, BEZIER_SAMPLES) };
+      return { lift: lift, P1: P1, P2: P2, sampled: sampleBezier(A, P1, P2, E, BEZIER_SAMPLES) };
     };
     let plan = build(wantedLift);
 
+    // keep the sampled curve (not the control points) on screen: lower the lift, never move A, E or B
     if (plan.sampled.minY < safeTop) {
       let low = 0;
       let high = wantedLift;
@@ -278,7 +337,7 @@
       for (let step = 0; step < 28; step += 1) {
         const middle = (low + high) / 2;
 
-        if (sampleBezier(A, { x: A.x, y: topY - middle }, { x: B.x, y: topY - middle }, B, 96).minY >= safeTop) {
+        if (sampleBezier(A, { x: A.x, y: topY - middle }, { x: E.x, y: topY - middle }, E, 96).minY >= safeTop) {
           low = middle;
         } else {
           high = middle;
@@ -288,61 +347,108 @@
       plan = build(Math.max(low, BEZIER_MIN_LIFT));
     }
 
-    const points = plan.sampled.points;
-    const length = Math.max(plan.sampled.length, 1e-6);
-    const duration = clamp(length / speed, MAIN_PATH_MIN_DURATION, MAIN_PATH_MAX_DURATION); // seconds
-    const apex = copyPoint(points[plan.sampled.apexIndex]);
+    /* timing of the drop: long enough for the page to scroll readably; the fall's speed curve is a cubic Hermite on [0, 1] with slope
+     * DROP_START_SLOPE at E and DROP_END_SLOPE at B (both kept within the monotone range, so the ball only ever moves down) */
+    const dropSeconds = clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
+    const entrySpeed = Math.min(speed, (DROP_START_SLOPE * drop) / dropSeconds); // px/s at E
 
-    function pointAtDistance(distance) {
-      if (distance <= 0) {
+    /* the arc: constant speed, easing to entrySpeed over its last stretch (smoothstep over distance, so the speed never steps) */
+    const points = plan.sampled.points;
+    const arcLength = Math.max(plan.sampled.length, 1e-6);
+    const easeLength = Math.min(arcLength * 0.4, ARC_EASE_LENGTH);
+    const times = [0];
+
+    function arcSpeed(distance) {
+      const share = easeLength > 0 ? clamp((distance - (arcLength - easeLength)) / easeLength, 0, 1) : 0;
+
+      return mix(speed, entrySpeed, share * share * (3 - 2 * share));
+    }
+
+    for (let index = 1; index < points.length; index += 1) {
+      const segment = points[index].d - points[index - 1].d;
+      const mean = (arcSpeed(points[index - 1].d) + arcSpeed(points[index].d)) / 2;
+
+      times.push(times[index - 1] + (segment > 0 ? segment / Math.max(mean, 1e-6) : 0));
+    }
+
+    const arcSeconds = Math.max(times[times.length - 1], 0.05);
+    const duration = arcSeconds + dropSeconds;
+    const startSlope = (entrySpeed * dropSeconds) / Math.max(drop, 1e-6);
+    const endSlope = DROP_END_SLOPE;
+
+    function arcPointAt(seconds) {
+      if (seconds <= 0) {
         return { x: A.x, y: A.y };
       }
 
-      if (distance >= length) {
-        return { x: B.x, y: B.y };
+      if (seconds >= arcSeconds) {
+        return { x: E.x, y: E.y };
       }
 
       let low = 1;
-      let high = points.length - 1;
+      let high = times.length - 1;
 
       while (low < high) {
         const middle = (low + high) >> 1;
 
-        if (points[middle].d < distance) {
+        if (times[middle] < seconds) {
           low = middle + 1;
         } else {
           high = middle;
         }
       }
 
-      const before = points[low - 1];
-      const after = points[low];
-      const span = after.d - before.d;
-      const fraction = span > 1e-9 ? (distance - before.d) / span : 0;
+      const span = times[low] - times[low - 1];
+      const fraction = span > 1e-12 ? (seconds - times[low - 1]) / span : 0;
 
-      return { x: mix(before.x, after.x, fraction), y: mix(before.y, after.y, fraction) };
+      return { x: mix(points[low - 1].x, points[low].x, fraction), y: mix(points[low - 1].y, points[low].y, fraction) };
     }
 
+    function dropShare(u) {
+      const t = clamp(u, 0, 1);
+      const t2 = t * t;
+      const t3 = t2 * t;
+
+      return (t3 - 2 * t2 + t) * startSlope + (-2 * t3 + 3 * t2) + (t3 - t2) * endSlope;
+    }
+
+    const samples = points.map(function (point) {
+      return { x: point.x, y: point.y };
+    });
+
+    samples.push({ x: B.x, y: B.y });
+
     return {
-      mode: "bezier",
+      mode: "bezier-then-drop",
       duration: duration,
-      length: length,
-      speed: length / duration,
+      length: arcLength + drop,
+      speed: (arcLength + drop) / duration,
       pointAt: function (seconds) {
-        return pointAtDistance((clamp(seconds, 0, duration) / duration) * length);
+        if (seconds < arcSeconds) {
+          return arcPointAt(seconds);
+        }
+
+        if (seconds >= duration) {
+          return { x: B.x, y: B.y };
+        }
+
+        return { x: B.x, y: E.y + drop * dropShare((seconds - arcSeconds) / dropSeconds) };
       },
       progressAt: function (seconds) {
         return clamp(seconds / duration, 0, 1);
       },
+      // the page stays still during the arc and scrolls only during the straight drop
       scrollProgressAt: function (seconds) {
-        const progress = clamp(seconds / duration, 0, 1);
-
-        return SCROLL_PROGRESS_MODE === "linear" ? progress : smootherstep(progress);
+        return seconds <= arcSeconds ? 0 : smootherstep((seconds - arcSeconds) / dropSeconds);
       },
-      samples: points,
-      apex: apex,
-      guides: [{ name: "P1", point: copyPoint(plan.P1), colour: "#1fa34a" }, { name: "P2", point: copyPoint(plan.P2), colour: "#11a5b8" }],
-      geometry: { A: copyPoint(A), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, wantedLift: wantedLift, topY: topY, safeTop: safeTop }
+      samples: samples,
+      apex: copyPoint(points[plan.sampled.apexIndex]),
+      guides: [
+        { name: "P1", point: copyPoint(plan.P1), colour: "#1fa34a" },
+        { name: "P2", point: copyPoint(plan.P2), colour: "#11a5b8" },
+        { name: "E (scroll starts)", point: copyPoint(E), colour: "#8a2be2" }
+      ],
+      geometry: { A: copyPoint(A), E: copyPoint(E), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, drop: drop, arcSeconds: arcSeconds, dropSeconds: dropSeconds, entrySpeed: entrySpeed, landingSpeed: (endSlope * drop) / dropSeconds, safeTop: safeTop }
     };
   }
 
@@ -350,8 +456,7 @@
    *   A -> apex (ease-out cubic: fast start, visibly slowing to ~0) -> a short hang (PHONE_APEX_HANG) -> B (ease-in cubic: starts slowly,
    *   speeds up and hits B with momentum, then the first landing bounce takes over). x never changes (B.x = A.x).
    *   The two legs get their own durations (the climb and the drop differ whenever A and B are at different heights).
-   * Scroll: smooth and monotonic, split at the same moments: it eases in and out during the climb, holds during the hang, eases in and out
-   * during the fall, and arrives exactly as the ball lands. */
+   * Scroll: none during the climb and the hang; the page scrolls (smootherstep) only while the ball falls, and arrives exactly as it lands. */
   function planPhoneBounce(A, B, phoneZ, safeTop) {
     const topY = Math.min(A.y, B.y);
     const wantedLift = clamp(phoneZ * PHONE_MAIN_LIFT_FACTOR, PHONE_MAIN_LIFT_MIN, PHONE_MAIN_LIFT_MAX);
@@ -363,7 +468,6 @@
     const hangMs = PHONE_APEX_HANG;
     const downMs = clamp(Math.sqrt(downDistance) * 44, 620, 920);
     const totalMs = upMs + hangMs + downMs;
-    const upShare = (upDistance + 1e-6) / (upDistance + downDistance + 2e-6); // share of the scroll done on the way up
     const samples = [];
 
     function pointAtMs(ms) {
@@ -408,15 +512,12 @@
       scrollProgressAt: function (seconds) {
         const ms = seconds * 1000;
 
-        if (ms <= upMs) {
-          return upShare * smootherstep(ms / upMs);
-        }
-
+        // the page waits through the rise and the hang and scrolls only while the ball falls
         if (ms <= upMs + hangMs) {
-          return upShare;
+          return 0;
         }
 
-        return upShare + (1 - upShare) * smootherstep((ms - upMs - hangMs) / downMs);
+        return smootherstep((ms - upMs - hangMs) / downMs);
       },
       samples: samples,
       apex: copyPoint(apex),
@@ -1686,9 +1787,9 @@
           F = { x: A0.x, y: F.y }; // phone: the ball never moves sideways before the roll-away
         }
 
-        const safeTop = visiblePathTopMargin(bounds);
+        const safeTop = Math.max(radius + FLIGHT_TOP_MARGIN, 0); // the flight may go higher than the landing rules allow (resolveScrollTarget)
 
-        path = isPhone ? planPhoneBounce(A0, F, z, safeTop) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED);
+        path = isPhone ? planPhoneBounce(A0, F, z, safeTop) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED, scrollTarget - scrollStart);
         mainMs = Math.max(1, path.duration * 1000);
         rollStartX = F.x;
         rollEndX = rollDirection < 0 ? -radius - 18 : window.innerWidth + radius + 18;
