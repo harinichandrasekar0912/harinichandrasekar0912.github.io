@@ -2734,7 +2734,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var om = C.handOm, ze = C.handZeta, k = om * om, cdamp = 2 * ze * om;
       for (var i = 0; i < 2; i++) {
         var a = S.arm[i], d = AD[i], tx = a.W[0] - a.S[0], ty = a.W[1] - a.S[1], tz = a.W[2] - a.S[2];
-        if (!d.on || Math.abs(tx - d.x) + Math.abs(ty - d.y) + Math.abs(tz - d.z) > 160) { d.x = tx; d.y = ty; d.z = tz; d.vx = d.vy = d.vz = 0; d.on = true; continue; }
+        if (!d.on || Math.abs(tx - d.x) + Math.abs(ty - d.y) + Math.abs(tz - d.z) > 420) { d.x = tx; d.y = ty; d.z = tz; d.vx = d.vy = d.vz = 0; d.on = true; continue; }          // (only a real discontinuity re-seats the spring: at 160 a quick arm fling tripped it and the drawn hand jumped up to ~55 u in one frame)
         d.vx += (k * (tx - d.x) - cdamp * d.vx) * dt; d.vy += (k * (ty - d.y) - cdamp * d.vy) * dt; d.vz += (k * (tz - d.z) - cdamp * d.vz) * dt;
         d.x += d.vx * dt; d.y += d.vy * dt; d.z += d.vz * dt;
       }
