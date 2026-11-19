@@ -2072,7 +2072,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // THINK-IDLE script (deterministic, keyed on pose.thinkT = seconds since she turned to the front (round 10; off while thinkT < 0); only while she stands calmly):
     // E1 weight shift + head tilt + shoulder lift, E2 toe tap, E3 'aha' perk-up on her toes, E4 slow glance away (times: cfg.ideaT, relative to thinkT = 0)
     var tS = P.thinkT, calm = tS >= 0 ? idleA * (1 - min(1, 2 * ld)) * (1 - min(1, 2 * max(sh, dzy, fl, P.scratch, P.think, bow, P.clutch, P.poke, P.shrug))) * C.idleScript : 0;
-    var e1 = pulseT(tS, C.ideaT[0], 0.6, 0.5, 1.0) * calm, e2 = pulseT(tS, C.ideaT[1], 0.25, 0.85, 0.3) * calm, e3 = pulseT(tS, C.ideaT[2], 0.2, 0.15, 0.75) * calm, e4 = pulseT(tS, C.ideaT[3], 0.7, 0.8, 0.75) * calm;
+    var e1 = pulseT(tS, C.ideaT[0], 0.6, 0.5, 1.0) * calm, e2 = pulseT(tS, C.ideaT[1], 0.25, 0.85, 0.3) * calm, e3 = pulseT(tS, C.ideaT[2] + 0.11, 0.21, 0.22, 0.45) * calm, e4 = pulseT(tS, C.ideaT[3], 0.7, 0.8, 0.75) * calm;
     var emax = max(e1, e2, e3, e4), tap = pow(max(0, sin(TAU * 3.3 * (tS - C.ideaT[1]))), 2) * e2;
     S.e1 = e1; S.e3 = e3;
     S.startle = P.startle; S.spread = P.spread; S.poke = P.poke; S.clutch = P.clutch; S.shrugX = P.shrug; S.reach = P.reach; S.wave = P.wave;
@@ -4049,8 +4049,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       p.lean -= 0.3 * bump(k, 0.55, 1.1, 1.45, 2.1);                     // the chest lifts toward it (upper body leans back a little)
       sq -= 0.06 * bump(k, 0.62, 1.05, 1.3, 1.8);                         // ... up a touch on her toes, then down again
       p.think = bump(k, 1.2, 1.8, 1.86, 2.42);                            // 'hmm': fingertip at the chin (once the waving hand is down), let go for the aha
-      var aha = bump(k, 2.35, 2.5, 2.8, 3.4);                             // the first bulb (2.4): a happy bounce up on to the toes (+ the rig's E3 perk-up)
-      sq -= 0.16 * aha; hp += 0.22 * aha;
+      // the first bulb (2.4): the 'aha' PERK-UP, comic but light - a quick little dip as it pops (knees give, chin down: anticipation), then she springs up on to her
+      // toes with a stretch that overshoots a touch, shoulders up, hands lifting open at her sides, head tipped ('ooh!'); a beat up there, then she floats down with a soft
+      // little give-and-rebound and the head tips the other way (+ the rig's E3: on the toes, chest and shoulders up, chin up)
+      var ahaDip = bump(k, 2.39, 2.48, 2.5, 2.62), ahaPop = bump(k, 2.5, 2.74, 2.9, 3.16), ahaOver = bump(k, 2.6, 2.76, 2.78, 2.96);
+      var ahaGive = bump(k, 3.02, 3.12, 3.14, 3.3), ahaReb = bump(k, 3.24, 3.34, 3.36, 3.56);
+      sq += 0.11 * ahaDip - 0.1 * ahaPop - 0.05 * ahaOver + 0.06 * ahaGive - 0.025 * ahaReb;
+      hp += -0.12 * ahaDip + 0.1 * ahaPop + 0.04 * ahaOver; hr += 0.17 * ahaPop - 0.1 * bump(k, 3.0, 3.22, 3.36, 3.75);
+      p.spread = Math.max(p.spread, 0.85 * ahaPop);
       p.poke = bump(k, 3.0, 3.6, 4.3, 5.0);                               // a hand rises to poke at a floating piece; the head follows the hand
       hy += 0.3 * p.poke; hp += 0.25 * p.poke;
       hr -= 0.22 * bump(k, 4.9, 5.3, 5.7, 6.3);                           // the hand drops, the head cocks the other way
