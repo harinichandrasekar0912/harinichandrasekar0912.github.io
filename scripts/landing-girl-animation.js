@@ -2417,11 +2417,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var pole = v3len(bend) > 1.5 ? bend : [-0.3, -1, -0.5];
     var Wt = Wfk, hd = arm.hd, fist = arm.fist || 0;
     if (P.think > 1e-3) {                                // THINK: temple touch -- elbow out to the side, forearm up along the side of the head, fingertips at the temple (reads against white; the scratch is on the crown)
-      var wsm = sstep(0, 1, P.think), arc = sin(PI * wsm);
+      var wsm = P.think, arc = sin(PI * wsm);          // (P.think is already an eased envelope: easing it twice made the middle of the move 2.25 x faster)
       var fFront = sstep(0.93, 0.995, abs(sin(S.theta))), thX = lerp(58, C.thinkHand[0], fFront), thY = lerp(-12, C.thinkHand[1], fFront), thZ = lerp(-60, C.thinkHand[2], fFront);          // facing us: at the side of the jaw; turned: under the chin (where each reads in the silhouette)
-      Wt = v3lerp(Wt, K.fApply(Fh, thX, thY, thZ), wsm);
+      var thT = K.fApply(Fh, thX, thY, thZ), thM = K.fApply(S.torsoF[SH_IDX], 62, -14, -40);          // the hand travels by way of a point in front of her chest (a curve: up in front, then to the jaw; down the same way: the elbow lowers first, then the forearm opens; a straight path passed by the shoulder and the elbow flipped ~50 u in two frames)
+      Wt = v3lerp(v3lerp(Wt, thM, wsm), v3lerp(thM, thT, wsm), wsm);
       Wt = v3add(Wt, [6 * arc, -14 * arc, 1.2 * sin(TAU * 1.6 * P.t) * wsm * wsm]);      // the hand travels out and up (never straight through the torso); the fingers move a little against the jaw
-      pole = v3lerp(pole, C.thinkPole, wsm);
+      pole = v3lerp(pole, v3norm(v3lerp([-0.5, -0.3, -1], C.thinkPole, sstep(0.1, 0.9, wsm))), sstep(0, 0.45, wsm));          // the elbow opens out gradually as the hand rises (a pole that only took over at the end swung the elbow ~45 u in three frames)
       hd = v3norm(v3lerp(hd, K.mVec(Fh.R, 0.35, 0.15, 0.9), wsm));          // fingers pointing up along the jaw
       fist = max(fist, wsm);
     }
@@ -4038,9 +4039,16 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         sq += 0.25 * bump(k, k0 - 0.14, k0 - 0.03, k0, k0 + 0.05) + 0.3 * bump(k, k0 + 0.27, k0 + 0.34, k0 + 0.38, k0 + 0.6);
       }
       // ---- ACT I (0-5.5): wonder
-      var dotLook = bump(k, 0.25, 0.9, 1.9, 2.5);                       // the first dot rises up-right of her head: she looks up at it, head cocked
-      hy += 0.35 * dotLook; hp += 0.42 * dotLook; hr += 0.22 * dotLook;
-      p.think = bump(k, 0.95, 1.45, 2.0, 2.4);                            // 'hmm': fingertip at the chin, let go for the aha
+      // the first dot rises up-right of her head: a CURIOUS look up, in overlapping stages - a small quick glance toward it ('oh?'), the head turning after it, then lifting
+      // to it with a soft overshoot, the cock of the head arriving last; the chest lifts and leans back a little and she rises a touch on her toes to see, then settles
+      var dotOff = 1 - U.smoothstep(1.95, 2.55, k);
+      var dGl = U.smoothstep(0.32, 0.46, k), dYw = U.smoothstep(0.42, 1.0, k), dUp = U.smoothstep(0.52, 1.12, k), dTl = U.smoothstep(0.7, 1.35, k);
+      hy += (0.1 * dGl + 0.25 * dYw) * dotOff;
+      hp += (0.04 * dGl + 0.4 * dUp + 0.07 * bump(k, 0.95, 1.12, 1.15, 1.45)) * dotOff;
+      hr += (0.24 * dTl + 0.05 * bump(k, 1.15, 1.35, 1.4, 1.75)) * dotOff;
+      p.lean -= 0.3 * bump(k, 0.55, 1.1, 1.45, 2.1);                     // the chest lifts toward it (upper body leans back a little)
+      sq -= 0.06 * bump(k, 0.62, 1.05, 1.3, 1.8);                         // ... up a touch on her toes, then down again
+      p.think = bump(k, 1.2, 1.8, 1.86, 2.42);                            // 'hmm': fingertip at the chin (once the waving hand is down), let go for the aha
       var aha = bump(k, 2.35, 2.5, 2.8, 3.4);                             // the first bulb (2.4): a happy bounce up on to the toes (+ the rig's E3 perk-up)
       sq -= 0.16 * aha; hp += 0.22 * aha;
       p.poke = bump(k, 3.0, 3.6, 4.3, 5.0);                               // a hand rises to poke at a floating piece; the head follows the hand
