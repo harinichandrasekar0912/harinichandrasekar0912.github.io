@@ -798,7 +798,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 }
 
 .archive-bars.has-active-archive-item .archive-bar:not(.is-active)::after {
-  background: rgba(0, 0, 0, 0.18);
+  background: rgb(var(--color-ink-rgb, 21 20 18) / 0.18);
 }
 
 .archive-bar {
@@ -815,7 +815,12 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 .archive-bar:hover::after,
 .archive-bar:focus-visible::after,
 .archive-bar.is-active::after {
-  background: rgba(0, 0, 0, 0.04);
+  background: rgb(var(--color-ink-rgb, 21 20 18) / 0.04);
+}
+
+/* keyboard focus is shown by the focus ring alone: the strong border under it drew a second line */
+.archive-bar:focus-visible {
+  border-color: var(--color-line);
 }
 
 .submit-button:hover,

@@ -463,7 +463,7 @@
   .archive-bars.has-active-archive-item .archive-bar:not(.is-active)::after,
   .archive-bar:hover::after,
   .archive-bar.is-active::after {
-    background: rgba(0, 0, 0, 0);
+    background: rgb(var(--color-ink-rgb, 21 20 18) / 0);
   }
 
   .archive-bar:hover,

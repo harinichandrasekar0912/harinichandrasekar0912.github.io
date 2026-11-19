@@ -639,7 +639,7 @@ body.is-project-open .viewport-edge-blur {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0);
+  background: rgb(var(--color-ink-rgb, 21 20 18) / 0);
   pointer-events: none;
 }
 
@@ -650,9 +650,9 @@ body.is-project-open .viewport-edge-blur {
   bottom: max(var(--space-3), calc(var(--image-radius) * 0.7));
   display: flex;
   gap: var(--space-3);
-  color: rgba(250, 248, 243, 0.84);
+  color: rgb(var(--color-paper-rgb, 250 248 243) / 0.84);
   font-size: var(--text-xs);
-  line-height: 1.4;
+  line-height: var(--leading-tight, 1.2);
 }
 
 /* light text is for real (dark) pictures; on the pale placeholder drawing it would vanish, so it is ink there */
