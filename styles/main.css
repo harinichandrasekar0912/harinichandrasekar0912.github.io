@@ -599,6 +599,8 @@ body.is-project-open .viewport-edge-blur {
   padding: 0;
   margin: 0;
   border: var(--line-thin) solid var(--color-line);
+  /* the bar runs on past the right edge of the screen: no closing line there (it is also the ground the navigation ball rolls off on) */
+  border-right: 0;
   border-radius: var(--image-radius) 0 0 var(--image-radius);
   background: var(--color-paper-warm);
   color: var(--color-paper);
