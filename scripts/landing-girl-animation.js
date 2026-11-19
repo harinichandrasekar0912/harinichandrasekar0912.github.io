@@ -1824,7 +1824,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // run (scurry)
     runRho: 0.36, runQ1: 0.05, runQ2: 0.2, runLift: 52, runLean: 17, runPelvis: 233, runBob: 15,
     runArmFwd: 52, runArmBack: -40, runGammaFwd: 95, runGammaBack: 72,
-    runKick: [-222, 105, -55], runKickU: 0.375, runFwd: [60, 70, 6], runXoff: 0, runPelvisF: 0, runHead: 11, runBendH: 30, runLeanDeg: 18, runLean0: 0.4, idleChest: 5.2, idleSway: 10, idleSwayF: 8, idleRoll: 0.22, idleNod: 0.08, shrugAmp: 4.5, idleBeat: 1, idleScript: 1, ideaT: [5.8, 7.3, 2.4, 10.9], dizzyC: 12, dizzyF: 9, hopAbsorb: 14,
+    runKick: [-222, 105, -55], runKickU: 0.375, runFwd: [60, 70, 6], runXoff: 0, runPelvisF: 0, runHead: 11, runBendH: 30, runLeanDeg: 18, runLean0: 0.4, idleChest: 5.2, idleSway: 10, idleSwayF: 8, idleRoll: 0.22, idleNod: 0.08, shrugAmp: 4.5, idleBeat: 1, idleScript: 1, ideaT: [6.95, 7.3, 2.4, 10.9], dizzyC: 12, dizzyF: 9, hopAbsorb: 14,
     thinkHand: [30, -44, -58], thinkPole: [0.1, -1, -0.9],          // 'hmm': the hand at the side of her jaw, fingers up (at the temple it read as a headache; in front of the chin it vanished in the silhouette)
     mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], clutchAt: [6, 46, 24], reachAt: [70, 14, -110], reachPole: [0.9, 0.3, -0.2], scratchHz: 6.5, scratchAmp: [8, 11], scratchAt: [0, -18, 51], paw: [18, 135, 16], pelvisSmooth: 20, liftPow: 1.6, swingTan: 1, swingTan1: 1, liftSkew: 0.35, walkDrop: 0, bobH2: 0, bobH2ph: 0, bobPh: 0.27, hipSway: 2.2, shoulderCounter: 1.9, handLag: 0, headNod: 2, headTilt: 0, hemBounce: 0, headMorph: 0, headMorph0: 1, headW: 0.88, freezeBack: 6, bowDeg: 35, twistDeg: 52, chestHand: [18, -9, -20], chestPole: [-0.25, -1, -0.45], stepLift: 11, turnLift: 8, armIdleM: 0.25, armIdleGP: 0.5, sleeveR: [11.4, 10], sleeveRS: [13.5, 12], sleeveL: 26, neckShort: 0.88, shDrop: -3, armOut: 6, kneeSoft: 0.008, hemTiltA: 7.5, walkChest: 2.4, headBob: 2.6, pelvTilt: 3, hemFlutter: 1.8, shLag: 0.07, armLag: 0.035, foreLag: 0.11, headLag: 0.15, spineAmp: 3.4, spineLag: 0.1, asym: 1,
     femWeight: 1, femPeriod: 14, femShift: 10, femRoll: 8, femCounter: 11, femHead: 0.5, femChest: 4, femFoot: [13, 9, 14], femHand: [3, 60, -25], femHandPole: [-0.1, 1, -0.1], peekSpread: 0.75, peekNeck: 12, peekLean: 58, peekHead: 72, peekYaw: 0.2, peekHand: [20, -22, -60], peekPelvisF: 52, peekLegBack: 140, peekHemF: 140, peekHemTilt: 18, peekPole: [0.8, -0.3, -0.5], runBobK: [[0, 0.3], [0.2, -0.536], [0.35, -0.7], [0.5, 0.1], [0.62, 0.85], [0.78, 1.1], [0.9, 0.75]], runLeanK: 0.06, runHemF: 16, runHemTilt: 5, runHemLift: 0.6, runSpread: 0.06, runTilt: [0, 0, 0, 0], runShift: [0, 0, 0],   // run swing foot keys: [f, z, beta deg] at the kick-back extreme (u = runKickU of the swing) and at u = 0.75
@@ -2072,9 +2072,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // THINK-IDLE script (deterministic, keyed on pose.thinkT = seconds since she turned to the front (round 10; off while thinkT < 0); only while she stands calmly):
     // E1 weight shift + head tilt + shoulder lift, E2 toe tap, E3 'aha' perk-up on her toes, E4 slow glance away (times: cfg.ideaT, relative to thinkT = 0)
     var tS = P.thinkT, calm = tS >= 0 ? idleA * (1 - min(1, 2 * ld)) * (1 - min(1, 2 * max(sh, dzy, fl, P.scratch, P.think, bow, P.clutch, P.poke, P.shrug))) * C.idleScript : 0;
-    var e1 = pulseT(tS, C.ideaT[0], 0.6, 0.5, 1.0) * calm, e2 = pulseT(tS, C.ideaT[1], 0.25, 0.85, 0.3) * calm, e3 = pulseT(tS, C.ideaT[2] + 0.11, 0.21, 0.22, 0.45) * calm, e4 = pulseT(tS, C.ideaT[3], 0.7, 0.8, 0.75) * calm;
-    var emax = max(e1, e2, e3, e4), tap = pow(max(0, sin(TAU * 3.3 * (tS - C.ideaT[1]))), 2) * e2;
-    S.e1 = e1; S.e3 = e3;
+    // E1 weight shift (an elegant little contrapposto): the hips glide over her right leg, sway a touch past and settle back; the free knee softens forward and in with the heel
+    // rising on the ball of the foot (the foot stays planted), the free hip drops; the shoulders counter-tilt and the head tips a beat later (e1h: overlapping action)
+    var e1s = pulseT(tS, C.ideaT[0], 0.8, 1.1, 0.75) * calm, e1 = e1s + 0.14 * pulseT(tS, C.ideaT[0] + 0.55, 0.3, 0, 0.5) * calm, e1h = pulseT(tS, C.ideaT[0] + 0.2, 0.8, 1.0, 0.75) * calm;          // (after the bulb bounce at 6.2, done before the hop at 9.85)
+    var e2 = pulseT(tS, C.ideaT[1], 0.25, 0.85, 0.3) * calm, e3 = pulseT(tS, C.ideaT[2] + 0.11, 0.21, 0.22, 0.45) * calm, e4 = pulseT(tS, C.ideaT[3], 0.7, 0.8, 0.75) * calm;
+    var emax = max(e1s, e1h, e2, e3, e4), tap = pow(max(0, sin(TAU * 3.3 * (tS - C.ideaT[1]))), 2) * e2;
+    S.e1 = e1h; S.e3 = e3; S.e1k = sstep(0, 1, e1s);
     S.startle = P.startle; S.spread = P.spread; S.poke = P.poke; S.clutch = P.clutch; S.shrugX = P.shrug; S.reach = P.reach; S.wave = P.wave;
     // the hello wave's side-to-side swing (+1 = the hand out away from her head) and the hand's lag behind it (the fingers trail each swing: a soft, floppy, childlike wave); both grow with the envelope
     var wvAmp = sstep(0.45, 1, P.wave), wvW = TAU * C.waveHz * P.waveT;
@@ -2107,10 +2110,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (wmx > 0 && wmx < 1 && q > 0.45 && run < 0.5) { var rem = abs(f) * (1 - sstep(0.18, 0.4, wmx)); z += min(16, 0.55 * rem); beta -= rad(0.25) * min(16, 0.55 * rem); }          // (only once the leading foot is down)          // stopping: the TRAILING foot is lifted while it is drawn in under her (a last little step), never dragged along the floor
       var c = side * lerp(lerp(C.idleStance + (side < 0 ? C.stanceL : C.stanceR), C.walkStance, a), C.walkStance - 2, run);
       var toe = lerp(lerp(rad(C.toeIdle + (side < 0 ? C.toeL : C.toeR)), rad(C.toeWalk), a), rad(4), run);
-      var unw = idleA > 0 ? sstep(0.15, 0.75, -side * (wsh + 0.7 * b2 * s2 + 1.3 * e1)) * idleA : 0, unwD = dzy > 0 ? sstep(0.15, 0.9, -side * dS1) * dzy : 0;       // the unloaded foot lifts its heel (idle weight shift / dizzy half-step)
+      var unw = idleA > 0 ? sstep(0.15, 0.75, -side * (wsh + 0.7 * b2 * s2)) * idleA * (1 - e1s) : 0, unwD = dzy > 0 ? sstep(0.15, 0.9, -side * dS1) * dzy : 0;       // the unloaded foot lifts its heel (idle weight shift / dizzy half-step)
       // a heel that comes up PIVOTS ON THE BALL of the foot: the ankle moves so the ball stays exactly where it is on the floor (no sliding toe)
-      var ballPivot = function (b1) { var b0 = beta; f -= (C.ballS * cos(b1) + C.ankleZ * sin(b1)) - (C.ballS * cos(b0) + C.ankleZ * sin(b0)); z -= (C.ballS * sin(b1) - C.ankleZ * cos(b1)) - (C.ballS * sin(b0) - C.ankleZ * cos(b0)); beta = b1; };
-      if (unw > 0 || unwD > 0) { z += 5.5 * unw + 8 * e1 * (side < 0 ? 1 : 0) + 11 * unwD; f += 5 * sstep(0.35, 0.9, unwD); c -= side * 3 * unw; beta = lerp(beta, rad(-18), max(0.85 * unw, unwD)); }          // (dizzy: the small half-step forward is made while the foot is well up)
+      var ballPivot = function (b1, psi) { var b0 = beta, dS = (C.ballS * cos(b1) + C.ankleZ * sin(b1)) - (C.ballS * cos(b0) + C.ankleZ * sin(b0)); if (psi === undefined) f -= dS; else { f -= dS * cos(psi); c -= dS * sin(psi); } z -= (C.ballS * sin(b1) - C.ankleZ * cos(b1)) - (C.ballS * sin(b0) - C.ankleZ * cos(b0)); beta = b1; };
+      if (unwD > 0) { z += 11 * unwD; f += 5 * sstep(0.35, 0.9, unwD); beta = lerp(beta, rad(-18), unwD); }          // (dizzy: the small half-step forward is made while the foot is well up)
       if (rcA > 0) { var rt2 = rcA * (1 - aw) * (1 - min(1, 2 * max(sq, 0))); z += 8.5 * rt2; beta = lerp(beta, beta - rad(22), rt2); }          // recoil: a tiny lift up onto the toes (standing only)
       var femKF = C.femWeight * idleA * (1 - 0.6 * min(1, 2 * ld)), fE0 = FEM_E0, fE1 = FEM_E1, fwin = sstep(fE0, fE1, -side * wc), freeW = femKF * fwin;          /* (the window lies on one side of the crossover: the two feet, at +wc and -wc, are never in it together - one settles, then the other steps out) */          // the unloaded leg: foot a little forward and turned out, the knee soft (a flinch or a shrug does not snap the foot back across the floor)
       if (freeW > 0) {
@@ -2120,6 +2123,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         var xw = (-side * th2 - fE0) / (fE1 - fE0), dsw = xw > 0 && xw < 1 ? 6 * xw * (1 - xw) / (fE1 - fE0) : 0, spd = abs(femKF * dsw * side * dwc) * C.femFoot[0];
         z += min(14, 1.1 * spd);
       }
+      var heelUp = max(0.85 * unw, side < 0 ? sstep(0, 1, e1s) : 0);          // the unloaded foot / E1's free foot: the heel rises ON THE BALL of the foot, along the turned-out foot (it used to lift the ankle and tip the foot: the ball sank ~3 u and slid 3-8 u, and E1 left the foot hovering 4-8 u up)
+      if (heelUp > 0) ballPivot(lerp(beta, rad(side < 0 ? -24 : -18), heelUp), side * toe);
       if (pvt > 0) ballPivot(beta - rad(13) * pvt * (side < 0 ? 1 : 0.8));          // turning on the spot: the feet pivot on the toes (heel up) instead of sliding with the rotating body
       // planted feet: a standing foot keeps its place and heading in the world while the body sways or turns over it; a turn on the spot is made in two small steps
       // (without this the feet slid sideways by c x sin(yaw) with the rotating body)
@@ -2163,7 +2168,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // WALK pelvis (GAIT R10): knee-target solve. Each stance leg asks for the pelvis height at which its knee has the biomechanical flexion C.kneeK(q) (deg: ~5 at contact, ~17 in
     // loading, straight over mid-stance, ~36 into the push-off); the lowest request wins (soft min), so the pelvis is lowest in the double support and highest over the straight
     // mid-stance leg: the bob emerges from the geometry (no cosine).  The landing leg's reach limit takes over just before its heel strike (continuous: kneeK(0) ~ legReach).
-    var pelvRoll = rad(C.femRoll) * fw, Rp = K.mEuler(yawP, pitchP, pelvRoll), rhoG = lerp(GW.rho, GR.rho, run);
+    var pelvRoll = rad(C.femRoll) * (fw + 0.8 * e1), Rp = K.mEuler(yawP, pitchP, pelvRoll), rhoG = lerp(GW.rho, GR.rho, run);
     var kneeH = 1e9, Lmax = (L1 + L2) * (C.legReach - C.kneeSoft * aw * (1 - run)), lim = 1e9;
     for (var i2 = 0; i2 < 2; i2++) {
       var lg = legs[i2], hc = lg.side * C.hipW, hv0 = Rp[1] * hc - Rp[2] * 3, hv1 = Rp[4] * hc - Rp[5] * 3, hv2 = Rp[7] * hc - Rp[8] * 3;          // the hip joint's offset from the pelvis origin (exact, incl. the pelvis rotation)
@@ -2193,7 +2198,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var uswS = (S.legQ[lj] - GW.rho) / (1 - GW.rho), softK = C.legSoft * aw * (uswS > 0 ? sstep(0, 0.25, uswS) * (1 - sstep(0.75, 1, uswS)) : 0), dd = v3sub(ank, hip), dl = v3len(dd), reach = (L1 + L2) * 0.9995, dS = reach - softK;          // (only in the air: a planted foot stays exactly on the floor)
       if (dl > dS) { var dl2 = softK > 1e-3 ? dS + softK * (1 - Math.exp(-(dl - dS) / softK)) : reach; ank = v3mad(hip, dd, dl2 / dl); }
       var knock = fz * (1 - aw) * rad(7);          // frozen: the knees drift slightly inward
-      var poleA = L.side * rad(7) + yawP * 0.5 - L.side * knock * 1.0;
+      var poleA = L.side * rad(7) + yawP * 0.5 - L.side * knock * 1.0 + (L.side < 0 ? rad(24) * S.e1k : 0);          // (E1: the free knee turns in a little)
       var knee = ik2(hip, ank, [cos(poleA), sin(poleA), 0], L1, L2);
       var Rf = K.mMul(K.mRz(L.side * L.toe - (L.tYaw || 0)), K.mRy(L.beta));
       var ofoot = v3sub(ank, K.mVec(Rf, 0, 0, C.ankleZ));
@@ -2203,10 +2208,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // ---- head angles (relative to the neck)
     var headLead = (P.yaw > 0 && P.yaw < 1) ? 0.22 * sin(PI * P.yaw) : 0;       // the head leads the body turn
     var scr = P.scratch;
-    var hy = P.hy - 0.85 * e4 + 0.1 * e1 + 0.07 * sin(TAU * t / 5.3) * idleA + 0.4 * b4 * s4 * (1 - 0.25 * sin(TAU * 3 * t)) + 0.3 * dzy * sin(dTT + 0.6);
+    var hy = P.hy - 0.85 * e4 + 0.1 * e1h + 0.07 * sin(TAU * t / 5.3) * idleA + 0.4 * b4 * s4 * (1 - 0.25 * sin(TAU * 3 * t)) + 0.3 * dzy * sin(dTT + 0.6);
     var scT = P.scratchT, scW = sstep(0.3, 0.8, scr);          // scratch: head tilts into the hand, wince beats, rub-synchronous head wobble
-    var hp = P.hp + 0.6 * e3 - 0.1 * e4 + 0.08 * e1 + (C.idleNod * sin(TAU * t / 3.9) + 0.05 * sin(TAU * t / 7.7)) * idleA + 0.16 * b1 - 0.08 * b4 - 0.10 * scr - 0.32 * sq - 0.12 * hunchS + 0.3 * air - 0.22 * fl - 0.1 * dzy - 0.1 * scW * max(0, sin(TAU * 1.7 * scT)) + 0.1 * fz + 0.1 * rcA - 0.3 * blk - 0.05 * femK;
-    var hr = P.hr + 0.62 * e1 - 0.12 * e4 + (C.idleRoll * sin(TAU * t / 6.7) + 0.08 * sin(TAU * t / 3.1)) * idleA + 0.45 * b2 * s2 + 0.2 * b4 * s4 + 0.62 * scr + 0.1 * scW * sin(TAU * C.scratchHz * 0.5 * scT) + 0.12 * fz + 0.3 * bow + 0.3 * pk + a * (1 - run) * C.headTilt * sin(TAU * (ph - C.headLag)) - C.femHead * fw - 0.06 * femK + 0.1 * fl + 0.45 * dzy * dS3;
+    var hp = P.hp + 0.6 * e3 - 0.1 * e4 + 0.08 * e1h + (C.idleNod * sin(TAU * t / 3.9) + 0.05 * sin(TAU * t / 7.7)) * idleA + 0.16 * b1 - 0.08 * b4 - 0.10 * scr - 0.32 * sq - 0.12 * hunchS + 0.3 * air - 0.22 * fl - 0.1 * dzy - 0.1 * scW * max(0, sin(TAU * 1.7 * scT)) + 0.1 * fz + 0.1 * rcA - 0.3 * blk - 0.05 * femK;
+    var hr = P.hr + 0.5 * e1h - 0.12 * e4 + (C.idleRoll * sin(TAU * t / 6.7) + 0.08 * sin(TAU * t / 3.1)) * idleA + 0.45 * b2 * s2 + 0.2 * b4 * s4 + 0.62 * scr + 0.1 * scW * sin(TAU * C.scratchHz * 0.5 * scT) + 0.12 * fz + 0.3 * bow + 0.3 * pk + a * (1 - run) * C.headTilt * sin(TAU * (ph - C.headLag)) - C.femHead * fw - 0.06 * femK + 0.1 * fl + 0.45 * dzy * dS3;
     var psiH = -hy * rad(55) - headLead * rad(14);
     var runLeanTot = run * (rad(C.runLean + C.runLeanDeg * (lean - C.runLean0)) - rad(C.runPelvisPitch));          // the torso's total forward tip in the run (spine lean + pelvis pitch), rad
     var phiH = (hp >= 0 ? hp * rad(35) : hp * rad(38)) + pk * rad(C.peekHead) - a * rad(C.headNod) * cos(TAU * 2 * (ph - C.headLag)) + C.runHeadLevel * runLeanTot + run * rad(C.runHead) * (1 + 0.15 * sin(TAU * 2 * ph));          // run (GAIT R10): the head counter-rotates the lean = LEVEL in the world, eyes on the horizon (+ runHead deg chin-up)
@@ -2224,13 +2229,13 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var pitchT = -(1 - run) * leanT - a * (1 - run) * rad(C.walkLean) - run * rad(C.runLean + C.runLeanDeg * (lean - C.runLean0)) + wsf * rad(1.5) + dzy * rad(5) * dS2 - absorb * rad(10) + ld * rad(6.5) - bow * rad(C.bowDeg) + rcA * rad(3) + a * (1 - run) * rad(C.spineAmp) * walkBobShape(2 * (ph - C.bobPh - C.spineLag));
     var yawPl = aw * rad(C.walkYaw) * cos(TAU * (ph - C.shLag)) * (1 - 0.5 * run);          // the shoulders follow the hips with a small lag (successive breaking of the joints)
     var twistRel = -C.shoulderCounter * yawPl - twistU * rad(C.twistDeg);          // twist > 0: the upper body turns toward the viewer (look back over the shoulder)
-    var rollT = rad(C.waveBody) * S.waveSw - rad(2) * P.wave + wsh * rad(-4.5) - rad(C.femCounter) * fw - rad(6.5) * e1 - 0.07 * b2 * s2 - 0.04 * b3 * s3 + scr * rad(-5) - dzy * rad(7) * dS1;
+    var rollT = rad(C.waveBody) * S.waveSw - rad(2) * P.wave + wsh * rad(-4.5) - rad(C.femCounter) * fw - rad(6.5) * e1h - 0.07 * b2 * s2 - 0.04 * b3 * s3 + scr * rad(-5) - dzy * rad(7) * dS1;
     var comp = (1 - 0.07 * sqp + 0.2 * sqn) * stretch, wid = 1 + 0.07 * sqp - 0.02 * sqn;
     var nRows = TORSO_H.length;
     S.torsoF = new Array(nRows);
     var vbCs = trm * 0.25 * tr2, vbF = trm * 0.35 * tr1, vbC = vbCs - C.femChest * fw, vbH = trm * 0.3 * tr3 + 2.5 * rcA;          // upper-body shiver (the skirt top follows it: no seam at the waist)
     var oPrev = K.fApply(Fp, vbF, vbC, C.waistH - C.hipRest + C.runWaistK * run + vbH);
-    var chestUp = C.idleChest * (breath + 0.5 * b1 + 1.5 * e3 + 0.15 * sin(TAU * t / 1.7) * idleA) * idleA + C.walkChest * a * (1 - run) * cos(TAU * 2 * (ph - C.bobPh - 0.1)), shUp = C.shrugAmp * (0.35 * b3 + 0.3 * b1 + 0.7 * e1 + 0.9 * e3) + 1.5 * ld + 5.0 * fz + 2.5 * rcA + 1.5 * bow + 8 * P.shrug + 2.5 * P.startle + 2 * P.clutch, exPrev = 0, fNPrev = 0;          // breathing chest rise, shrug beats, look-down shoulder drop (accumulated along the spine)
+    var chestUp = C.idleChest * (breath + 0.5 * b1 + 1.5 * e3 + 0.15 * sin(TAU * t / 1.7) * idleA) * idleA + C.walkChest * a * (1 - run) * cos(TAU * 2 * (ph - C.bobPh - 0.1)), shUp = C.shrugAmp * (0.35 * b3 + 0.3 * b1 + 0.7 * e1h + 0.9 * e3) + 1.5 * ld + 5.0 * fz + 2.5 * rcA + 1.5 * bow + 8 * P.shrug + 2.5 * P.startle + 2 * P.clutch, exPrev = 0, fNPrev = 0;          // breathing chest rise, shrug beats, look-down shoulder drop (accumulated along the spine)
     for (var i = 0; i < nRows; i++) {
       var h = TORSO_H[i];
       var gb = lerp(sstep(C.waistH, C.neckBaseH, h), sstep(C.waistH, C.waistH + C.runBendH, h), run);
@@ -4022,7 +4027,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     //   Act I wonder (looks up at the first dot, temple tap, 'aha' bounce at the first bulb, pokes at a floating piece), II curiosity + delight (slow pursuit of an orbiting piece,
     //   fingertip tapping, happy bounces at the bulbs, eyes-wide shoulder lift at the first firework, a hop), III comic overload (both hands clutch the head, wobbles, the head
     //   whips after every firework, a dizzy sway, a hop of excitement), IV the funnel tightens (deer freeze, she spots the ball, alarm grows: hand to the chest, shoulders up,
-    //   a cringe just before the hit).  The rig adds its own think-idle script (thinkT: E3 'aha' perk-up 2.4, E1 weight shift 5.8, E2 toe tap 7.3, E4 glance away 10.9) whenever
+    //   a cringe just before the hit).  The rig adds its own think-idle script (thinkT: E3 'aha' perk-up 2.4, E1 weight shift 6.95, E2 toe tap 7.3, E4 glance away 10.9) whenever
     //   her hands are free.  Everything is a smooth envelope on top of a dreamy base look-around; headYaw > 0 = toward screen-right (her left), headPitch > 0 = up. =================
     var BULBS = [2.4, 6.2, 9.8, 13.4, 16.2], FIRES = [9.5, 12.6, 14.1, 15.6, 16.8];
     function thinkPerf(p, k) {
