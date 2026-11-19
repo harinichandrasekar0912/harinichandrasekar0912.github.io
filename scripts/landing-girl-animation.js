@@ -1835,8 +1835,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     //   jWrist [droop mean, droop amplitude, phase deg, flutter]: the limp hand hangs from the wrist toward the floor by this fraction and flaps after the forearm;
     //   jTwist [mean, amplitude, lag]: the chest opens toward the viewer (twist units, 52 deg each) and sways with the arms; jRock [deg, lag] torso rock per step; jRoll [deg, lag] side sway per cycle;
     //   jHead [yaw, roll amplitude, nod amplitude, lag]; jHem: the hem bounces with every step; jLoft: weight of the traced scurry lofts (0 = her own walking shapes)
-    jRun: 0, jUp: [10, 24, 70, -10, 14, 0], jFore: [30, 24, 20, 55, 20, -40], jFlutter: 6, jArmLag: 0.08, jWrist: [0.55, 0.2, -50, 0.08], jShLift: 4,
-    jTwist: [0.5, 0.12, 0.05], jRock: [2.5, 0.1], jRoll: [4, 0.05], jHead: [-0.25, 0.35, 0.12, 0.12], jHem: 4, jLoft: 1, jPelvYaw: 0, jOpen: 0,
+    jRun: 1, jUp: [10, 24, 70, -10, 14, 0], jFore: [30, 24, 20, 55, 20, -40], jFlutter: 6, jArmLag: 0.08, jWrist: [0.55, 0.2, -50, 0.08], jShLift: 4,
+    jTwist: [0.5, 0.12, 0.05], jRock: [2.5, 0.1], jRoll: [4, 0.05], jHead: [-0.25, 0.35, 0.12, 0.12], jHem: 4, jLoft: 0, jPelvYaw: 0, jOpen: 0,
     headRowStep: 2, skirtRowStep: 2, shoeRowStep: 2, handRowStep: 2, limbStep: 2, ringHead: 52, ringTrunk: 40, ringShoe: 24, ringHand: 24,   // ring resolution of the lofts (silhouettes are faired, so this only needs to beat the fairing radius)
     fair: { head: 0.9, trunk: 1.4, shoe: 1.0, hand: 0.7 },     // outline fairing radius (screen units) per component
     phaseOff: 0.1,        // pose.gait.phase is offset by this internally: the traced walk / run reference poses (internal phase keyQ = 0.1) sit at POSE phase 0
@@ -1878,11 +1878,13 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     var DR = A.dataRun;
     HEAD_R = null;
-    if (DR) {                                           // traced run tables: same row layout as the walk tables, blended by gait.run
+    if (DR && !(C.jRun && !C.jLoft)) {                  // traced run tables: same row layout as the walk tables, blended by gait.run (not built for the Jack run, which draws with her own shapes: less work at page load)
       HEAD_R = K.makeLoft(decim(rowsIn(DR.head), C.headRowStep), C.ringHead); TORSO_R = K.makeLoft(zeroZ(rowsIn(DR.torso)), C.ringTrunk); SKIRT_R = K.makeLoft(zeroZ(decim(rowsIn(DR.skirt), C.skirtRowStep)), C.ringTrunk);
       HEAD_B = K.cloneLoft(HEAD); TORSO_B = K.cloneLoft(TORSO); SKIRT_B = K.cloneLoft(SKIRT);
       SHOE_R = per(DR.shoe).map(function (pair) { return pair.map(function (t) { return K.makeRectLoft(decim(rowsIn(t), C.shoeRowStep), C.ringShoe); }); });
       SHOE_S2 = [K.cloneLoft(SHOE[0][0]), K.cloneLoft(SHOE[1][0])];
+    }
+    if (DR) {
       if (DR.hand) { HAND_R = per(DR.hand).map(function (pair) { return pair.map(function (t) { return K.makeLoft(decim(rowsIn(t), C.handRowStep), C.ringHand); }); }); HAND_S2 = [K.cloneLoft(HAND[0][0]), K.cloneLoft(HAND[1][0])]; }
     }
     SH_IDX = nearestRowIdx(C.shoulderH); NECK_IDX = nearestRowIdx(378);
