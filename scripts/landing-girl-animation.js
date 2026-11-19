@@ -2359,7 +2359,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var bsU = 0, bsF = 0;
       if (S.burst > 0) {          // 'so many ideas!': both arms open up and out (half way: excited hands up beside her shoulders; full: a joyful V above her head)
         var bLo = sstep(0, 0.5, S.burst), bHi = sstep(0.5, 1, S.burst); bsU = bLo; bsF = bLo;          // (half way the elbows stay low and the forearms stand up: hands beside her shoulders; then the elbows open out and up)
-        alpha = lerp(lerp(alpha, rad(24), bLo), rad(14), bHi); beta = lerp(lerp(beta, rad(30), bLo), rad(104), bHi);
+        alpha = lerp(lerp(alpha, rad(24), bLo), rad(16), bHi); beta = lerp(lerp(beta, rad(30), bLo), rad(94), bHi);
       }
       var Ssh = K.fApply(Fsh, -1.0, side * C.shoulderC, 0);
       if (run > 0) { var wFs = 0.5 + 0.5 * fw; Ssh[0] += run * (C.runShoulderFwd * wFs - C.runShoulderBack * (1 - wFs)); }   // run: the arm that swings back also has its shoulder twisted back (far shoulder)
@@ -2376,7 +2376,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         hdW = K.mVec(Rarm, 0.5 * C.waveFwd * sin(thH), side * sin(thH), -cos(thH));
       }
       if (bsF > 0) {          // the burst forearms: folded up in front on the way (as in the wave), then standing up and out in the plane facing us; the open hands flutter (a quick shimmer of the wrists, the two hands out of step)
-        var thB = lerp(lerp(rad(20), rad(164), bsF), rad(150), sstep(0.5, 1, S.burst)), fl8 = rad(13) * S.flutter * sin(TAU * 6.5 * P.t + (side > 0 ? 0 : 2.2)), bsP = sstep(0.4, 1, bsF);
+        var thB = lerp(lerp(rad(20), rad(164), bsF), rad(154), sstep(0.5, 1, S.burst)), fl8 = rad(9) * S.flutter * sin(TAU * 6.5 * P.t + (side > 0 ? 0 : 2.2)), bsP = sstep(0.4, 1, bsF);
         var b2T = v3norm([0.25, sin(thB), -cos(thB)]), b2M = [sin(thB), 0.3 * sin(thB), -cos(thB)], b2L = v3lerp(b2M, b2T, bsP);
         d2 = v3norm(v3lerp(d2, K.mVec(Rarm, b2L[0], side * b2L[1], b2L[2]), sstep(0, 0.6, bsF)));
         hdW = K.mVec(Rarm, 0.12, side * sin(thB + rad(10) + fl8), -cos(thB + rad(10) + fl8)); wvF = max(wvF, bsF);
@@ -4094,7 +4094,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       // little give-and-rebound and the head tips the other way (+ the rig's E3: on the toes, chest and shoulders up, chin up)
       var ahaDip = bump(k, 2.39, 2.48, 2.5, 2.62), ahaPop = bump(k, 2.5, 2.74, 2.9, 3.16), ahaOver = bump(k, 2.6, 2.76, 2.78, 2.96);
       var ahaGive = bump(k, 3.02, 3.12, 3.14, 3.3), ahaReb = bump(k, 3.24, 3.34, 3.36, 3.56);
-      sq += 0.11 * ahaDip - 0.1 * ahaPop - 0.05 * ahaOver + 0.06 * ahaGive - 0.025 * ahaReb;
+      sq += 0.11 * ahaDip - 0.1 * ahaPop - 0.035 * ahaOver + 0.06 * ahaGive - 0.025 * ahaReb;
       hp += -0.12 * ahaDip + 0.1 * ahaPop + 0.04 * ahaOver; hr += 0.17 * ahaPop - 0.1 * bump(k, 3.0, 3.22, 3.36, 3.75);
       p.spread = Math.max(p.spread, 0.85 * ahaPop);
       p.poke = bump(k, 3.0, 3.6, 4.3, 5.0);                               // a hand rises to poke at a floating piece; the head follows the hand
