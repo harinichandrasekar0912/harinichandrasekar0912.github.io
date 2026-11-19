@@ -703,7 +703,8 @@
   }
 
   /* the far end of the surface the ball rolls on, in the roll direction: the landing element, extended across neighbours of the same kind
-   * whose top edge is level with it (within 1.5 px) and that start within 2 px of where it ends */
+   * whose top edge is level with it (within 3 px: a neighbour may still be settling from a bounce) and that start within 4 px of where it
+   * ends (a seam that narrow is nothing to a ball ~40 px across) */
   function surfaceEnd(element, selector, dir) {
     const start = element.getBoundingClientRect();
     let edge = dir < 0 ? start.left : start.right;
@@ -718,7 +719,7 @@
     }).map(function (other) {
       return { element: other, rect: other.getBoundingClientRect() };
     }).filter(function (item) {
-      return item.rect.width > 0 && Math.abs(item.rect.top - start.top) <= 1.5;
+      return item.rect.width > 0 && Math.abs(item.rect.top - start.top) <= 3;
     });
     let grew = true;
 
@@ -727,7 +728,7 @@
 
       for (let index = 0; index < rects.length; index += 1) {
         const rect = rects[index].rect;
-        const near = dir < 0 ? rect.right >= edge - 2 && rect.left < edge - 0.5 : rect.left <= edge + 2 && rect.right > edge + 0.5;
+        const near = dir < 0 ? rect.right >= edge - 4 && rect.left < edge - 0.5 : rect.left <= edge + 4 && rect.right > edge + 0.5;
 
         if (near) {
           edge = dir < 0 ? rect.left : rect.right;
