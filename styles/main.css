@@ -829,9 +829,14 @@ body.is-project-open .viewport-edge-blur {
   color: var(--color-ink);
 }
 
+/* a field the message below "go" is about: its line is drawn darker (it was 0.28 against 0.22, which could not be seen) */
 .contact-form label:has(input[aria-invalid="true"])::before,
 .contact-form label:has(textarea[aria-invalid="true"])::before {
-  background: rgba(21, 20, 18, 0.28);
+  background: var(--color-line-strong);
+}
+
+.submit-button:disabled {
+  cursor: progress;
 }
 
 /* the links follow the form at one fixed rhythm on every screen (pinned to the bottom of the screen they drifted ~600px away from the

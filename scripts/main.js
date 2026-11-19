@@ -28,15 +28,26 @@
       response.classList.toggle("is-visible", Boolean(message));
     }
 
+    /* an invalid field points screen readers at the message that explains it */
+    if (!response.id) {
+      response.id = "contact-form-response";
+    }
+
+    function clearField(field) {
+      field.removeAttribute("aria-invalid");
+      field.removeAttribute("aria-describedby");
+    }
+
     function clearInvalidState() {
       Object.keys(fields).forEach(function (key) {
-        fields[key].removeAttribute("aria-invalid");
+        clearField(fields[key]);
       });
     }
 
     function markInvalid(fieldNames) {
       fieldNames.forEach(function (fieldName) {
         fields[fieldName].setAttribute("aria-invalid", "true");
+        fields[fieldName].setAttribute("aria-describedby", response.id);
       });
     }
 
@@ -219,7 +230,7 @@
 
     Object.keys(fields).forEach(function (key) {
       fields[key].addEventListener("input", function () {
-        fields[key].removeAttribute("aria-invalid");
+        clearField(fields[key]);
       });
     });
 
