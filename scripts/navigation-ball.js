@@ -47,13 +47,13 @@
   const DROP_MAX = 220;
   const DROP_ROOM_SHARE = 0.62;
   const DROP_FLOOR = 40;
-  const DROP_SECONDS_BASE = 0.5; // drop time = 0.5 s + scroll distance / 6000 px/s, between 0.6 and 1.1 s
-  const DROP_SCROLL_PX_PER_SECOND = 6000;
-  const DROP_SECONDS_MIN = 0.6;
-  const DROP_SECONDS_MAX = 1.1;
+  const DROP_SECONDS_BASE = 0.62; // drop time = 0.62 s + scroll distance / 4800 px/s, between 0.75 and 1.38 s (about 25 % slower than the first version)
+  const DROP_SCROLL_PX_PER_SECOND = 4800;
+  const DROP_SECONDS_MIN = 0.75;
+  const DROP_SECONDS_MAX = 1.38;
   const DROP_START_SLOPE = 1.2; // the fall starts gently (the arc eases into it) ...
   const DROP_END_SLOPE = 2.6; // ... and speeds up into B (1.2^2 + 2.6^2 < 9: the ball only ever moves down)
-  const ARC_EASE_LENGTH = 180; // px: over the arc's last stretch its speed eases down to the fall's starting speed
+  const ARC_EASE_LENGTH = 220; // px: over the arc's last stretch its speed eases down to the fall's starting speed
   const FLIGHT_TOP_MARGIN = 24; // during the flight the ball's top edge may come this close to the top of the screen (safeTop = radius + 24)
   const BEZIER_SAMPLES = 720;
 
@@ -466,7 +466,7 @@
     const downDistance = Math.abs(B.y - apex.y);
     const upMs = clamp(Math.sqrt(upDistance) * 48, 620, 880);
     const hangMs = PHONE_APEX_HANG;
-    const downMs = clamp(Math.sqrt(downDistance) * 44, 620, 920);
+    const downMs = clamp(Math.sqrt(downDistance) * 55, 775, 1150); // the fall (when the page scrolls) about 25 % slower than the spec's 44 / 620 / 920
     const totalMs = upMs + hangMs + downMs;
     const samples = [];
 
