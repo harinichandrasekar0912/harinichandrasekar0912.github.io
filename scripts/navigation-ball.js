@@ -1201,7 +1201,7 @@
       }
 
       if (section === "work") {
-        return platformFromElement(document.querySelector(".work-tile"), "work", "left", "platform", ballRadius());
+        return platformFromElement(document.querySelector(".work-tile-media") || document.querySelector(".work-tile"), "work", "left", "platform", ballRadius());
       }
 
       if (section === "archive") {
