@@ -432,19 +432,23 @@
         },
         {
           heading: "context",
-          body: "Use this panel for the prompt, tools, and constraints."
+          body: "Use this panel for the prompt, tools, and constraints.",
+          ratio: 1
         },
         {
           heading: "concept / process",
-          body: "Process frames and small iterations can sit here later."
+          body: "Process frames and small iterations can sit here later.",
+          ratio: 1
         },
         {
           heading: "drawings / diagrams",
-          body: "Place storyboard fragments, sketches, or timing diagrams here."
+          body: "Place storyboard fragments, sketches, or timing diagrams here.",
+          ratio: 1
         },
         {
           heading: "renders / outcome",
-          body: "The final clip or still sequence can close this archive entry."
+          body: "The final clip or still sequence can close this archive entry.",
+          ratio: 1
         }
       ]
     },
@@ -461,19 +465,23 @@
         },
         {
           heading: "context",
-          body: "Use this for where the sketches came from and what they tested."
+          body: "Use this for where the sketches came from and what they tested.",
+          ratio: 1
         },
         {
           heading: "concept / process",
-          body: "Later, this can collect a few crisp process fragments."
+          body: "Later, this can collect a few crisp process fragments.",
+          ratio: 1
         },
         {
           heading: "drawings / diagrams",
-          body: "Drawings and scans can be arranged here."
+          body: "Drawings and scans can be arranged here.",
+          ratio: 1
         },
         {
           heading: "renders / outcome",
-          body: "A final selected frame or image group can close the entry."
+          body: "A final selected frame or image group can close the entry.",
+          ratio: 1
         }
       ]
     },
@@ -490,19 +498,23 @@
         },
         {
           heading: "context",
-          body: "Add the material question and study conditions here."
+          body: "Add the material question and study conditions here.",
+          ratio: 1
         },
         {
           heading: "concept / process",
-          body: "Use this panel for test logic and iteration notes."
+          body: "Use this panel for test logic and iteration notes.",
+          ratio: 1
         },
         {
           heading: "drawings / diagrams",
-          body: "Diagrams, close studies, and fragments can sit here."
+          body: "Diagrams, close studies, and fragments can sit here.",
+          ratio: 1
         },
         {
           heading: "renders / outcome",
-          body: "Resolved images and a short note can close the study."
+          body: "Resolved images and a short note can close the study.",
+          ratio: 1
         }
       ]
     },
@@ -519,19 +531,23 @@
         },
         {
           heading: "context",
-          body: "Add source, brief, and timing context here."
+          body: "Add source, brief, and timing context here.",
+          ratio: 1
         },
         {
           heading: "concept / process",
-          body: "A focused sequence of decisions can be shown here."
+          body: "A focused sequence of decisions can be shown here.",
+          ratio: 1
         },
         {
           heading: "drawings / diagrams",
-          body: "Process drawings or structural diagrams can fill this panel."
+          body: "Process drawings or structural diagrams can fill this panel.",
+          ratio: 1
         },
         {
           heading: "renders / outcome",
-          body: "Use the closing panel for a selected outcome or reflection."
+          body: "Use the closing panel for a selected outcome or reflection.",
+          ratio: 1
         }
       ]
     }
