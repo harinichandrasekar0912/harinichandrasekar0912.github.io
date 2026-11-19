@@ -2093,7 +2093,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     // ---- FEMININE STANDING POSE (a sweet, relaxed child's stance, only while she stands calmly): weight on one leg with a gentle hip shift and pelvis tilt, the other knee softly bent with the foot a little
     //      forward and turned out, shoulders counter-tilted (the support-side one a touch lower), a gentle S in the spine, a soft head tilt, one hand lightly holding the side of the skirt; the weight
     //      changes slowly (every femPeriod / 2 s) with smooth easing.  Blends in with the stop (idleA) and out for every reaction.
-    var femK = C.femWeight * idleA * (1 - min(1, 2.2 * max(fz, dzy, fl, bow, pk, air, sstep(0, 0.45, abs(sq))))) * (1 - sstep(0, 0.6, P.wave)) * (1 - 0.6 * min(1, 2 * ld));          // (the wave lets go of the stance on a smooth curve: no corner as the hand comes down)          // (round 11: the squash term fades the stance in over ~0.3 s as a squash dies away; the old 3 x |squash| did it in ~0.1 s = the arms dropped in a snap after every hop)
+    var femK = C.femWeight * idleA * (1 - min(1, 2.2 * max(fz, dzy, fl, bow, pk, sstep(0, 0.45, abs(sq))))) * (1 - sstep(0, 0.6, P.wave)) * (1 - sstep(0, 0.3, air)) * (1 - P.spread) * (1 - 0.6 * min(1, 2 * ld));          // (the wave, a hop and open happy hands let go of the stance on smooth curves: no corner as the hand comes down; a crouch turning into a stretch passes squash 0 and used to snap the hands to the skirt and back within 0.1 s)          // (round 11: the squash term fades the stance in over ~0.3 s as a squash dies away; the old 3 x |squash| did it in ~0.1 s = the arms dropped in a snap after every hop)
     var wc = Math.tanh(2.2 * sin(TAU * t / C.femPeriod + 1.2)), fw = femK * wc;          // wc > 0: the weight is on her RIGHT leg (screen-left in the front view)
     S.femK = femK; S.fw = fw;
 
@@ -4041,11 +4041,18 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var hp = (0.22 + 0.1 * Math.sin(k * 0.7) + 0.1 * U.noise1(k * 0.9, 3)) * settle;
       var hr = 0.2 * Math.sin(k * 0.47 + 1.3) * settle;
       var sq = 0, air = 0, y = 0, fl = 0, dz = 0, ch = 0;
-      function hop(k0, hgt) { // a small happy hop: crouch, up with the knees tucking a little, soft landing
-        u = U.clamp((k - k0) / 0.3);
-        y -= hgt * Math.sin(Math.PI * u);
-        air = Math.max(air, 0.6 * bump(k, k0 - 0.02, k0 + 0.06, k0 + 0.22, k0 + 0.32));
-        sq += 0.25 * bump(k, k0 - 0.14, k0 - 0.03, k0, k0 + 0.05) + 0.3 * bump(k, k0 + 0.27, k0 + 0.34, k0 + 0.38, k0 + 0.6);
+      function hop(k0, hgt) { // a springy, light happy hop: a soft crouch, a push up through the toes, a floaty arc with the knees tucking a little and the arms lifting open, toes
+        // first on landing, a soft give and a little rebound.  The arc eases out of / into the floor (no velocity step: the body, hands and feet used to jump 8-56 u/frame^2 at
+        // take-off and landing) while the crouch -> stretch of the legs carries the push
+        var TF = 0.34;
+        u = U.clamp((k - k0) / TF);
+        y -= hgt * 4 * u * (1 - u) * U.smoothstep(0, 0.2, u) * U.smoothstep(0, 0.2, 1 - u);
+        air = Math.max(air, 0.48 * bump(k, k0 - 0.03, k0 + 0.13, k0 + 0.18, k0 + TF + 0.03));
+        sq += 0.2 * bump(k, k0 - 0.22, k0 - 0.09, k0 - 0.07, k0 + 0.0) - 0.1 * bump(k, k0 - 0.06, k0 + 0.01, k0 + 0.03, k0 + 0.12)
+          - 0.06 * bump(k, k0 + TF - 0.12, k0 + TF - 0.03, k0 + TF - 0.02, k0 + TF + 0.04) + 0.2 * bump(k, k0 + TF - 0.02, k0 + TF + 0.08, k0 + TF + 0.1, k0 + TF + 0.28)
+          - 0.04 * bump(k, k0 + TF + 0.22, k0 + TF + 0.32, k0 + TF + 0.34, k0 + TF + 0.5);
+        hp += 0.12 * bump(k, k0 - 0.05, k0 + 0.12, k0 + 0.2, k0 + 0.42) - 0.06 * bump(k, k0 + TF, k0 + TF + 0.1, k0 + TF + 0.12, k0 + TF + 0.32);
+        p.spread = Math.max(p.spread, bump(k, k0 - 0.5, k0 - 0.14, k0 + 0.22, k0 + TF + 0.4));          // (open, happy hands from the crouch on: the arms leave the skirt before the squash passes 0)
       }
       // ---- ACT I (0-5.5): wonder
       // the first dot rises up-right of her head: a CURIOUS look up, in overlapping stages - a small quick glance toward it ('oh?'), the head turning after it, then lifting
@@ -4073,7 +4080,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var pursuit = U.smoothstep(5.6, 6.6, k) * (1 - U.smoothstep(11.4, 12.2, k));          // slow pursuit of an orbiting piece (one sweep each way in ~3 s)
       hy += 0.45 * Math.sin((k - 5.6) * 1.0) * pursuit; hp += 0.18 * Math.cos((k - 5.6) * 1.0) * pursuit;
       // (no second 'hmm' here: she is turned three-quarters, and from that side the hand at her jaw read as rubbing her neck)
-      for (i = 1; i < BULBS.length; i++) { b = BULBS[i]; w = bump(k, b - 0.05, b + 0.1, b + 0.3, b + 0.8); sq -= 0.14 * w; hp += 0.14 * w; }   // happy little bounces when the bulbs pop
+      // happy little bounces when a bulb pops (the bulbs with a hop of their own are left to the hop): two springy bounces up on to the toes with a soft give of the knees
+      // between and after them, the head bobbing brightly a beat behind and tipping to one side, a little lift of the shoulders
+      for (i = 1; i < BULBS.length; i++) { b = BULBS[i]; if (b === 9.8 || b === 16.2) continue;
+        sq += -0.12 * bump(k, b + 0.02, b + 0.12, b + 0.14, b + 0.25) + 0.06 * bump(k, b + 0.2, b + 0.27, b + 0.28, b + 0.36) - 0.09 * bump(k, b + 0.31, b + 0.4, b + 0.42, b + 0.53) + 0.05 * bump(k, b + 0.49, b + 0.57, b + 0.59, b + 0.75);
+        hp += 0.1 * bump(k, b + 0.05, b + 0.16, b + 0.2, b + 0.32) + 0.08 * bump(k, b + 0.34, b + 0.44, b + 0.48, b + 0.62); hr += 0.12 * bump(k, b + 0.05, b + 0.3, b + 0.5, b + 0.85);
+        p.spread = Math.max(p.spread, 0.7 * bump(k, b - 0.22, b + 0.08, b + 0.6, b + 1.05)); }          // (happy open hands; they also keep the arms off the skirt while the squash passes 0)
       w = bump(k, 9.5, 9.65, 10.2, 10.8); fl += 0.35 * bump(k, 9.5, 9.62, 9.85, 10.3); hp += 0.45 * w; hy -= 0.2 * w;   // the first firework: eyes wide, shoulders up, looking up at it
       hop(9.85, 24); hop(16.25, 26);                                       // hops of excitement at the bulbs 9.8 / 16.2
       // ---- ACT III (12-17.7): delight - so many ideas, and she loves it
