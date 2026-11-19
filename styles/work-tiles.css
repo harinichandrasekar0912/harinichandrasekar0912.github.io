@@ -1,17 +1,22 @@
 /*
-  The work tiles ("my works"). Three layouts to compare on one page, chosen by data-tiles on <html> (set from ?tiles=a|b|c by the inline
-  script in index.html; "a" when there is no parameter):
-    a  beside   the alternating pictures flush to the page edge (as before, a little larger); number, title, the summary's opening line and the
-                meta set quietly beside each, like the caption of a plate
-    b  index    an editorial list: hairlines, a number, a large title, the opening line and the meta on the left, the picture on the right
-    c  sheet    a contact sheet: two large and three smaller pictures of one proportion, a caption under each
+  The work tiles ("my works"). Three layouts to compare on one page, chosen by data-tiles on <html> (set from ?tiles= by the inline script in
+  index.html; "cantilever" when there is no parameter). In all three the picture the navigation ball lands on hangs from the edge of the
+  screen, so the ball can always roll off the screen on continuous ground:
+    cantilever  each picture a slab cantilevered out from the left or right screen edge (alternating); the caption fills the empty half,
+                tied to the picture's inner tip by a hairline
+    index       an editorial list: number, large title, opening line, year and kind on the left; every picture bleeds off the RIGHT edge,
+                and each row's hairline runs from the text into the picture's top edge
+    sheet       a contact sheet with no gutters: two pictures across the full width, then three, divided only by 2 px seams; a caption
+                on a hairline under each
 
   Shared by all three:
-  - the button is the whole tile (picture + caption), so the caption is clickable too; the PICTURE (.work-tile-media, data-tile-media) is
-    what the project viewer flies from and back to, what the navigation ball lands on and what carries the black edge vignette
+  - the button is the whole tile (picture + caption), so the caption opens the project too; the PICTURE (.work-tile-media,
+    data-tile-media) is what the project viewer flies from and back to, what the navigation ball lands on and what carries the black edge
+    vignette
   - the picture sits above the paper-coloured edge fades (like the other pictures); the caption is page text and fades with the page
-  - pictures are grey; they turn to colour in the project viewer ("grey tiles / colour popups"). Option a lets a hint of colour in on hover
-  - hover effects are transform / opacity / colour only, and only on devices that can hover; keyboard focus gets the same cues
+  - pictures are grey; they turn to colour in the project viewer ("grey tiles / colour popups"). With &wake=1 a picture also warms to
+    colour while the ball is on it; every picture flexes a few px under the ball's bounces (both in scripts/work-tiles.js)
+  - hover effects are transform / colour only, and only on devices that can hover; keyboard focus gets the same cues
 */
 
 .work-list {
@@ -26,6 +31,8 @@
 }
 
 .work-tile {
+  --hair: var(--color-line-strong);
+  --tip-r: clamp(6px, 0.7vw, 12px);
   position: relative;
   display: block;
   padding: 0;
@@ -50,7 +57,8 @@
   border: var(--line-thin) solid var(--color-line);
   background: var(--color-paper-warm);
   overflow: hidden;
-  /* its own compositor layer: the greyscale + rounded clip of the picture is painted once, not again as the tile scrolls into view */
+  /* its own compositor layer: the greyscale + rounded clip of the picture is painted once, not again as the tile scrolls into view (and
+     the flex under the ball is a transform of this layer only) */
   will-change: transform;
   transition: border-color var(--duration-medium) var(--ease-standard);
 }
@@ -71,13 +79,23 @@
   filter: grayscale(1);
   transition:
     transform var(--duration-slow) var(--ease-standard),
-    filter 900ms var(--ease-standard),
+    filter 1600ms var(--ease-quiet),
     opacity 520ms var(--ease-standard);
 }
 
 /* a tile whose picture is still arriving shows its quiet empty frame; the picture then fades in instead of popping in (scripts/main.js) */
 .work-tile img.is-loading {
   opacity: 0;
+}
+
+/* the ball is on the picture (&wake=1): it warms to colour quickly, and goes back to grey slowly once the ball has gone (the slow way back
+   is the picture's own filter transition above) */
+[data-tiles-wake] .work-tile.is-woken img {
+  filter: grayscale(0);
+  transition:
+    transform var(--duration-slow) var(--ease-standard),
+    filter 700ms var(--ease-standard),
+    opacity 520ms var(--ease-standard);
 }
 
 .work-caption,
@@ -107,7 +125,7 @@
   line-height: 1.55;
 }
 
-/* the opening line of the project's summary (prose, so in sentence case like the about text); shown by a and b, not by the compact sheet */
+/* the opening line of the project's summary (prose, so in sentence case like the about text); shown by cantilever and index, not the sheet */
 .work-line {
   display: none;
   color: var(--color-ink-soft);
@@ -126,9 +144,28 @@
   visibility: visible;
 }
 
+/* the pictures touch the screen edge, where a focus ring would be cut off: the focused tile shows its picture's frame and number in ink,
+   its title underlined and its hairline drawn in ink instead */
 .work-tile:focus-visible {
-  outline: var(--line-thin) solid var(--color-ink);
-  outline-offset: 6px;
+  outline: none;
+}
+
+.work-tile:focus-visible .work-tile-media {
+  border-color: var(--color-ink);
+}
+
+.work-tile:focus-visible .work-title {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.work-tile:focus-visible img {
+  transform: scale(1.03);
+}
+
+.work-tile:focus-visible .work-num {
+  color: var(--color-ink);
 }
 
 @media (hover: hover) {
@@ -145,194 +182,205 @@
   }
 }
 
-.work-tile:focus-visible .work-tile-media {
-  border-color: var(--color-line-strong);
-}
-
-.work-tile:focus-visible img {
-  transform: scale(1.03);
-}
-
-.work-tile:focus-visible .work-num {
+/* ?tilesdebug=1: a button that fakes the ball's landing on the first picture (scripts/work-tiles.js) */
+.tiles-debug {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2000;
+  padding: 0.4rem 0.7rem;
+  border: var(--line-thin) solid var(--color-ink);
+  border-radius: var(--radius-round);
+  background: var(--color-paper);
   color: var(--color-ink);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
 }
 
-/* ======================================================================================================================== a: beside */
+/* ================================================================================================================== cantilever */
 
-[data-tiles="a"] .work-list {
+[data-tiles="cantilever"] .work-list {
   display: grid;
-  gap: clamp(3rem, 6vw, 6rem);
+  gap: clamp(3rem, 6vw, 6.5rem);
   width: 100vw;
   margin-left: calc(50% - 50vw);
 }
 
-[data-tiles="a"] .work-row {
+[data-tiles="cantilever"] .work-row {
   display: flex;
 }
 
-[data-tiles="a"] .work-row-right {
+[data-tiles="cantilever"] .work-row-right {
   justify-content: flex-end;
 }
 
-[data-tiles="a"] .work-tile {
-  --caption-gap: clamp(1.5rem, 3.4vw, 3.5rem);
-  width: clamp(300px, 42vw, 780px);
+[data-tiles="cantilever"] .work-tile {
+  --lead: clamp(1.5rem, 3.6vw, 4.5rem);
+  --lead-gap: clamp(0.75rem, 1.4vw, 1.25rem);
+  width: clamp(320px, 52vw, 960px);
 }
 
-[data-tiles="a"] .work-row-left .work-tile-media {
+/* the slab: square where it is fixed to the screen edge, a small radius at its free tip */
+[data-tiles="cantilever"] .work-row-left .work-tile-media {
   border-left: 0;
-  border-radius: 0 var(--image-radius) var(--image-radius) 0;
+  border-radius: 0 var(--tip-r) var(--tip-r) 0;
 }
 
-[data-tiles="a"] .work-row-right .work-tile-media {
+[data-tiles="cantilever"] .work-row-right .work-tile-media {
   border-right: 0;
-  border-radius: var(--image-radius) 0 0 var(--image-radius);
+  border-radius: var(--tip-r) 0 0 var(--tip-r);
 }
 
-/* the caption sits in the empty half beside the picture, level with its lower edge, like the caption of a plate */
-[data-tiles="a"] .work-caption {
+/* the caption fills the empty half beside the slab, level with its underside; the hairline continues the underside from the tip to the text */
+[data-tiles="cantilever"] .work-caption {
   position: absolute;
   bottom: 0;
-  left: calc(100% + var(--caption-gap));
-  width: min(23rem, calc(100vw - 100% - var(--caption-gap) - var(--page-x)));
+  left: 100%;
+  width: calc(100vw - 100% - var(--page-x));
+  padding-left: calc(var(--lead) + var(--lead-gap));
 }
 
-[data-tiles="a"] .work-row-right .work-caption {
+[data-tiles="cantilever"] .work-row-right .work-caption {
   left: auto;
-  right: calc(100% + var(--caption-gap));
+  right: 100%;
+  padding-left: 0;
+  padding-right: calc(var(--lead) + var(--lead-gap));
   text-align: right;
 }
 
-/* a short hairline above the number; it draws out towards the picture on hover */
-[data-tiles="a"] .work-caption::before {
+[data-tiles="cantilever"] .work-caption::before,
+[data-tiles="cantilever"] .work-caption::after {
   content: "";
-  display: block;
-  width: clamp(3rem, 6vw, 5.5rem);
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--lead);
   height: var(--line-thin);
-  margin-bottom: var(--space-4);
-  background: var(--color-line-strong);
-  transform: scaleX(0.5);
+  background: var(--hair);
   transform-origin: left center;
+}
+
+[data-tiles="cantilever"] .work-caption::after {
+  background: var(--color-ink);
+  transform: scaleX(0);
   transition: transform var(--duration-slow) var(--ease-standard);
 }
 
-[data-tiles="a"] .work-row-right .work-caption::before {
-  margin-left: auto;
+[data-tiles="cantilever"] .work-row-right .work-caption::before,
+[data-tiles="cantilever"] .work-row-right .work-caption::after {
+  left: auto;
+  right: 0;
   transform-origin: right center;
 }
 
-[data-tiles="a"] .work-title {
-  margin: var(--space-2) 0 var(--space-3);
-  font-size: clamp(1.25rem, 0.95rem + 1vw, 2.1rem);
-  letter-spacing: -0.015em;
+[data-tiles="cantilever"] .work-title {
+  margin: var(--space-2) 0 0;
+  font-size: clamp(1.6rem, 0.9rem + 2.4vw, 3.4rem);
+  font-weight: 340;
+  letter-spacing: -0.035em;
+  line-height: 1;
 }
 
-[data-tiles="a"] .work-line {
+[data-tiles="cantilever"] .work-line {
   display: block;
-  max-width: 21rem;
-  margin-bottom: var(--space-4);
+  max-width: 24rem;
+  margin: clamp(0.75rem, 1.3vw, 1.15rem) 0;
 }
 
-[data-tiles="a"] .work-meta {
-  max-width: 19rem;
+[data-tiles="cantilever"] .work-meta {
+  max-width: 22rem;
 }
 
-[data-tiles="a"] .work-row-right .work-line {
-  margin-left: auto;
-}
-
-[data-tiles="a"] .work-row-right .work-meta {
+[data-tiles="cantilever"] .work-row-right .work-line,
+[data-tiles="cantilever"] .work-row-right .work-meta {
   margin-left: auto;
 }
 
 @media (hover: hover) {
-  [data-tiles="a"] .work-tile:hover img {
-    filter: grayscale(0.55);
-  }
-
-  [data-tiles="a"] .work-tile:hover .work-caption::before {
+  [data-tiles="cantilever"] .work-tile:hover .work-caption::after {
     transform: scaleX(1);
   }
 }
 
-[data-tiles="a"] .work-tile:focus-visible .work-caption::before {
+[data-tiles="cantilever"] .work-tile:focus-visible .work-caption::after {
   transform: scaleX(1);
 }
 
-/* the focus ring would be cut by the page edge the picture sits against: the caption carries the cue instead (hairline drawn out, number in ink) */
-[data-tiles="a"] .work-tile:focus-visible {
-  outline: none;
-}
-
-[data-tiles="a"] .work-tile:focus-visible .work-tile-media {
-  border-color: var(--color-ink);
-}
-
-[data-tiles="a"] .work-tile:focus-visible .work-title {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.22em;
-}
-
+/* phones: the caption under the slab; its hairline runs under the slab from the page margin to the tip */
 @media (max-width: 760px) {
-  [data-tiles="a"] .work-list {
+  [data-tiles="cantilever"] .work-list {
     gap: clamp(2.25rem, 9vw, 3rem);
   }
 
-  [data-tiles="a"] .work-tile {
-    width: min(88vw, 480px);
+  [data-tiles="cantilever"] .work-tile {
+    width: min(88vw, 520px);
   }
 
-  [data-tiles="a"] .work-caption {
-    position: static;
+  [data-tiles="cantilever"] .work-caption,
+  [data-tiles="cantilever"] .work-row-right .work-caption {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
     width: auto;
-    padding: var(--space-4) 0 0 var(--page-x);
+    margin-top: var(--space-3);
+    padding: var(--space-3) 0 0 var(--page-x);
   }
 
-  [data-tiles="a"] .work-row-right .work-caption {
-    padding: var(--space-4) var(--page-x) 0 0;
+  [data-tiles="cantilever"] .work-row-right .work-caption {
+    padding: var(--space-3) var(--page-x) 0 0;
   }
 
-  [data-tiles="a"] .work-caption::before {
-    display: none;
+  [data-tiles="cantilever"] .work-caption::before,
+  [data-tiles="cantilever"] .work-caption::after {
+    top: 0;
+    bottom: auto;
+    left: var(--page-x);
+    right: 0;
+    width: auto;
+    transform-origin: right center;
   }
 
-  [data-tiles="a"] .work-num {
+  [data-tiles="cantilever"] .work-row-right .work-caption::before,
+  [data-tiles="cantilever"] .work-row-right .work-caption::after {
+    left: 0;
+    right: var(--page-x);
+    transform-origin: left center;
+  }
+
+  [data-tiles="cantilever"] .work-num {
     display: inline;
     margin-right: 0.9em;
   }
 
-  [data-tiles="a"] .work-title {
+  [data-tiles="cantilever"] .work-title {
     display: inline;
     margin: 0;
-    font-size: var(--text-lg);
+    font-size: clamp(1.35rem, 6.2vw, 1.75rem);
   }
 
-  [data-tiles="a"] .work-line {
+  [data-tiles="cantilever"] .work-line {
     max-width: 26rem;
-    margin: var(--space-2) 0 var(--space-2);
-  }
-
-  [data-tiles="a"] .work-row-right .work-line {
-    margin-left: auto;
+    margin: var(--space-2) 0;
   }
 }
 
-/* ======================================================================================================================== b: index */
+/* ======================================================================================================================== index */
 
-[data-tiles="b"] .work-list {
-  width: min(100%, 1240px);
-  margin-inline: auto;
-  border-bottom: var(--line-thin) solid var(--color-line);
-}
-
-[data-tiles="b"] .work-row {
-  border-top: var(--line-thin) solid var(--color-line);
-}
-
-[data-tiles="b"] .work-tile {
+[data-tiles="index"] .work-list {
   display: grid;
-  grid-template-columns: clamp(2.25rem, 4vw, 4rem) minmax(0, 1fr) minmax(0, 40%);
+  gap: clamp(2.75rem, 5.5vw, 6rem);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+}
+
+/* the row runs to the right edge of the screen: text from the page margin, the picture flush with the edge */
+[data-tiles="index"] .work-tile {
+  --media-w: clamp(300px, 48vw, 920px);
+  --row-top: clamp(1rem, 2vw, 1.75rem);
+  display: grid;
+  grid-template-columns: clamp(2.25rem, 4vw, 4rem) minmax(0, 1fr) var(--media-w);
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   grid-template-areas:
     "num title media"
@@ -342,43 +390,49 @@
     ". meta media";
   column-gap: clamp(1rem, 2.6vw, 2.75rem);
   width: 100%;
-  padding-block: clamp(1.25rem, 2.4vw, 2.25rem);
+  padding-left: var(--page-x);
 }
 
-/* the ink line that runs along the row's hairline on hover (drawn over it, from the left) */
-[data-tiles="b"] .work-tile::before {
+/* the row's hairline: from the text column into the picture's top edge (the picture's top-left corner is square, so the line flows on) */
+[data-tiles="index"] .work-tile::before,
+[data-tiles="index"] .work-tile::after {
   content: "";
   position: absolute;
-  top: -1px;
-  left: 0;
-  right: 0;
+  top: 0;
+  left: var(--page-x);
+  right: var(--media-w);
   height: var(--line-thin);
+  background: var(--hair);
+  transform-origin: left center;
+}
+
+[data-tiles="index"] .work-tile::after {
   background: var(--color-ink);
   transform: scaleX(0);
-  transform-origin: left center;
   transition: transform 900ms var(--ease-standard);
 }
 
-[data-tiles="b"] .work-caption,
-[data-tiles="b"] .work-meta {
+[data-tiles="index"] .work-caption,
+[data-tiles="index"] .work-meta {
   display: contents;
 }
 
-[data-tiles="b"] .work-num {
+[data-tiles="index"] .work-num {
   grid-area: num;
-  padding-top: 0.55em;
+  padding-top: calc(var(--row-top) + 0.55em);
 }
 
-[data-tiles="b"] .work-title {
+[data-tiles="index"] .work-title {
   grid-area: title;
-  font-size: clamp(1.6rem, 0.9rem + 2.7vw, 3.6rem);
+  padding-top: var(--row-top);
+  font-size: clamp(1.6rem, 0.9rem + 2.4vw, 3.4rem);
   font-weight: 340;
   letter-spacing: -0.035em;
   line-height: 1;
   transition: transform var(--duration-slow) var(--ease-standard);
 }
 
-[data-tiles="b"] .work-line {
+[data-tiles="index"] .work-line {
   display: block;
   grid-area: line;
   max-width: 24rem;
@@ -386,59 +440,52 @@
   font-size: var(--text-md);
 }
 
-[data-tiles="b"] .work-kind,
-[data-tiles="b"] .work-year {
+[data-tiles="index"] .work-kind,
+[data-tiles="index"] .work-year {
   display: block;
   color: var(--color-ink-soft);
   font-size: var(--text-xs);
   line-height: 1.55;
 }
 
-[data-tiles="b"] .work-kind {
-  grid-area: meta;
-  max-width: 17rem;
-}
-
-[data-tiles="b"] .work-sep {
-  display: none;
-}
-
-/* the year and the kind of work sit at the foot of the text column, level with the bottom of the picture */
-[data-tiles="b"] .work-year {
+[data-tiles="index"] .work-year {
   grid-area: year;
   color: var(--color-ink);
 }
 
-[data-tiles="b"] .work-tile-media {
-  grid-area: media;
-  border-radius: clamp(10px, 1.1vw, 18px);
+[data-tiles="index"] .work-kind {
+  grid-area: meta;
+  max-width: 17rem;
 }
 
-[data-tiles="b"] .work-tile:focus-visible {
-  outline-offset: 4px;
+[data-tiles="index"] .work-sep {
+  display: none;
+}
+
+[data-tiles="index"] .work-tile-media {
+  grid-area: media;
+  border-right: 0;
+  border-radius: 0 0 0 var(--tip-r);
 }
 
 @media (hover: hover) {
-  [data-tiles="b"] .work-tile:hover::before {
+  [data-tiles="index"] .work-tile:hover::after {
     transform: scaleX(1);
   }
 
-  [data-tiles="b"] .work-tile:hover .work-title {
+  [data-tiles="index"] .work-tile:hover .work-title {
     transform: translateX(0.18em);
   }
 }
 
-[data-tiles="b"] .work-tile:focus-visible::before {
+[data-tiles="index"] .work-tile:focus-visible::after {
   transform: scaleX(1);
 }
 
-[data-tiles="b"] .work-tile:focus-visible .work-title {
-  transform: translateX(0.18em);
-}
-
-/* phones: number and title on one line, the picture full width under them, then the meta */
+/* phones: number, title and year on one line under the hairline, then the picture (still flush with the right edge), the line and the kind */
 @media (max-width: 600px) {
-  [data-tiles="b"] .work-tile {
+  [data-tiles="index"] .work-tile {
+    --row-top: var(--space-4);
     grid-template-columns: 1.75rem minmax(0, 1fr) auto;
     grid-template-rows: auto auto auto auto;
     grid-template-areas:
@@ -448,63 +495,70 @@
       "meta meta meta";
     column-gap: var(--space-3);
     row-gap: var(--space-3);
-    padding-block: var(--space-4) var(--space-5);
   }
 
-  [data-tiles="b"] .work-num,
-  [data-tiles="b"] .work-year {
-    padding-top: 0.45em;
+  /* the hairline runs to the screen edge, like the picture under it */
+  [data-tiles="index"] .work-tile::before,
+  [data-tiles="index"] .work-tile::after {
+    right: 0;
   }
 
-  [data-tiles="b"] .work-year {
-    grid-area: year;
-    justify-self: end;
+  [data-tiles="index"] .work-year {
+    padding-top: calc(var(--row-top) + 0.45em);
+    margin-right: var(--page-x);
   }
 
-  [data-tiles="b"] .work-title {
+  [data-tiles="index"] .work-num {
+    padding-top: calc(var(--row-top) + 0.45em);
+  }
+
+  [data-tiles="index"] .work-title {
     font-size: clamp(1.35rem, 6.2vw, 1.75rem);
   }
 
-  [data-tiles="b"] .work-kind {
+  [data-tiles="index"] .work-line,
+  [data-tiles="index"] .work-kind {
     max-width: none;
+    margin: 0 var(--page-x) 0 0;
   }
 
-  [data-tiles="b"] .work-line {
-    max-width: none;
-    margin-top: 0;
+  [data-tiles="index"] .work-line {
     font-size: var(--text-sm);
   }
 }
 
-/* ======================================================================================================================== c: sheet */
+/* ======================================================================================================================== sheet */
 
-[data-tiles="c"] .work-list {
+/* one continuous surface, edge to edge: two pictures, then three, divided only by 2 px seams of the page colour */
+[data-tiles="sheet"] .work-list {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  column-gap: clamp(1rem, 2.2vw, 2.25rem);
-  row-gap: clamp(2.25rem, 4.4vw, 4rem);
-  width: min(100%, 1320px);
-  margin-inline: auto;
+  column-gap: 2px;
+  row-gap: clamp(1.75rem, 3.4vw, 3rem);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
 }
 
-[data-tiles="c"] .work-row {
+[data-tiles="sheet"] .work-row {
   grid-column: span 2;
 }
 
-[data-tiles="c"] .work-row:nth-child(-n + 2) {
+[data-tiles="sheet"] .work-row:nth-child(-n + 2) {
   grid-column: span 3;
 }
 
-[data-tiles="c"] .work-tile {
+[data-tiles="sheet"] .work-tile {
+  --cap-x: clamp(0.75rem, 1.4vw, 1.25rem);
   width: 100%;
 }
 
-[data-tiles="c"] .work-tile-media {
-  border-radius: clamp(8px, 0.9vw, 14px);
+[data-tiles="sheet"] .work-tile-media {
+  border: 0;
+  border-radius: 0;
 }
 
-/* number | title | year on one line over a hairline, the kind of work under it */
-[data-tiles="c"] .work-caption {
+/* number | title | year over a hairline under each frame, the kind of work under it; the hairlines run on from frame to frame */
+[data-tiles="sheet"] .work-caption {
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -513,11 +567,22 @@
     ". kind kind";
   column-gap: var(--space-3);
   margin-top: var(--space-3);
-  padding-top: var(--space-3);
+  padding: var(--space-3) var(--cap-x) 0;
   border-top: var(--line-thin) solid var(--color-line);
 }
 
-[data-tiles="c"] .work-caption::before {
+/* the frames at the screen edges keep their text at the page margin */
+[data-tiles="sheet"] .work-row:nth-child(1) .work-caption,
+[data-tiles="sheet"] .work-row:nth-child(3) .work-caption {
+  padding-left: var(--page-x);
+}
+
+[data-tiles="sheet"] .work-row:nth-child(2) .work-caption,
+[data-tiles="sheet"] .work-row:nth-child(5) .work-caption {
+  padding-right: var(--page-x);
+}
+
+[data-tiles="sheet"] .work-caption::before {
   content: "";
   position: absolute;
   top: -1px;
@@ -530,94 +595,67 @@
   transition: transform 800ms var(--ease-standard);
 }
 
-[data-tiles="c"] .work-meta {
+[data-tiles="sheet"] .work-meta {
   display: contents;
 }
 
-[data-tiles="c"] .work-sep {
+[data-tiles="sheet"] .work-sep {
   display: none;
 }
 
-[data-tiles="c"] .work-num {
+[data-tiles="sheet"] .work-num {
   grid-area: num;
   padding-top: 0.2em;
 }
 
-[data-tiles="c"] .work-title {
+[data-tiles="sheet"] .work-title {
   grid-area: title;
   font-size: var(--text-md);
 }
 
-[data-tiles="c"] .work-year {
-  grid-area: year;
-  padding-top: 0.2em;
-  white-space: nowrap;
+[data-tiles="sheet"] .work-row:nth-child(-n + 2) .work-title {
+  font-size: var(--text-lg);
 }
 
-[data-tiles="c"] .work-kind {
+[data-tiles="sheet"] .work-year {
+  grid-area: year;
+  padding-top: 0.2em;
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
+}
+
+[data-tiles="sheet"] .work-kind {
   grid-area: kind;
   margin-top: var(--space-1);
 }
 
-[data-tiles="c"] .work-row:nth-child(-n + 2) .work-title {
-  font-size: var(--text-lg);
-}
-
 @media (hover: hover) {
-  [data-tiles="c"] .work-tile:hover .work-caption::before {
+  [data-tiles="sheet"] .work-tile:hover .work-caption::before {
     transform: scaleX(1);
   }
 }
 
-[data-tiles="c"] .work-tile:focus-visible .work-caption::before {
+[data-tiles="sheet"] .work-tile:focus-visible .work-caption::before {
   transform: scaleX(1);
 }
 
-/* tablets held upright: the first picture across the width, then two by two */
-@media (max-width: 1023px) and (orientation: portrait), (max-width: 760px) {
-  [data-tiles="c"] .work-row {
-    grid-column: span 3;
-  }
-
-  [data-tiles="c"] .work-row:first-child {
+/* phones: the frames stack, each across the full width */
+@media (max-width: 600px) {
+  [data-tiles="sheet"] .work-row,
+  [data-tiles="sheet"] .work-row:nth-child(-n + 2) {
     grid-column: 1 / -1;
   }
 
-  [data-tiles="c"] .work-row:nth-child(2) .work-title {
-    font-size: var(--text-md);
-  }
-}
-
-/* phones: the same sheet, tighter, so all five are seen in about one screen */
-@media (max-width: 600px) {
-  [data-tiles="c"] .work-list {
-    column-gap: var(--space-3);
+  [data-tiles="sheet"] .work-list {
     row-gap: var(--space-6);
   }
 
-  [data-tiles="c"] .work-caption {
-    grid-template-areas:
-      "num title"
-      ". year"
-      ". kind";
-    grid-template-columns: auto minmax(0, 1fr);
-    column-gap: var(--space-2);
-    margin-top: var(--space-2);
-    padding-top: var(--space-2);
+  [data-tiles="sheet"] .work-row .work-caption {
+    padding-left: var(--page-x);
+    padding-right: var(--page-x);
   }
 
-  [data-tiles="c"] .work-row:first-child .work-caption {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      "num title year"
-      ". kind kind";
-  }
-
-  [data-tiles="c"] .work-row:not(:first-child) .work-title {
-    font-size: var(--text-sm);
-  }
-
-  [data-tiles="c"] .work-row:not(:first-child) .work-year {
-    padding-top: 0;
+  [data-tiles="sheet"] .work-row .work-title {
+    font-size: var(--text-lg);
   }
 }
