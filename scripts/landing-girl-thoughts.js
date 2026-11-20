@@ -5727,8 +5727,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
 /* ===== idle.js ===== */
 /* GA.idleWork  -  the thought cloud's one-off background work (orbit planning, ink analysis, JIT warm-up trials) runs in the browser's IDLE time between
    frames instead of inside requestAnimationFrame: a 144 Hz frame has 6.9 ms for everything, and the girl + the cloud already use a good part of it.
-     GA.idleWork.add(task)   task(budgetMs) -> true while it has more to do (it works about budgetMs, a little longer at most); it is called again in the
-                             next idle periods until it returns false.  Every task is a slicing-independent computation (the modules' results never depend
+     GA.idleWork.add(task)   task(budgetMs, availMs) -> true while it has more to do (it works about budgetMs, a little longer at most); it is called
+                             again in the next idle periods until it returns false.  availMs = the whole idle time left (budgetMs is capped at 3 ms): a task
+                             whose next piece of work is one longer step returns 'wait' until availMs is large enough.  Every task is a slicing-independent computation (the modules' results never depend
                              on how their work is cut up), so moving it from the frames into idle time changes no pixel.
      GA.idleWork.active()    true while the runner makes progress (an idle slice ran in the last 150 ms): the modules then leave out their in-frame slices
                              until a deadline is close, and keep them as the safety net (a starving runner never delays anything).
@@ -5748,12 +5749,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   }
   function run(dl) {
     armed = false;
-    var t0 = now(), k = 0, r, left, fixed = !dl || typeof dl.timeRemaining !== 'function' || dl.didTimeout;   // (fixed: no deadline / the page is busy: one short slice)
+    var t0 = now(), k = 0, r, left, avail, fixed = !dl || typeof dl.timeRemaining !== 'function' || dl.didTimeout;   // (fixed: no deadline / the page is busy: one short slice)
     while (k < tasks.length) {
-      left = fixed ? (ric ? SLICE_BUSY : SLICE_NO_RIC) - (now() - t0) : dl.timeRemaining() - MARGIN;
+      avail = left = fixed ? (ric ? SLICE_BUSY : SLICE_NO_RIC) - (now() - t0) : dl.timeRemaining() - MARGIN;
       if (left > CAP) left = CAP;
       if (left < 0.5) break;
-      try { r = tasks[k](left); } catch (e) { r = false; }
+      try { r = tasks[k](left, avail); } catch (e) { r = false; }
       if (r === 'wait') { k++; continue; }          // (its next piece of work is longer than this slice: it waits for a longer idle period; the next task may run)
       last = now();
       if (r !== true) tasks.splice(k, 1);
@@ -7304,10 +7305,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
 
   /** PERF: the warm-up trials in idle time (GA.idleWork) instead of one per frame in draw(): a trial is one ~3-6 ms piece of work, so it waits for an idle
       period of >= 4 ms (draw() still runs the ones that are left from tStart + 0.6 on, as before).  Trials leave no trace (rolled back). */
-  function idleWarm(budget) {
-    if (!G || !G.ready || D || G.warm >= WARM_N) return false;
-    if (budget < 4) return 'wait';
-    warmStep(budget);
+  function idleWarm(budget, avail) {
+    if (!G || D) return false;
+    if (!G.ready) return 'wait';                                   // (a sliced build: the trials follow once it is done)
+    if (G.warm >= WARM_N) return false;
+    if (!(avail >= 4)) return 'wait';
+    warmStep(avail);
     return G.warm < WARM_N;
   }
 
@@ -9130,9 +9133,9 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   /** PERF: the preparation runs in idle time between the frames (GA.idleWork, see idle.js): the same prepStep() slices, so the result is the same; a dry
       dissolve (one ~4-6 ms piece of work) only in an idle period of >= 4 ms.  It stops for good once everything is ready, or as soon as a real dissolve
       exists (the frames then keep their old path). */
-  function idlePrep(budget) {
+  function idlePrep(budget, avail) {
     if (!G || G.prepared || isFinite(G.shockT)) return false;
-    if (G.coreReady && G.warmN < CFG.WARM_RUNS) { if (budget < 4) return 'wait'; G.warmGo = true; }
+    if (G.coreReady && G.warmN < CFG.WARM_RUNS) { if (!(avail >= 4)) return 'wait'; G.warmGo = true; }
     prepStep(budget);
     return !G.prepared;
   }
