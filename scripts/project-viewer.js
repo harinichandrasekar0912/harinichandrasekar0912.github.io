@@ -21,6 +21,13 @@
 
   function noop() {}
 
+  /* the fact strip under a summary: a line never starts with a "·", and a short number stays with its word ("team of 2") */
+  function metaHtml(value) {
+    return escapeHtml(value)
+      .replace(/ · /g, " · ")
+      .replace(/ (\d{1,2})(?=$|[\s,.])/g, " $1");
+  }
+
   /* playable pieces live in their own scripts (scripts/play/), requested only when a project that uses one is about to open */
   var scriptLoads = {};
 
@@ -891,7 +898,7 @@
             "<p>",
             escapeHtml(project.summary),
             "</p>",
-            project.meta ? '<p class="project-meta">' + escapeHtml(project.meta) + "</p>" : "",
+            project.meta ? '<p class="project-meta">' + metaHtml(project.meta) + "</p>" : "",
             "</div>",
             "</article>"
           ].join("");

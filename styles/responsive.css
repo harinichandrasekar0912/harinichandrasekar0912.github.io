@@ -130,8 +130,7 @@
   }
 
   .contact-links {
-    bottom: clamp(7.25rem, 14vh, 9rem);
-    gap: var(--space-4);
+    gap: calc(var(--space-4) - (var(--contact-tap) - var(--contact-icon-size)));
   }
 
   .radial-item-about {
@@ -183,18 +182,14 @@
   .contact-form {
     gap: clamp(1rem, 2.8vh, 1.75rem);
   }
-
-  .contact-links {
-    bottom: clamp(6.5rem, 12vh, 8rem);
-  }
 }
 
-/* very short screens (a phone held sideways): the contact links follow the form instead of being pinned to the bottom of the screen,
-   and the section keeps clear of the navigation plus */
+/* very short screens (a phone held sideways): the contact links sit closer under the form, and the section keeps clear of the navigation plus */
 @media (max-height: 540px) {
   .contact-layout {
     min-height: 0;
-    padding-top: 3.5rem;
+    /* the whole form, "go" included, fits above the navigation plus on the screen the contact trip lands on */
+    padding-top: 2.25rem;
     padding-bottom: calc(var(--nav-bottom-buffer, 1.5rem) + 6rem);
   }
 
@@ -202,12 +197,12 @@
     gap: 1rem;
   }
 
+  .contact-title {
+    margin-bottom: 0.75rem;
+  }
+
   .contact-links {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    margin: 1.75rem auto 0;
-    transform: none;
+    margin-top: 1.75rem;
   }
 
   /* about me: the letter's portrait stays a small part of the short screen, and the edge portrait sits level with the start of the text
@@ -227,8 +222,9 @@
     width: min(90vw, 420px);
   }
 
+  /* never wider than its column (88vw): at 90vw it hung 8px out to the right, so title, fields and "go" sat 4px off centre */
   .contact-form {
-    width: min(90vw, 26rem);
+    width: min(100%, 26rem);
   }
 
   .radial-item-about {
@@ -237,11 +233,6 @@
 
   .radial-item-contact {
     --item-x: 92px;
-  }
-
-  .project-close {
-    width: 42px;
-    height: 42px;
   }
 }
 
@@ -252,6 +243,12 @@
 
   .section {
     padding-block: clamp(2.75rem, 6vh, 4rem);
+  }
+
+  /* contact sets its own height (one screen, see main.css); the general section padding above must not reach it: it made the section
+     a screen plus ~100px, pushed the link circles into the navigation plus and left blank paper to scroll past at the end of the page */
+  .contact-section {
+    padding-block: 0;
   }
 
   .about-section,
@@ -293,8 +290,6 @@
     --bar-width: 98vw;
     height: clamp(130px, 32vw, 185px);
     margin-right: 0;
-    border-right: 0;
-    border-radius: var(--image-radius) 0 0 var(--image-radius);
   }
 
   .archive-bar-long {
@@ -314,16 +309,36 @@
   }
 
   /* the close button (the x) sits at the bottom of the screen: the story fades into the dark under it, so no line of text is ever read through it */
+  /* --fade-solid is measured from the navigation itself (its bottom gap + the circle + a little air), so the black is already solid
+     where the close circle begins, on every phone height; the fade above it is a fixed 56px */
   .project-viewer.is-active[data-project-mode="stacked"]::after {
+    --fade-soft: 56px;
+    --fade-solid: calc(var(--nav-bottom-buffer) + var(--plus-circle-size) + 10px + env(safe-area-inset-bottom, 0px));
     content: "";
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 6;
-    height: calc(118px + env(safe-area-inset-bottom, 0px));
-    background: linear-gradient(to bottom, rgba(5, 5, 5, 0) 0%, rgba(5, 5, 5, 0.86) 42%, #050505 64%);
+    height: calc(var(--fade-soft) + var(--fade-solid));
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-stage, #050505) 0%, transparent) 0,
+      color-mix(in srgb, var(--color-stage, #050505) 86%, transparent) calc(var(--fade-soft) * 0.62),
+      var(--color-stage, #050505) var(--fade-soft)
+    );
     pointer-events: none;
+    transition: opacity var(--duration-slow) var(--ease-standard);
+  }
+
+  /* nothing scrolls under the close button while "where it sits" runs, and its line and "skip" sit just above this band */
+  .project-viewer.is-ritual[data-project-mode="stacked"]::after {
+    opacity: 0;
+  }
+
+  /* the keyboard close button (shown only with keyboard focus) sits above the fade, or its focus ring would be hidden under it */
+  .project-viewer[data-project-mode="stacked"] .project-close {
+    z-index: 7;
   }
 
   .project-viewer[data-project-mode="stacked"] .project-track {
@@ -364,6 +379,11 @@
     width: min(88vw, 26rem);
     margin-inline: auto;
     text-align: center;
+  }
+
+  /* the heading's box is narrower than the column (max-width 14em): centred as a box too, or its centred text sits left of the rest */
+  .project-viewer[data-project-mode="stacked"] .project-panel h3 {
+    margin-inline: auto;
   }
 
   .project-progress {
@@ -422,7 +442,7 @@
   .archive-bars.has-active-archive-item .archive-bar:not(.is-active)::after,
   .archive-bar:hover::after,
   .archive-bar.is-active::after {
-    background: rgba(0, 0, 0, 0);
+    background: rgb(var(--color-ink-rgb, 21 20 18) / 0);
   }
 
   .archive-bar:hover,
@@ -494,5 +514,37 @@
 @media (pointer: coarse) {
   :root {
     --plus-circle-size: 44px;
+  }
+}
+
+/* short wide screens (a phone held sideways, 390 to 430px tall): the panel text used to run on under the close button and the progress
+   line (up to 138px past it). Here the text starts level with the top of the picture, uses the whole column and is set a step smaller,
+   so every panel of every project ends above the close button. */
+@media (max-height: 540px) and (min-width: 768px) {
+  .project-viewer[data-project-mode="horizontal"] .project-panel-copy {
+    width: min(30rem, calc(100% - 2.5rem));
+    max-width: 30rem;
+    align-self: start;
+  }
+
+  .project-viewer[data-project-mode="horizontal"] .project-step {
+    margin-bottom: var(--space-2);
+  }
+
+  .project-viewer[data-project-mode="horizontal"] .project-panel h3 {
+    max-width: none;
+    margin-bottom: var(--space-2);
+    font-size: var(--text-md);
+  }
+
+  .project-viewer[data-project-mode="horizontal"] .project-panel p:not(.project-step):not(.project-meta) {
+    max-width: none;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .project-viewer[data-project-mode="horizontal"] .project-panel .project-meta {
+    max-width: none;
+    margin-top: var(--space-3);
   }
 }

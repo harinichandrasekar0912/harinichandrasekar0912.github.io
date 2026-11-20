@@ -732,6 +732,8 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
   padding: 0;
   margin: 0;
   border: var(--line-thin) solid var(--color-line);
+  /* the bar runs on past the right edge of the screen: no closing line there (it is also the ground the navigation ball rolls off on) */
+  border-right: 0;
   border-radius: var(--image-radius) 0 0 var(--image-radius);
   background: var(--color-paper-warm);
   color: var(--color-paper);
@@ -770,19 +772,20 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0);
+  background: rgb(var(--color-ink-rgb, 21 20 18) / 0);
   pointer-events: none;
 }
 
 .archive-bar-meta {
   position: absolute;
-  left: var(--space-4);
-  bottom: var(--space-3);
+  /* the label starts where the rounded corner ends, so it keeps the same distance from the curve on every screen */
+  left: max(var(--space-4), var(--image-radius));
+  bottom: max(var(--space-3), calc(var(--image-radius) * 0.7));
   display: flex;
   gap: var(--space-3);
-  color: rgba(250, 248, 243, 0.84);
+  color: rgb(var(--color-paper-rgb, 250 248 243) / 0.84);
   font-size: var(--text-xs);
-  line-height: 1.4;
+  line-height: var(--leading-tight, 1.2);
 }
 
 /* light text is for real (dark) pictures; on the pale placeholder drawing it would vanish, so it is ink there */
@@ -793,6 +796,11 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
 /* a contact link waiting for its real address: visible, but not a link yet (main.js) */
 .contact-links a.is-unset {
   cursor: default;
+}
+
+/* ...so it does not answer the pointer as if it would go somewhere (keyboard focus still shows) */
+.contact-links a.is-unset:hover {
+  opacity: 1;
 }
 
 .contact-section {
@@ -810,6 +818,7 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
   display: grid;
   /* the form sits in the upper part of the screen (not dead centre), so the gap to the archive above it stays small */
   place-items: start center;
+  align-content: start;
   width: min(88vw, 560px);
   min-height: 100vh;
   min-height: 100svh;
@@ -825,15 +834,18 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
   justify-items: stretch;
   width: min(100%, 32rem);
   margin-inline: auto;
-  gap: clamp(1.65rem, 4vh, 2.85rem);
+  --contact-gap: clamp(1.65rem, 4vh, 2.85rem);
+  gap: var(--contact-gap);
 }
 
+/* the same title as every other section (size, weight, leading) and the same distance to its content (--title-gap: the form's own
+   gap is part of it) */
 .contact-title {
-  margin: 0 0 clamp(1.5rem, 4vh, 3rem);
+  margin: 0 0 max(0px, calc(var(--title-gap, clamp(2.25rem, 4.8vh, 3.75rem)) - var(--contact-gap)));
   text-align: center;
-  font-size: clamp(1rem, 0.86rem + 0.48vw, 1.32rem);
-  font-weight: 380;
-  line-height: 1.2;
+  font-size: var(--text-lg, clamp(1rem, 0.86rem + 0.48vw, 1.32rem));
+  font-weight: var(--weight-regular, 370);
+  line-height: var(--leading-tight, 1.2);
   text-transform: lowercase;
 }
 
@@ -854,14 +866,14 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
 }
 
 .contact-form label::before {
-  background: rgba(21, 20, 18, 0.22);
+  background: var(--color-line);
 }
 
 .contact-form label::after {
-  background: rgba(21, 20, 18, 0.86);
+  background: var(--color-ink);
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 650ms var(--ease-standard);
+  transition: transform var(--duration-slow) var(--ease-standard);
 }
 
 .contact-form label:focus-within::after {
@@ -884,13 +896,12 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
   resize: none;
   overflow: hidden;
   box-shadow: none;
-  transition:
-    color 420ms var(--ease-standard);
+  transition: color var(--duration-medium) var(--ease-standard);
 }
 
 .contact-form input::placeholder,
 .contact-form textarea::placeholder {
-  color: rgba(21, 20, 18, 0.4);
+  color: var(--color-ink-faint, rgba(21, 20, 18, 0.42));
   opacity: 1;
 }
 
@@ -911,23 +922,18 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
   padding: 0.65rem 1.15rem;
   border: 0;
   border-radius: var(--radius-round);
-  background: rgba(21, 20, 18, 0.08);
-  color: rgba(21, 20, 18, 0.78);
+  background: var(--color-line-soft);
+  color: var(--color-ink-soft);
   font-size: var(--text-xs);
   text-transform: lowercase;
   cursor: pointer;
-  transition:
-    background-color 420ms var(--ease-standard),
-    color 420ms var(--ease-standard),
-    transform 420ms var(--ease-standard),
-    box-shadow 420ms var(--ease-standard);
+  /* its transitions are listed with the other controls in motion.css */
 }
 
+/* the page's one focus ring (it was a 5px grey halo, unlike every other control) */
 .submit-button:focus-visible {
-  outline: 0;
-  background: rgba(21, 20, 18, 0.14);
-  color: rgba(21, 20, 18, 0.95);
-  box-shadow: 0 0 0 5px rgba(21, 20, 18, 0.08);
+  outline: var(--focus-ring, var(--line-thin) solid var(--color-ink));
+  outline-offset: var(--focus-offset, 4px);
 }
 
 .submit-button:active {
@@ -953,30 +959,36 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
   color: var(--color-ink);
 }
 
+/* a field the message below "go" is about: its line is drawn darker (it was 0.28 against 0.22, which could not be seen) */
 .contact-form label:has(input[aria-invalid="true"])::before,
 .contact-form label:has(textarea[aria-invalid="true"])::before {
-  background: rgba(21, 20, 18, 0.28);
+  background: var(--color-line-strong);
 }
 
+.submit-button:disabled {
+  cursor: progress;
+}
+
+/* the links follow the form at one fixed rhythm on every screen (pinned to the bottom of the screen they drifted ~600px away from the
+   form on a tall display and touched the navigation plus on a phone).
+   Each link is a 44px tap target around its 32px circle; the gap is 12px smaller to keep the circles where they were. */
 .contact-links {
-  position: absolute;
-  left: 50%;
-  bottom: clamp(8rem, 15vh, 11rem);
+  --contact-tap: 44px;
   display: grid;
-  grid-template-columns: repeat(4, var(--contact-icon-size));
+  grid-template-columns: repeat(4, var(--contact-tap));
   align-items: center;
   justify-items: center;
   justify-content: center;
   width: max-content;
-  gap: clamp(1.1rem, 2vw, 1.8rem);
-  transform: translateX(-50%);
+  margin: clamp(2.5rem, 7vh, 4.5rem) auto 0;
+  gap: calc(clamp(1.1rem, 2vw, 1.8rem) - (var(--contact-tap) - var(--contact-icon-size)));
 }
 
 .contact-links a {
   display: grid;
   place-items: center;
-  width: var(--contact-icon-size);
-  height: var(--contact-icon-size);
+  width: var(--contact-tap);
+  height: var(--contact-tap);
   border-radius: 50%;
   color: var(--color-ink);
 }
@@ -986,10 +998,10 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
   place-items: center;
   width: var(--contact-icon-size);
   height: var(--contact-icon-size);
-  border: var(--line-thin) solid rgba(21, 20, 18, 0.26);
+  border: var(--line-thin) solid var(--color-line);
   border-radius: 50%;
-  color: rgba(21, 20, 18, 0.72);
-  font-size: 0.62rem;
+  color: var(--color-ink-soft);
+  font-size: var(--text-xs);
   line-height: 1;
   text-transform: lowercase;
 }

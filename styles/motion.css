@@ -768,13 +768,15 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
     transform var(--duration-medium) var(--ease-standard);
 }
 
+/* the bars grow and settle from the right edge they are fixed to, by the same amount in both directions: a bar stretched more in one
+   direction than the other stretched its year and title with it */
 .archive-bars.has-active-archive-item .archive-bar:not(.is-active) {
   opacity: 0.72;
-  transform: scaleX(0.965) scaleY(0.94);
+  transform: scale(0.97);
 }
 
 .archive-bars.has-active-archive-item .archive-bar:not(.is-active)::after {
-  background: rgba(0, 0, 0, 0.18);
+  background: rgb(var(--color-ink-rgb, 21 20 18) / 0.18);
 }
 
 .archive-bar {
@@ -785,19 +787,24 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 .archive-bar:focus-visible,
 .archive-bar.is-active {
   border-color: var(--color-line-strong);
-  transform: scaleX(1.035) scaleY(1.08);
+  transform: scale(1.04);
 }
 
 .archive-bar:hover::after,
 .archive-bar:focus-visible::after,
 .archive-bar.is-active::after {
-  background: rgba(0, 0, 0, 0.04);
+  background: rgb(var(--color-ink-rgb, 21 20 18) / 0.04);
+}
+
+/* keyboard focus is shown by the focus ring alone: the strong border under it drew a second line */
+.archive-bar:focus-visible {
+  border-color: var(--color-line);
 }
 
 .submit-button:hover,
 .submit-button:focus-visible {
-  background: rgba(21, 20, 18, 0.14);
-  color: rgba(21, 20, 18, 0.95);
+  background: var(--color-line);
+  color: var(--color-ink);
 }
 
 .contact-links a:hover,
@@ -969,10 +976,9 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 .project-viewer {
   --project-bg: var(--color-paper);
   --project-text: var(--color-ink);
-  --project-text-soft: rgba(21, 20, 18, 0.62);
-  --project-line: rgba(21, 20, 18, 0.18);
-  --project-line-strong: rgba(21, 20, 18, 0.42);
-  --project-grey: var(--color-paper-warm);
+  --project-text-soft: var(--color-ink-soft);
+  --project-line: var(--color-line);
+  --project-line-strong: var(--color-line-strong);
   --project-top-buffer: clamp(48px, 7vh, 88px);
   --project-bottom-ui-zone: clamp(120px, 16vh, 180px);
   --tile-left: 0px;
@@ -993,15 +999,18 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   pointer-events: none;
   color: var(--project-text);
   outline: none;
+  /* nothing on the viewer itself is animated. Without this, the reduced-motion rule below (1 ms transitions on every property)
+     makes its visibility transition too, and focus() on the dialog in the same frame it is shown is refused: focus fell to <body> */
+  transition: none;
 }
 
 .project-viewer.is-active {
-  --project-bg: #050505;
-  --project-text: #f7f4ed;
-  --project-text-soft: rgba(255, 255, 255, 0.62);
-  --project-line: rgba(255, 255, 255, 0.28);
-  --project-line-strong: rgba(255, 255, 255, 0.86);
-  --project-grey: #1c1c1c;
+  /* the stage tokens; secondary text (white at 62%) has no token of its own yet */
+  --project-bg: var(--color-stage, #050505);
+  --project-text: var(--color-on-stage, #ffffff);
+  --project-text-soft: rgb(255 255 255 / 0.62);
+  --project-line: var(--color-stage-line, rgb(255 255 255 / 0.28));
+  --project-line-strong: var(--color-stage-line-strong, rgb(255 255 255 / 0.86));
   visibility: visible;
   pointer-events: auto;
 }
@@ -1013,15 +1022,15 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   margin: 0;
   border: var(--line-thin) solid var(--color-line);
   border-radius: var(--image-radius);
-  background: #050505;
+  background: var(--color-stage, #050505);
   overflow: hidden;
   pointer-events: none;
   contain: layout paint style;
-  transition: border-color 700ms var(--ease-standard);
+  transition: border-color var(--duration-slow) var(--ease-standard);
 }
 
 .project-open-clone.is-moving {
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: var(--color-stage-line, rgb(255 255 255 / 0.28));
 }
 
 .project-open-clone img {
@@ -1036,9 +1045,9 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 .project-glass {
   position: absolute;
   inset: 0;
-  background: #050505;
+  background: var(--color-stage, #050505);
   opacity: 0;
-  transition: opacity 820ms var(--ease-standard);
+  transition: opacity var(--duration-slow) var(--ease-standard);
 }
 
 .project-viewer.is-expanded .project-glass {
@@ -1061,7 +1070,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   visibility: hidden;
   pointer-events: none;
   contain: layout paint style;
-  transition: border-color 900ms var(--ease-standard);
+  transition: border-color var(--duration-slow) var(--ease-standard);
 }
 
 .project-hero-frame img {
@@ -1091,10 +1100,11 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   width: max-content;
   height: 100%;
   transform: translate3d(calc(var(--project-shift) * -1), 0, 0);
-  transition: transform 980ms var(--ease-standard);
+  transition: transform var(--duration-slow) var(--ease-standard);
   will-change: transform;
 }
 
+/* wheel and swipe: the track follows the hand almost at once (an input echo, deliberately below the motion scale) */
 .project-track.is-dragging {
   transition-duration: 110ms;
 }
@@ -1145,8 +1155,8 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   opacity: 0;
   transform: translateY(8px);
   transition:
-    opacity 700ms var(--ease-standard),
-    transform 700ms var(--ease-standard);
+    opacity var(--duration-slow) var(--ease-standard),
+    transform var(--duration-slow) var(--ease-standard);
 }
 
 .project-panel-image img {
@@ -1154,7 +1164,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   height: 100%;
   object-fit: cover;
   border-radius: inherit;
-  transition: opacity 600ms var(--ease-standard);
+  transition: opacity var(--duration-slow) var(--ease-standard);
 }
 
 /* a frame whose picture is still arriving shows its empty dark frame; the picture then fades in instead of popping in */
@@ -1231,8 +1241,8 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   opacity: 0;
   transform: translateY(10px);
   transition:
-    opacity 700ms var(--ease-standard),
-    transform 700ms var(--ease-standard);
+    opacity var(--duration-slow) var(--ease-standard),
+    transform var(--duration-slow) var(--ease-standard);
 }
 
 .project-panel-intro .project-panel-copy {
@@ -1263,9 +1273,11 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 .project-panel h3 {
   max-width: 15em;
   margin: 0 0 var(--space-4);
-  font-size: clamp(1.1rem, 1rem + 0.5vw, 1.55rem);
-  font-weight: 420;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium, 420);
   line-height: 1.16;
+  /* two-line headings break into even halves, never one word left on its own */
+  text-wrap: balance;
 }
 
 .project-panel p:not(.project-step):not(.project-meta) {
@@ -1274,6 +1286,11 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   color: var(--project-text-soft);
   font-size: var(--text-sm);
   line-height: 1.55;
+}
+
+/* no paragraph ends on a single word (browsers without text-wrap: pretty simply wrap as before) */
+.project-panel p {
+  text-wrap: pretty;
 }
 
 .project-panel .project-meta {
@@ -1299,7 +1316,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   width: var(--plus-circle-size);
   height: var(--plus-circle-size);
   padding: 0;
-  border: var(--line-thin) solid rgba(255, 255, 255, 0.34);
+  border: var(--line-thin) solid var(--color-stage-line, rgb(255 255 255 / 0.28));
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
@@ -1312,8 +1329,9 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
    and only shows itself (a white ring) when it has keyboard focus */
 .project-viewer.is-active .project-close:focus-visible {
   opacity: 1;
-  outline: 1px solid var(--project-line-strong);
-  outline-offset: 6px;
+  /* one ring, the button's own edge (an outline around the border drew two circles) */
+  border-color: var(--project-line-strong);
+  outline: none;
   transform: translate(-50%, 0);
 }
 
@@ -1329,7 +1347,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   top: 50%;
   width: 18px;
   height: 1px;
-  background: #ffffff;
+  background: var(--color-on-stage, #ffffff);
   transform-origin: center;
 }
 
@@ -1348,22 +1366,22 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   z-index: 4;
   width: clamp(200px, 28vw, 420px);
   height: 2px;
-  background: rgba(255, 255, 255, 0.28);
+  background: var(--color-stage-line, rgb(255 255 255 / 0.28));
   opacity: 0;
   transform: translate(-50%, 8px);
   transition:
-    opacity 700ms var(--ease-standard),
-    transform 700ms var(--ease-standard);
+    opacity var(--duration-slow) var(--ease-standard),
+    transform var(--duration-slow) var(--ease-standard);
 }
 
 .project-progress span {
   display: block;
   width: 100%;
   height: 2px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-stage-line-strong, rgb(255 255 255 / 0.86));
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 980ms var(--ease-standard);
+  transition: transform var(--duration-slow) var(--ease-standard);
 }
 
 /* ---- states ---- */
@@ -1576,7 +1594,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 .wis {
   color: var(--project-text-soft);
   outline: none;
-  transition: opacity 200ms var(--ease-standard);
+  transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
 .wis.is-closing {
@@ -1598,7 +1616,8 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   top: 0;
   padding: 0;
   border: var(--line-thin) solid var(--project-line);
-  border-radius: 6px;
+  /* small cards: the picture radius scaled down, so the corners belong to the same family */
+  border-radius: calc(var(--image-radius) * 0.4);
   background: var(--project-bg);
   opacity: 0;
   cursor: grab;
@@ -1612,11 +1631,11 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 5px;
+  border-radius: calc(var(--image-radius) * 0.4 - 1px);
   object-fit: cover;
   filter: grayscale(1);
   pointer-events: none;
-  transition: filter 900ms var(--ease-standard);
+  transition: filter var(--duration-slow) var(--ease-standard);
 }
 
 /* the note card: its words are set as text (the scanned note is too small to read at card size); grey until it is linked, then the note's lilac */
@@ -1628,19 +1647,18 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   position: absolute;
   inset: 0;
   padding: 0.7em 0.75em;
-  border-radius: 5px;
+  border-radius: calc(var(--image-radius) * 0.4 - 1px);
   background: #d4d4d4;
   color: #1d1b22;
-  font-size: 11px;
+  /* the font size is set per card by where-it-sits.js (it grows with the card, like the handwriting it stands for) */
   line-height: 1.35;
   text-align: left;
   pointer-events: none;
-  transition: background-color 900ms var(--ease-standard);
+  transition: background-color var(--duration-slow) var(--ease-standard);
 }
 
 .project-viewer[data-project-mode="stacked"] .wis-note {
   padding: 0.5em 0.55em;
-  font-size: 9px;
   line-height: 1.28;
 }
 
@@ -1680,7 +1698,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 .wis-skip {
   position: absolute;
   bottom: calc(var(--nav-bottom-buffer) + 7px);
-  transition: opacity 600ms var(--ease-standard);
+  transition: opacity var(--duration-slow) var(--ease-standard);
 }
 
 .wis-line {
