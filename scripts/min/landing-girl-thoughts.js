@@ -1,4 +1,4 @@
-/* scripts/landing-girl-thoughts.js (source d99588d4b1892db8), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/landing-girl-thoughts.js (source af76da7c8ba4fe67), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 var GA = (window.__landingGirl = window.__landingGirl || {});
@@ -4973,6 +4973,38 @@ return rec;
 (function () {
 'use strict';
 var GA = (window.__landingGirl = window.__landingGirl || {});
+if (GA.idleWork) return;
+var tasks = [], armed = false, last = -1e9, CAP = 3, MARGIN = 0.4, SLICE_BUSY = 1.5, SLICE_NO_RIC = 2;
+var ric = typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback.bind(window) : null;
+function now() { return typeof performance !== 'undefined' ? performance.now() : Date.now(); }
+function arm() {
+if (armed || !tasks.length) return;
+armed = true;
+if (ric) ric(run, { timeout: 250 }); else setTimeout(run, 6);
+}
+function run(dl) {
+armed = false;
+var t0 = now(), k = 0, r, left, fixed = !dl || typeof dl.timeRemaining !== 'function' || dl.didTimeout;
+while (k < tasks.length) {
+left = fixed ? (ric ? SLICE_BUSY : SLICE_NO_RIC) - (now() - t0) : dl.timeRemaining() - MARGIN;
+if (left > CAP) left = CAP;
+if (left < 0.5) break;
+try { r = tasks[k](left); } catch (e) { r = false; }
+if (r === 'wait') { k++; continue; }
+last = now();
+if (r !== true) tasks.splice(k, 1);
+if (fixed) break;
+}
+arm();
+}
+GA.idleWork = {
+add: function (task) { if (tasks.indexOf(task) < 0) tasks.push(task); last = now(); arm(); },
+active: function () { return tasks.length > 0 && now() - last < 150; },
+};
+})();
+(function () {
+'use strict';
+var GA = (window.__landingGirl = window.__landingGirl || {});
 var U = GA.util;
 var TAU = Math.PI * 2, HP = Math.PI / 2;
 var sstep = U.smoothstep;
@@ -5181,7 +5213,14 @@ if (x >= 1) return 1;
 return L.lead ? eIO(x) : 0.3 * x + 0.7 * eIO(x);
 }
 var TURB_A = 15, KX = TAU / 820, KY = TAU / 700, K2 = TAU / 560 * 0.7071, K3 = TAU / 640 * 0.7071;
-function evalLine(L, te, g) {
+function evalLine(L, te, g, lazy) {
+var hs = growth(L, te), lim = L.n - 1, iE = L.n - 1;
+if (lazy && hs < 1) {
+if (hs <= 0) { L.hs = hs; return; }
+var jh0 = hs * (L.n - 1), i0 = Math.floor(jh0), fr0 = jh0 - i0;
+if (i0 >= L.n - 1) { i0 = L.n - 2; fr0 = 1; }
+lim = i0 + 1; iE = fr0 > 0.002 ? i0 + 1 : i0;
+}
 var P = G.P, n = L.n, W0 = -L.omega * g.R, rwA = L.rw, rigid = L.rigid, cr = 1, sr = 0;
 if (rigid) { var an0 = W0 * rwA[0]; cr = Math.cos(an0); sr = Math.sin(an0); }
 var wu = L.uOm * te, cu = Math.cos(wu), su = Math.sin(wu);
@@ -5213,6 +5252,7 @@ else { var xe = 1 - Math.pow(1 - ph0, 1.6); fc = -fk.hw + (1 + 2 * fk.hw) * xe; 
 }
 var inv = n > 1 ? 1 / (n - 1) : 0;
 for (var j = 0; j < n; j++) {
+if (j > lim && iA >= 0 && iB + 3 >= iE) break;
 if (!rigid) { var an = W0 * rwA[j]; cr = Math.cos(an); sr = Math.sin(an); }
 var u0 = C[j] * cr - S[j] * sr, v0 = C[j] * sr + S[j] * cr;
 var sn = v0 * iR[j], k = 1 + (uS[j] * cu - uC[j] * su) + kpul, pf = 1 + PERSP * sn;
@@ -5238,6 +5278,10 @@ var qq = Math.sqrt(q2);
 if (qq >= 1.04) ef = 0; else if (qq <= 0.91) ef = 1; else { var fe = (qq - 0.91) / 0.13; ef = 1 - fe * fe * (3 - 2 * fe); }
 if (qq > 0.96) { var dd = (qq - 0.96) / 0.04, q3 = 0.96 + 0.04 * dd / (1 + dd), sc2 = q3 / qq; x = ecx + (x - ecx) * sc2; y = ecy + (y - ecy) * sc2; }
 }
+if (j > lim) {
+if (x > x0 && x < x1 && y > y0 && y < y1 && (!fk || (fh > 0 && j * inv >= fa - 0.02 && j * inv <= fb + 0.02))) { if (iA < 0) iA = j; iB = j; break; }
+continue;
+}
 X[j] = x; Y[j] = y; F[j] = (sn > 0 && !(x > gx0 && x < gx1 && y > gy0 && y < gy1)) ? 1 : 0;
 var q1 = 0.5 + 0.5 * (s1S[j] * c1 + s1C[j] * s1), qb = 0.5 + 0.5 * (s2S[j] * c2 + s2C[j] * s2);
 var wj = env[j] * (lo + one * (0.82 * q1 * q1 * q1 + 0.18 * qb)) * (0.60 + 0.66 * (0.5 + 0.5 * sn)) * ef;
@@ -5259,7 +5303,7 @@ Wd[j] = wj;
 if (x > x0 && x < x1 && y > y0 && y < y1 && (!fk || (fh > 0 && j * inv >= fa - 0.02 && j * inv <= fb + 0.02))) { if (iA < 0) iA = j; iB = j; }
 }
 L.iA = iA; L.iB = iB;
-var hs = growth(L, te); L.hs = hs;
+L.hs = hs;
 if (hs >= 1) { L.iEnd = n - 1; }
 else {
 var jh = hs * (n - 1), i = Math.floor(jh), fr = jh - i;
@@ -6146,7 +6190,7 @@ if (t === lastT) return;
 lastT = t;
 var i, ft = freezeT(), te = Math.min(t, ft), g = gstate(t, G.g);
 if (t < ft) {
-for (i = 0; i < G.lines.length; i++) evalLine(G.lines[i], te, g);
+for (i = 0; i < G.lines.length; i++) evalLine(G.lines[i], te, g, true);
 for (i = 0; i < G.acc.length; i++) accentPos(G.acc[i], te, g, G.accPos[i]);
 }
 }
@@ -6242,6 +6286,12 @@ if (dm) fx.dots.rollback(dm);
 G.warm++;
 return G.warm < WARM_N;
 }
+function idleWarm(budget) {
+if (!G || !G.ready || D || G.warm >= WARM_N) return false;
+if (budget < 4) return 'wait';
+warmStep(budget);
+return G.warm < WARM_N;
+}
 function makeD(t0, speed, stagger, dry) {
 return { t0: t0, speed: speed, stagger: stagger, lastDeath: t0, tLines: t0, tEnd: t0, dry: dry, info: { cubes: 0, dots: 0, lines: 0, lastDeath: 0 },
 jobs: null, ji: 0, cubePerW: 0, dotPerW: 0, K08: 1, cubeAPI: null, dotAPI: null, sub: 1, lastT: -1e9 };
@@ -6328,6 +6378,7 @@ GA.swirl = {
 build: function (o) {
 build(o, !!(o && o.sliced));
 if (G.ready) afterBuild(true);
+if (GA.idleWork) GA.idleWork.add(idleWarm);
 },
 isReady: function () { return !!(G && G.ready); },
 draw: draw, track: track, intensity: intensity,
@@ -6373,6 +6424,7 @@ MATE_TRIES: 52, TETHER: 54,
 BURSTS: 16,
 MIN_POP_GAP: 0.30,
 WAIT_MS: 8,
+IDLE_LEAD: 1.5,
 WAIT_DT: 0.25,
 FRONT_Z: 0.12,
 PERSP: 0.12,
@@ -6872,16 +6924,47 @@ var ld = en.leader.item; it.lead = ld; it.wBase = ld.wBase; it.sg = ld.sg; it.ms
 }
 return it;
 }
-function obbGap(ax, ay, ahw, ahh, ac, as_, bx, by, bhw, bhh, bc, bs) {
-var dx = bx - ax, dy = by - ay, best = -1e9, k, nx, ny, d, ra, rb, g;
+function obbAxes(ac, as_, bc, bs, K, o) {
+var k, nx, ny, b;
 for (k = 0; k < 4; k++) {
 if (k === 0) { nx = ac; ny = as_; } else if (k === 1) { nx = -as_; ny = ac; } else if (k === 2) { nx = bc; ny = bs; } else { nx = -bs; ny = bc; }
-d = abs(dx * nx + dy * ny);
-ra = ahw * abs(ac * nx + as_ * ny) + ahh * abs(-as_ * nx + ac * ny);
-rb = bhw * abs(bc * nx + bs * ny) + bhh * abs(-bs * nx + bc * ny);
-g = d - ra - rb; if (g > best) best = g;
+b = o + k * 6;
+K[b] = nx; K[b + 1] = ny;
+K[b + 2] = abs(ac * nx + as_ * ny); K[b + 3] = abs(-as_ * nx + ac * ny);
+K[b + 4] = abs(bc * nx + bs * ny); K[b + 5] = abs(-bs * nx + bc * ny);
+}
+}
+function obbSep(dx, dy, ahw, ahh, bhw, bhh, K, o, thr) {
+var best = -1e9, k, b, g;
+for (k = 0; k < 4; k++) {
+b = o + k * 6;
+g = abs(dx * K[b] + dy * K[b + 1]) - (ahw * K[b + 2] + ahh * K[b + 3]) - (bhw * K[b + 4] + bhh * K[b + 5]);
+if (g >= thr) return g;
+if (g > best) best = g;
 }
 return best;
+}
+function planBreath(Pl, which, ph) {
+var B = which === 1 ? Pl.B1 : Pl.B2, m, TT = Pl.TT;
+if (B.ph === ph) return B.v;
+for (m = 0; m < Pl.M; m++) B.v[m] = which === 1 ? 1 + 0.04 * sin(0.33 * TT[m] + ph) : 1 + 0.05 * sin(0.27 * TT[m] + ph);
+B.ph = ph;
+return B.v;
+}
+function planPairs(it, i) {
+var Pl = G.plan, Q = Pl.Q, items = Pl.items, n = 0, j, q, lt = it.light, comfort = it.comfort;
+if (Q.i === i && Q.v === Pl.pv) return Q;
+for (j = 0; j < Pl.N; j++) {
+q = items[j];
+if (j === i || !q.placed) continue;
+if (lt && q.light && (q.life < 1e8 || it.life < 1e8)) continue;
+Q.m0[n] = q.m0; Q.m1[n] = q.m1; Q.off[n] = j * Pl.M; Q.ll[n] = lt && q.light ? 1 : 0;
+Q.cf[n] = lt ? it.comfort : comfort > q.comfort ? comfort : q.comfort; Q.dd[n] = it.dl !== q.dl ? 1 : 0; Q.nb[n] = it.noBehind && q.noBehind ? 1 : 0;
+Q.hw[n] = q.ohw; Q.hh[n] = q.ohh;
+obbAxes(it.oc, it.os, q.oc, q.os, Q.K, n * 24); n++;
+}
+Q.n = n; Q.i = i; Q.v = Pl.pv;
+return Q;
 }
 var PK = ['a', 'b', 'tilt', 'ct', 'st', 'ox', 'oy', 'phi0', 'w', 'R0', 'p1', 'p2', 'sg'];
 function copyParams(src, dst) { for (var k = 0; k < PK.length; k++) dst[PK[k]] = src[PK[k]]; }
@@ -6895,24 +6978,36 @@ gy: (gTop + gBot) / 2, ghh: (gBot - gTop) / 2, hy: (hTop + hBot) / 2, hhh: max(1
 rx: G.rx, ry: G.ry, AMAX: G.rx * 1.04, AMIN: G.rx * 0.3, BMAX: G.ry * 1.06, BMIN: G.ry * 0.2, cand: blankParams(), best: blankParams(),
 xm: CFG.VIS_MARGIN, vt: G.vt + CFG.VIS_MARGIN, vb: G.vb - CFG.VIS_MARGIN, sTop: CFG.Y_MIN, sBot: G.groundY - CFG.Y_BOTTOM_GAP, hdY: G.hy - 20,
 hv: [], lt: [], stage: 0, idx: 0, job: null, order0: null, bad: null, rs: 0, done: false,
+FF: new Float64Array(M), B1: { ph: NaN, v: new Float64Array(M) }, B2: { ph: NaN, v: new Float64Array(M) }, pv: 0,
+PX: new Float32Array(N * M), PY: new Float32Array(N * M), PS: new Float32Array(N * M), PZ: new Float32Array(N * M),
+Q: { i: -1, v: -1, n: 0, m0: new Int32Array(N), m1: new Int32Array(N), off: new Int32Array(N), ll: new Uint8Array(N), dd: new Uint8Array(N), nb: new Uint8Array(N),
+cf: new Float64Array(N), hw: new Float64Array(N), hh: new Float64Array(N), K: new Float64Array(N * 24) },
 };
-for (m = 0; m < M; m++) { Pl.TT[m] = tg0 + m * dtg; Pl.RT[m] = rint(Pl.TT[m]); }
+for (m = 0; m < M; m++) { Pl.TT[m] = tg0 + m * dtg; Pl.RT[m] = rint(Pl.TT[m]); Pl.FF[m] = 1 - CFG.FUNNEL * sstep(G.tNom - 2.6, G.tNom - 0.4, Pl.TT[m]); }
 for (i = 0; i < N; i++) {
 it = items[i];
 it.m0 = max(0, ceil((it.ts - tg0) / dtg - 1e-6)); it.m1 = isFinite(it.life) ? min(M, floor((it.ts + it.life - tg0) / dtg) + 1) : M; if (it.m1 <= it.m0) it.m1 = min(M, it.m0 + 1);
 it.mstep = isFinite(it.life) ? 1 : it.heavy ? 1 : 2;
 it.px = new Float32Array(M); it.py = new Float32Array(M); it.ps = new Float32Array(M); it.pz = new Float32Array(M); it.placed = false;
 it.ohw = 0.5 * it.bw * 0.9; it.ohh = 0.5 * it.bh * 0.9; it.oc = cos(it.rz0); it.os = sin(it.rz0);
+it.kS = new Float64Array(24); obbAxes(it.oc, it.os, 1, 0, it.kS, 0);
 (it.heavy ? Pl.hv : Pl.lt).push(i);
 }
 Pl.hv.sort(function (a, b) { return items[b].bw * items[b].bh - items[a].bw * items[a].bh; });
 }
 function planScore(it, i, cand, bound) {
-var Pl = G.plan, items = Pl.items, N = Pl.N, M = Pl.M, RT = Pl.RT, TT = Pl.TT, W = G.W, lt = it.light;
-var pen = 0, dmin = 1e9, comfort = it.comfort, sx = 0, sy = 0, cnt = 0, x, y, v, g, q, m2, j2, ex, ey, hw, hh, cf, zn, gwU, exb, eyb, dx, dy, dl, df, nr, qz, kk, pairs;
+var Pl = G.plan, items = Pl.items, RT = Pl.RT, TT = Pl.TT, FF = Pl.FF, W = G.W, lt = it.light;
+var pen = 0, dmin = 1e9, comfort = it.comfort, sx = 0, sy = 0, cnt = 0, x, y, v, g, q, m2, qi, ex, ey, hw, hh, cf, zn, gwU, exb, eyb, dx, dy, dl, df, nr, qz, kk, thr, qs;
+var B1 = planBreath(Pl, 1, cand.p1), B2 = planBreath(Pl, 2, cand.p2), oa = cand.a, ob = cand.b, oct = cand.ct, ost = cand.st, oox = cand.ox, ooy = cand.oy, ophi = cand.phi0, oR0 = cand.R0;
+var okw = G.dir * cand.sg * cand.w, olift = cand.oy + CFG.FUNNEL_LIFT, phi, sp, cp, f, oex, oey;
+var QL = planPairs(it, i), QN = QL.n, QK = QL.K, Qm0 = QL.m0, Qm1 = QL.m1, Qoff = QL.off, Qll = QL.ll, Qcf = QL.cf, Qdd = QL.dd, Qnb = QL.nb, Qhw = QL.hw, Qhh = QL.hh, KS = it.kS;
+var PX = Pl.PX, PY = Pl.PY, PS = Pl.PS, PZ = Pl.PZ, po, third;
 for (m2 = it.m0; m2 < it.m1; m2++) {
-orbitXY(cand, RT[m2], TT[m2], TMP);
-x = TMP.x; y = TMP.y; zn = TMP.zn; sx += x; sy += y; cnt++;
+phi = ophi + okw * (RT[m2] - oR0); sp = sin(phi); cp = cos(phi); f = FF[m2];
+oex = oa * f * B1[m2] * cp; oey = ob * f * B2[m2] * sp;
+x = G.cx + oox * f + oex * oct - oey * ost;
+y = G.cy + ooy + oex * ost + oey * oct - olift * (1 - f);
+zn = sp; sx += x; sy += y; cnt++;
 kk = (1 + CFG.PERSP * zn) * 1.03; ex = it.ex * kk; ey = it.ey * kk + 9; hw = it.ohw * kk; hh = it.ohh * kk;
 exb = ex * 1.1 + 6 + 0.6 * it.bobMax; eyb = ey * 1.1 + 6 + 0.6 * it.bobMax;
 if (it.popR > exb) exb = it.popR; if (it.popR > eyb) eyb = it.popR;
@@ -6927,29 +7022,30 @@ dx = (x - G.cx) / Pl.rx; dy = (y - G.cy) / Pl.ry; nr = sqrt(dx * dx + dy * dy);
 if (nr > CFG.ENV_K) pen += (nr - CFG.ENV_K) * Pl.rx * 14;
 gwU = zn < -0.15 || it.dl < 0 ? it.gwFar : it.gw;
 var gxt = TT[m2] > G.tNom - 2.6 ? 60 : 0;
-g = obbGap(x, y, hw, hh, it.oc, it.os, G.cx, Pl.gy, gwU, Pl.ghh, 1, 0); if (g < it.gg + gxt) pen += (it.gg + gxt - g) * (zn > -0.15 && it.dl >= 0 ? 25 : 5);
-g = obbGap(x, y, hw, hh, it.oc, it.os, G.cx, Pl.hdY, CFG.FACE_HW, CFG.FACE_HH, 1, 0); if (g < 20) pen += (20 - g) * 5;
-if (Pl.corridor && TT[m2] > G.tHit - 1.7) { g = obbGap(x, y, hw, hh, it.oc, it.os, G.cx, Pl.hy, Pl.hhw, Pl.hhh, 1, 0); if (g < 0) pen -= g * 2; }
+thr = it.gg + gxt;
+g = obbSep(G.cx - x, Pl.gy - y, hw, hh, gwU, Pl.ghh, KS, 0, thr); if (g < thr) pen += (thr - g) * (zn > -0.15 && it.dl >= 0 ? 25 : 5);
+g = obbSep(G.cx - x, Pl.hdY - y, hw, hh, CFG.FACE_HW, CFG.FACE_HH, KS, 0, 20); if (g < 20) pen += (20 - g) * 5;
+if (Pl.corridor && TT[m2] > G.tHit - 1.7) { g = obbSep(G.cx - x, Pl.hy - y, hw, hh, Pl.hhw, Pl.hhh, KS, 0, 0); if (g < 0) pen -= g * 2; }
 if (it.lead && it.lead.placed && m2 >= it.lead.m0 && m2 < it.lead.m1) {
 var ld = it.lead; v = hypot(x - ld.px[m2], y - ld.py[m2]) - 0.45 * (ld.diag * ld.ps[m2] + it.diag * kk) - CFG.TETHER; if (v > 0) pen += v * 0.5;
 }
 if ((m2 - it.m0) % it.mstep === 0) {
-for (j2 = 0; j2 < N; j2++) {
-q = items[j2];
-if (j2 === i || !q.placed || q.m0 > m2 || m2 >= q.m1) continue;
-if (lt && q.light) {
-if ((m2 - it.m0) % 3 !== 0 || q.life < 1e8 || it.life < 1e8) continue;
-g = obbGap(x, y, hw, hh, it.oc, it.os, q.px[m2], q.py[m2], q.ohw * q.ps[m2], q.ohh * q.ps[m2], q.oc, q.os);
+third = (m2 - it.m0) % 3 === 0;
+for (qi = 0; qi < QN; qi++) {
+if (Qm0[qi] > m2 || m2 >= Qm1[qi]) continue;
+po = Qoff[qi] + m2; qs = PS[po];
+if (Qll[qi]) {
+if (!third) continue;
+g = obbSep(PX[po] - x, PY[po] - y, hw, hh, Qhw[qi] * qs, Qhh[qi] * qs, QK, qi * 24, 14);
 if (g < 14) pen += (14 - (g > 0 ? g : 0)) * 0.6 + (g < 0 ? -g * 0.8 : 0);
 continue;
 }
-g = obbGap(x, y, hw, hh, it.oc, it.os, q.px[m2], q.py[m2], q.ohw * q.ps[m2], q.ohh * q.ps[m2], q.oc, q.os);
-cf = lt ? it.comfort : comfort > q.comfort ? comfort : q.comfort;
-qz = q.pz[m2]; df = (zn * qz < 0 && abs(zn - qz) > 0.6) || it.dl !== q.dl ? 0.5 : 1;
-if (it.noBehind && q.noBehind) df = 1;
-cf *= df;
+qz = PZ[po]; df = (zn * qz < 0 && abs(zn - qz) > 0.6) || Qdd[qi] ? 0.5 : 1;
+if (Qnb[qi]) df = 1;
+cf = Qcf[qi] * df;
+g = obbSep(PX[po] - x, PY[po] - y, hw, hh, Qhw[qi] * qs, Qhh[qi] * qs, QK, qi * 24, cf);
 if (g < cf) pen += (cf - (g > 0 ? g : 0)) * (lt ? 0.3 : 0.45) + (g < 0 ? (12 - g * 3) * df * (lt ? 0.4 : 1) : 0);
-if (m2 === it.m0) { v = hypot(x - q.px[m2], y - q.py[m2]); if (v < dmin) dmin = v; }
+if (m2 === it.m0) { v = hypot(x - PX[po], y - PY[po]); if (v < dmin) dmin = v; }
 }
 }
 if (pen > bound + 80) return Infinity;
@@ -7013,7 +7109,7 @@ else return null;
 function planStep(budget) {
 var Pl = G.plan;
 if (!Pl || Pl.done) return;
-var deadline = budget === Infinity ? Infinity : now() + budget, items = Pl.items, J, it, sc, k, m;
+var deadline = budget === Infinity ? Infinity : now() + budget, items = Pl.items, J, it, sc, k, m, po;
 for (;;) {
 if (!Pl.job) {
 J = planNextJob();
@@ -7030,7 +7126,8 @@ else if (J.hc < J.hill) { planPerturb(Pl.best, it); J.hc++; sc = planScore(it, J
 else {
 copyParams(Pl.best, it);
 for (m = 0; m < Pl.M; m++) { orbitXY(it, Pl.RT[m], Pl.TT[m], TMP); it.px[m] = TMP.x; it.py[m] = TMP.y; it.ps[m] = (1 + CFG.PERSP * TMP.zn) * 1.03; it.pz[m] = TMP.zn; }
-it.placed = true; it.planScore = J.bestScore; Pl.job = null;
+for (m = 0, po = J.i * Pl.M; m < Pl.M; m++, po++) { Pl.PX[po] = it.px[m]; Pl.PY[po] = it.py[m]; Pl.PS[po] = it.ps[m]; Pl.PZ[po] = it.pz[m]; }
+it.placed = true; it.planScore = J.bestScore; Pl.job = null; Pl.pv++;
 break;
 }
 if (sc < J.bestScore) { J.bestScore = sc; copyParams(Pl.cand, Pl.best); }
@@ -7042,7 +7139,7 @@ function finishPlan() {
 var Pl = G.plan, i, it;
 Pl.done = true; G.planned = true;
 for (i = 0; i < Pl.N; i++) { it = Pl.items[i]; it.px = it.py = it.ps = it.pz = null; }
-Pl.RT = Pl.TT = null;
+Pl.RT = Pl.TT = null; Pl.PX = Pl.PY = Pl.PS = Pl.PZ = null;
 }
 function ensureCanvas(h, side, readback) {
 if (!h.cv) { h.cv = document.createElement('canvas'); h.cx = null; h.w = 0; }
@@ -7456,6 +7553,7 @@ var r = dissolveFrom(tHit, { speed: 1, stagger: CFG.STAGGER });
 G.info.cubes = r.cubes; G.info.dots = r.dots; G.info.lastDeath = r.lastDeath;
 }
 G.info.buildMs = Math.round(now() - t00);
+idleStart();
 }
 var KA = 1, KD = 1, TE = 0, TF = 0;
 function update(t) {
@@ -7712,13 +7810,21 @@ ctx.restore();
 function frameLogic(t) {
 var dtf = t - G.drawT, tn = now(); G.drawT = t;
 if (G.armed || isFinite(G.shockT)) { if (!G.prepared && tn - G.prepAt > 6) { prepStep(CFG.PREP_MS); G.prepAt = now(); } return; }
-if (t < G.tFirst) { if (tn - G.prepAt > 6) { prepStep(t > G.tFirst - 0.3 ? CFG.WAIT_MS : CFG.PREP_MS); G.prepAt = now(); } return; }
+if (t < G.tFirst) { if (tn - G.prepAt > 6 && !idleCovers(t)) { prepStep(t > G.tFirst - 0.3 ? CFG.WAIT_MS : CFG.PREP_MS); G.prepAt = now(); } return; }
 if (dtf > 0 && dtf <= CFG.WAIT_DT) {
 setDelay(G.delay + (t - G.tFirst)); G.waited += dtf;
 prepStep(CFG.WAIT_MS); G.prepAt = now();
 if (G.armed) compressTail(t);
 } else { planStep(Infinity); prepStep(Infinity); }
 }
+function idlePrep(budget) {
+if (!G || G.prepared || isFinite(G.shockT)) return false;
+if (G.coreReady && G.warmN < CFG.WARM_RUNS) { if (budget < 4) return 'wait'; G.warmGo = true; }
+prepStep(budget);
+return !G.prepared;
+}
+function idleStart() { if (G && !G.prepared && GA.idleWork) GA.idleWork.add(idlePrep); }
+function idleCovers(t) { return !!GA.idleWork && GA.idleWork.active() && !(t > G.tFirst - CFG.IDLE_LEAD); }
 function syncInfo() {
 var i, it, b = [];
 for (i = 0; i < G.items.length; i++) {
@@ -7792,6 +7898,7 @@ if (!G) return true;
 for (var i = 0; i < G.items.length; i++) { G.items[i].cache = null; G.items[i].sprite = null; if (i === G.items.length - 1) atlasReset(); if (G.items[i].ccv) G.items[i].ccv.width = G.items[i].ccv.height = 1; }
 if (G.coreReady) { G.prepared = false; G.warmN = max(G.warmN, CFG.WARM_RUNS); }
 G.lastT = NaN;
+idleStart();
 return true;
 }
 var WARM = { n: 0, done: false, a: null, b: null, m: null };
@@ -7897,7 +8004,11 @@ GA.thoughts = {
 build: build,
 testBounds: testBounds,
 draw: draw,
-prepare: function (budgetMs) { return prepStep(budgetMs === undefined ? CFG.PREP_MS : budgetMs); },
+prepare: function (budgetMs) {
+var b = budgetMs === undefined ? CFG.PREP_MS : budgetMs;
+if (b !== Infinity && G && !G.prepared && !isFinite(G.shockT) && idleCovers(G.drawT)) return false;
+return prepStep(b);
+},
 isReady: function () { return !G || G.prepared; },
 isCoreReady: function () { return !G || G.coreReady || G.prepared; },
 warmGPU: warmGPU,
