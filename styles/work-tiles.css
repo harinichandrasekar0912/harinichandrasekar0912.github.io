@@ -122,14 +122,14 @@
 }
 
 .work-title {
-  font-weight: 380;
+  font-weight: var(--weight-medium); /* a project's name, as in the project viewer's headings */
   line-height: 1.12;
 }
 
 .work-meta {
   color: var(--color-ink-soft);
   font-size: var(--text-xs);
-  font-weight: 340;
+  font-weight: var(--weight-regular);
   line-height: 1.55;
 }
 
@@ -138,7 +138,7 @@
   display: none;
   color: var(--color-ink-soft);
   font-size: var(--text-sm);
-  font-weight: 340;
+  font-weight: var(--weight-regular);
   line-height: var(--leading-body);
   text-transform: none;
 }
@@ -287,7 +287,7 @@
 [data-tiles="cantilever"] .work-title {
   margin: var(--space-2) 0 0;
   font-size: clamp(1.6rem, 0.9rem + 2.4vw, 3.4rem);
-  font-weight: 340;
+  font-weight: var(--weight-regular);
   letter-spacing: -0.035em;
   line-height: 1;
 }
@@ -459,7 +459,7 @@
   grid-area: title;
   padding-top: var(--row-top);
   font-size: clamp(1.6rem, 0.9rem + 2.4vw, 3.4rem);
-  font-weight: 340;
+  font-weight: var(--weight-regular);
   letter-spacing: -0.035em;
   line-height: 1;
   transition: transform var(--duration-slow) var(--ease-standard);
