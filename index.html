@@ -73,6 +73,8 @@
     <link rel="stylesheet" href="styles/work-tiles.css">
     <link rel="stylesheet" href="styles/responsive.css">
     <link rel="stylesheet" href="styles/landing-girl-animation.css">
+    <!-- the landing animation is fetched at once, at high priority, but only started after the first paint (see the end of <body>) -->
+    <link rel="preload" href="scripts/min/landing-girl-animation.js" as="script" fetchpriority="high">
   </head>
   <body>
     <a class="skip-link" href="#work">skip to work</a>
@@ -393,12 +395,37 @@
       </button>
     </div>
 
-    <script src="scripts/landing-girl-animation.js" defer></script>
-    <script src="scripts/project-data.js" defer></script>
-    <script src="scripts/navigation-ball.js" defer></script>
-    <script src="scripts/project-viewer.js" defer></script>
-    <script src="scripts/main.js" defer></script>
-    <script src="scripts/about-photo.js" defer></script>
-    <script src="scripts/work-tiles.js" defer></script>
+    <script src="scripts/min/navigation-ball.js" defer></script>
+    <script src="scripts/min/main.js" defer></script>
+    <!-- these two listen for the navigation ball from the start, so they load with the page (the project viewer loads later: scripts/main.js) -->
+    <script src="scripts/min/about-photo.js" defer></script>
+    <script src="scripts/min/work-tiles.js" defer></script>
+    <script>
+      /* The landing animation starts right after the page's first paint, so the title and the navigation never wait for it to set up
+         (its file is already loading: the preload in <head>). A hidden tab, which paints nothing, starts it after a second. */
+      (function () {
+        var started = false;
+
+        function start() {
+          var el;
+
+          if (started) {
+            return;
+          }
+
+          started = true;
+          el = document.createElement("script");
+          el.src = "scripts/min/landing-girl-animation.js";
+          document.body.appendChild(el);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+          window.requestAnimationFrame(function () {
+            window.setTimeout(start, 0);
+          });
+          window.setTimeout(start, 1000);
+        });
+      })();
+    </script>
   </body>
 </html>
