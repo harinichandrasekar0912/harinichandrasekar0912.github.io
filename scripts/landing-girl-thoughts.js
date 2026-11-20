@@ -7576,6 +7576,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     BURSTS: 16,          // fireworks: one-shot bursts at seeded polar positions at the BEAT.fw / fwExtra times (see below); caps their number
     MIN_POP_GAP: 0.30,   // pops are never closer than this (at most two entrance wipes at a time)
     WAIT_MS: 8,          // while the first pop waits for the preparation, each frame spends this long on it
+    SPEC_LEAD: 8,        // the scheduled hit's dissolve bitmaps are pre-rendered in idle time from this long (s) before it (GA.idleWork; see idleHit)
     IDLE_LEAD: 1.5,      // while GA.idleWork does the preparation in idle time the frames do none of it, until this long (s) before the first pop (then: PREP_MS slices again)
     WAIT_DT: 0.25,       // a frame step larger than this is a seek / jump: the preparation is completed synchronously instead of waiting
     FRONT_Z: 0.12,       // sin(orbit angle) above which an item is in front of the girl ('front' layer)
@@ -8629,7 +8630,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   function dissolveFrom(t0, o) {
     if (!G || !G.items.length) return null;
     o = o || {};
-    var speed = o.speed > 0 ? o.speed : 1, stagger = o.stagger !== undefined ? max(0, o.stagger) : 0.35, dry = !!o.dry;      // dry: the whole computation, but nothing is spawned and no state is kept (JIT warm-up)
+    var speed = o.speed > 0 ? o.speed : 1, stagger = o.stagger !== undefined ? max(0, o.stagger) : 0.35, dry = !!o.dry, spec = dry && !!o.spec;      // dry: the whole computation, but nothing is spawned and no state is kept (JIT warm-up); spec: a dry run that only works out the schedule (idleHit)
     var rng = U.rng(G.seed * 7919 + ((t0 * 1000) | 0) + (o.seed || 0) + 13), items = G.items, part = [], i, j, k, it;
     if (!dry && isFinite(G.shockT)) return G.lastResult || { items: 0, cubes: 0, dots: 0, lastDeath: 0, skipped: 0 };      // a dissolve is already running: idempotent no-op
     if (G.plan && !G.plan.done) planStep(Infinity);
@@ -8637,7 +8638,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       it = items[i];
       if (it.dead || it.t0 <= t0) continue;                    // already dissolving / never to appear
       if (it.tp + it.life <= t0) continue;                       // a firework that has burnt out
-      if (it.tp > t0) { it.dead = true; continue; }            // not popped in yet: it never will
+      if (it.tp > t0) { if (!spec) it.dead = true; continue; }  // not popped in yet: it never will
       if (!it.ready) itemReady(it);
       part.push(it);
     }
@@ -8734,16 +8735,17 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var last = 0; for (i = 0; i < part.length; i++) last = max(last, part[i].tEnd);
     job.stats = { items: part.length, get cubes() { return nCubes; }, get dots() { return nDots; }, lastDeath: last - t0, skipped: 0 };
     if (dry) {                                                   // undo: the real dissolve starts from a clean slate
-      runJob(job, Infinity, Infinity);
-      for (i = 0; i < part.length; i++) { part[i].t0 = Infinity; part[i].tEnd = Infinity; }
+      if (!spec) runJob(job, Infinity, Infinity);
+      for (i = 0; i < part.length; i++) { part[i].specT0 = part[i].t0; part[i].t0 = Infinity; part[i].tEnd = Infinity; }
       G.job = null; G.shockT = Infinity; G.spawnEnd = -Infinity; G.lastT = NaN; refreshSpan();
-      return { items: part.length, cubes: nCubes, dots: nDots, lastDeath: last - t0, skipped: 0 };
+      return { items: part.length, cubes: nCubes, dots: nDots, lastDeath: last - t0, skipped: 0, part: part };
     }
     G.spawnEnd = max(G.spawnEnd, lastTe + 2.2);                  // hover (0.5) + fall through the bottom of the stage + margin
     G.lastT = NaN; refreshSpan();
     var skipped = 0; for (i = 0; i < items.length; i++) if (items[i].dead) skipped++;
     job.stats.skipped = skipped;
     runJob(job, t0 - 0.06, 0.5);                                 // only the item that starts first right now, the rest in the following frames (draw() / flushSpawn())
+    if (!job.done && GA.idleWork) GA.idleWork.add(idleSpawn);    // (PERF: ... and in idle time between them)
     return (G.lastResult = job.stats);
   }
 
@@ -8769,7 +8771,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     if (!G) return;
     for (var i = 0; i < G.items.length; i++) {
       var it = G.items[i];
-      it.dead = false; it.t0 = Infinity; it.tEnd = Infinity; it.vis = false; it.cache = null; it.sc0 = 0;
+      it.dead = false; it.t0 = Infinity; it.tEnd = Infinity; it.vis = false; it.cache = null; it.sc0 = 0; it.spec = null;
     }
     G.job = null; G.lastResult = null; G.shockT = Infinity; G.spawnEnd = -Infinity; G.lastT = NaN; G.maxT = -Infinity;
     refreshSpan();
@@ -8803,6 +8805,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       W: W, H: H, cx: cx, cy: cy, groundY: groundY, rx: rxE, ry: ryE, vt: vt, vb: vb, seed: seed, gen: gen,
       tStart: tStart, tFull: tFull, tHit: tHit, tNom: tNom0, actOff: actOff, kScale: kScale, hx: cx, hy: cy - 0.36 * CFG.GIRL_TOP,
       items: [], order: [], dir: -1, lastT: NaN, shockT: Infinity, spawnEnd: -Infinity, tFirst: Infinity, tLast: -Infinity, maxT: -Infinity,
+      hitHint: typeof o.hitHint === 'number' ? o.hitHint : NaN, kaSet: false,
       capC: o.cubes || CFG.CUBE_CAP, capD: o.dots || CFG.DOT_CAP, prepAt: -1e9, plan: null, planned: false, prepared: false, coreReady: false, armed: false, delay: 0, waited: 0, drawT: -Infinity, anIdx: 0, warmN: 0, warmGo: false, lastResult: null, job: null,
       info: { items: 0, names: [], roles: [], heroes: [], cast: '', variant: gen, spawn: [], cubes: 0, dots: 0, lastDeath: 0, missing: [], dir: -1, buildMs: 0 },
     };
@@ -8837,6 +8840,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     G.info.buildMs = Math.round(now() - t00);
     idleStart();
+    if (isFinite(G.hitHint) && GA.idleWork) GA.idleWork.add(idleHit);
   }
 
   // ------------------------------------------------------------------------------------------------ drawing
@@ -9058,7 +9062,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var st = fillMask(it, t);
     if (st === 2) return;
     var c = it.cache;
-    if (!c || c.k !== KA || c.kd !== KD || c.te !== TE || c.tf !== TF) c = it.cache = buildCache(it);
+    if (!c || c.k !== KA || c.kd !== KD || c.te !== TE || c.tf !== TF) c = it.cache = takeSpec(it) || buildCache(it);
     var q = c.q, dx = KA * po.x + TE, dy = KD * po.y + TF, ix = round(c.rx0 - c.Wc / (2 * q)) + round(dx - c.dx0), iy = round(c.ry0 - c.Hc / (2 * q)) + round(dy - c.dy0);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -9095,7 +9099,19 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     cx.translate(-it.ocx * P.s, -it.ocy * P.s);
     it.def.draw(cx, P);
     cx.setTransform(1, 0, 0, 1, 0, 0);
-    return { cv: cv, k: KA, kd: KD, te: TE, tf: TF, q: q, Wc: Wc, Hc: Hc, rx0: rx, ry0: ry, dx0: dx, dy0: dy };
+    return { cv: cv, k: KA, kd: KD, te: TE, tf: TF, q: q, Wc: Wc, Hc: Hc, rx0: rx, ry0: ry, dx0: dx, dy0: dy,
+      px: po0.x, py: po0.y, psc: po0.sc, prx: po0.rx, pry: po0.ry, prz: po0.rz, ppt: po0.pt };      // (the pose it was drawn in: takeSpec compares it)
+  }
+  /** PERF: a bitmap pre-rendered by idleHit is used only when EVERY input of buildCache() is the same (stage transform, the item's pose at its dissolve
+      start; size, scale and prop parameters follow from these): buildCache() would then draw exactly the same picture into the same item canvas. */
+  var TPS = {};
+  function takeSpec(it) {
+    var s = it.spec; it.spec = null;
+    if (!s || s.k !== KA || s.kd !== KD || s.te !== TE || s.tf !== TF || s.cv !== it.ccv) return null;
+    var po = poseInto(it, it.t0, rint(it.t0), TPS);
+    if (po.x !== s.px || po.y !== s.py || po.sc !== s.psc || po.rx !== s.prx || po.ry !== s.pry || po.rz !== s.prz || po.pt !== s.ppt) return null;
+    G.info.specUsed = (G.info.specUsed || 0) + 1;                    // (info(): how many dissolve bitmaps came from idle time)
+    return s;
   }
 
   /** ring + a handful of dots bursting out of a freshly popped item */
@@ -9140,6 +9156,35 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     return !G.prepared;
   }
   function idleStart() { if (G && !G.prepared && GA.idleWork) GA.idleWork.add(idlePrep); }
+  /** PERF (the hit): the scene dissolves the cloud at hitHint + 0.04 (speed 1, stagger STAGGER).  From SPEC_LEAD s before that, idle time works out the
+      dissolve's schedule (a dry run that keeps nothing but each item's start time) and pre-renders every item's dissolve bitmap into the item's own canvas,
+      in its pose at that start (G.shockT / it.t0 are set for the call and restored).  drawDissolve() takes such a bitmap only when all inputs match
+      (takeSpec); a '+' interrupt or a changed stage transform renders as before. */
+  var SPECT = { G: null, list: null, k: 0, t0: NaN, done: false };
+  function idleHit(budget) {
+    if (SPECT.G !== G) { SPECT.G = G; SPECT.list = null; SPECT.k = 0; SPECT.done = false; }
+    if (!G || SPECT.done || !isFinite(G.hitHint)) return false;
+    if (isFinite(G.shockT)) { SPECT.done = true; return false; }                      // a dissolve exists already: too late
+    if (!G.prepared || !G.kaSet || !(G.drawT >= G.hitHint - CFG.SPEC_LEAD)) return 'wait';
+    if (!SPECT.list) { SPECT.t0 = G.hitHint + 0.04; SPECT.list = dissolveFrom(SPECT.t0, { speed: 1, stagger: CFG.STAGGER, dry: true, spec: true }).part; SPECT.k = 0; return true; }
+    var dl = now() + budget, it, keepT0, keepShock;
+    while (SPECT.k < SPECT.list.length) {
+      it = SPECT.list[SPECT.k++];
+      if (!it.dead && isFinite(it.specT0)) {
+        keepT0 = it.t0; keepShock = G.shockT; it.t0 = it.specT0; G.shockT = SPECT.t0;
+        try { it.spec = buildCache(it); } finally { it.t0 = keepT0; G.shockT = keepShock; }
+      }
+      if (now() >= dl) break;
+    }
+    if (SPECT.k >= SPECT.list.length) SPECT.done = true;
+    return !SPECT.done;
+  }
+  /** PERF: the cubes / dots of a running dissolve are spawned in idle time too (runJob's result does not depend on the slicing; draw() keeps its own slices) */
+  function idleSpawn(budget) {
+    if (!G || !G.job || G.job.done) return false;
+    runJob(G.job, -Infinity, budget);
+    return !G.job.done;
+  }
   /** the idle runner is doing the preparation and the first pop is not close yet (scene time t): the frames leave their preparation slices out */
   function idleCovers(t) { return !!GA.idleWork && GA.idleWork.active() && !(t > G.tFirst - CFG.IDLE_LEAD); }
   /** info.spawn / info.beats follow the real pop times (after a wait for the preparation or a tail compression).  beats = the SYNC POINTS for the girl's performance:
@@ -9185,7 +9230,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     if (t < G.tFirst || t >= G.tLast) return;
     update(t);
     var m = ctx.getTransform ? ctx.getTransform() : null, S = GA.stage || {};
-    KA = m ? m.a : (S.px || 1); KD = m ? m.d : (S.px || 1); TE = m ? m.e : 0; TF = m ? m.f : ((S.offsetY || 0) * (S.dpr || 1));
+    KA = m ? m.a : (S.px || 1); KD = m ? m.d : (S.px || 1); TE = m ? m.e : 0; TF = m ? m.f : ((S.offsetY || 0) * (S.dpr || 1)); G.kaSet = true;
     var ord = G.order, i, it, wantFront = layer === 'front', both = layer !== 'front' && layer !== 'back';
     if (G.sprT !== t) { G.sprT = t; refreshSprites(t); }
     ctx.save();
@@ -9220,7 +9265,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     function drop(h) { if (h.cv) { h.cv.width = h.cv.height = 1; } h.cx = null; h.w = 0; }
     drop(SC); drop(WK); SC.need = 0;
     if (!G) return true;
-    for (var i = 0; i < G.items.length; i++) { G.items[i].cache = null; G.items[i].sprite = null; if (i === G.items.length - 1) atlasReset(); if (G.items[i].ccv) G.items[i].ccv.width = G.items[i].ccv.height = 1; }
+    for (var i = 0; i < G.items.length; i++) { G.items[i].cache = null; G.items[i].spec = null; G.items[i].sprite = null; if (i === G.items.length - 1) atlasReset(); if (G.items[i].ccv) G.items[i].ccv.width = G.items[i].ccv.height = 1; }
     if (G.coreReady) { G.prepared = false; G.warmN = max(G.warmN, CFG.WARM_RUNS); }      // (the next prepare() slice re-allocates the scratch canvas)
     G.lastT = NaN;
     idleStart();

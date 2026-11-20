@@ -4743,7 +4743,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     },
     thoughts: function () {
       var W = S.W, H = S.H, c = sc.T.cues, G = sc.geom;
-      if (GA.thoughts) GA.thoughts.build({ W: W, H: H, cx: G.cx, cy: G.cy, rx: G.rx, ry: G.ry, seed: 9, tStart: c.swirlStart, tFull: c.swirlFull, tHit: Infinity, swirl: GA.swirl });
+      if (GA.thoughts) GA.thoughts.build({ W: W, H: H, cx: G.cx, cy: G.cy, rx: G.rx, ry: G.ry, seed: 9, tStart: c.swirlStart, tFull: c.swirlFull, tHit: Infinity, swirl: GA.swirl,
+        hitHint: c.tHit });   // (hint only: the cloud pre-renders its dissolve for the scheduled hit at c.tHit + 0.04 in idle time; the dissolve itself is still triggered below)
     },
     fx: function (g) {
       var W = S.W, H = S.H, c = sc.T.cues, hit = g.hit;
