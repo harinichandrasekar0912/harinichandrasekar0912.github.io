@@ -479,7 +479,7 @@ body.is-project-open .viewport-edge-blur {
   aspect-ratio: 1 / 1;
   object-fit: cover;
   object-position: 50% 40%;
-  border: var(--line-thin) solid var(--color-line);
+  border: var(--hairline) solid var(--color-line);
   border-radius: inherit;
   background: var(--color-paper-soft);
 }
@@ -537,7 +537,7 @@ html[data-about="a"][data-ledge="1"] .about-ledge {
   align-self: start;
   justify-self: start;
   width: 100vw;
-  height: var(--line-thin);
+  height: var(--hairline);
   margin-left: -100vw;
   background: var(--color-line);
   pointer-events: none;
