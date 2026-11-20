@@ -7263,9 +7263,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var speed = o.speed > 0 ? +o.speed : 1, stagger = o.stagger >= 0 ? +o.stagger : 0.9;
     D = makeD(+t0, speed, stagger, false);
     G.items = [];
-    startDissolve();
+    if (!adoptSpec()) startDissolve();
     G.info = D.info;
     lastT = NaN;
+    if (GA.idleWork) GA.idleWork.add(idleJobs);
     return true;
   }
 
@@ -7304,14 +7305,52 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   }
 
   /** PERF: the warm-up trials in idle time (GA.idleWork) instead of one per frame in draw(): a trial is one ~3-6 ms piece of work, so it waits for an idle
-      period of >= 4 ms (draw() still runs the ones that are left from tStart + 0.6 on, as before).  Trials leave no trace (rolled back). */
+      period of >= 4 ms (draw() still runs the ones that are left from tStart + 0.6 on, as before).  Trials leave no trace (rolled back).
+      Then, with a finite tHit hint, the scene's scheduled dissolve (dissolveFrom(tHit + 0.04, {speed: 1, stagger: 0.55})) is cut in advance (specDissolve). */
   function idleWarm(budget, avail) {
     if (!G || D) return false;
     if (!G.ready) return 'wait';                                   // (a sliced build: the trials follow once it is done)
-    if (G.warm >= WARM_N) return false;
+    if (G.warm < WARM_N) { if (!(avail >= 4)) return 'wait'; warmStep(avail); return true; }
+    if (!isFinite(G.P.tHit) || (SPEC && SPEC.G === G && SPEC.tHit === G.P.tHit)) return false;
     if (!(avail >= 4)) return 'wait';
-    warmStep(avail);
-    return G.warm < WARM_N;
+    specDissolve();
+    return false;
+  }
+  /** PERF (the hit): startDissolve() (freeze + cut + schedule, ~5-13 ms in one frame) for the scene's scheduled dissolve, computed in idle time long before
+      it and put aside: the frozen geometry is a pure function of t0, so the result is the one dissolveFrom() would compute.  Everything it touched is rolled
+      back at once (as after a warm-up trial; the per-line weights / lists are restored too).  dissolveFrom() adopts it only for exactly the same t0, speed,
+      stagger, build and tHit (adoptSpec); anything else (a '+' interrupt) computes as before. */
+  var SPEC = null;
+  function specDissolve() {
+    var lines = G.lines, keep = [], st = [], i, L, k, t0 = G.P.tHit + 0.04;
+    for (i = 0; i < lines.length; i++) { L = lines[i]; keep.push([L.visLen, L.wt, L.maxCube, L.lb, L.lf]); }
+    D = makeD(t0, 1, 0.55, false);
+    G.items = [];
+    try {
+      startDissolve();
+      for (i = 0; i < lines.length; i++) { L = lines[i]; st.push([L.pieces, L.fz, L.nE, L.visLen, L.wt, L.maxCube, L.lb, L.lf]); }
+      SPEC = { G: G, t0: t0, tHit: G.P.tHit, D: D, items: G.items, lines: st };
+    } finally {
+      clearDissolve();
+      for (i = 0; i < lines.length; i++) { L = lines[i]; k = keep[i]; L.visLen = k[0]; L.wt = k[1]; L.maxCube = k[2]; L.lb = k[3]; L.lf = k[4]; }
+    }
+  }
+  function adoptSpec() {
+    var s = SPEC, i, L, v;
+    SPEC = null;
+    if (!s || s.G !== G || s.t0 !== D.t0 || D.speed !== 1 || D.stagger !== 0.55 || s.tHit !== G.P.tHit || s.lines.length !== G.lines.length) return false;
+    D = s.D;
+    D.cubeAPI = GA.fx && GA.fx.cubes && GA.fx.cubes.spawn ? GA.fx.cubes : null;
+    D.dotAPI = GA.fx && GA.fx.dots && GA.fx.dots.spawn ? GA.fx.dots : null;
+    for (i = 0; i < G.lines.length; i++) { L = G.lines[i]; v = s.lines[i]; L.pieces = v[0]; L.fz = v[1]; L.nE = v[2]; L.visLen = v[3]; L.wt = v[4]; L.maxCube = v[5]; L.lb = v[6]; L.lf = v[7]; }
+    G.items = s.items;
+    D.info.spec = true;                                            // (info(): the cut was done in idle time)
+    return true;
+  }
+  /** PERF: the spawn queue of a running dissolve is worked off in idle time too (every job reseeds its RNG: the result never depends on when it runs) */
+  function idleJobs(budget) {
+    if (!G || !D || !D.jobs || D.ji >= D.jobs.length) return false;
+    return runJobs(budget);
   }
 
   function makeD(t0, speed, stagger, dry) {   // one constructor for real and trial dissolves: same hidden class => the optimised code never deoptimises
