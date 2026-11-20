@@ -8078,16 +8078,58 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
 
   // ------------------------------------------------------------------------------------------------ orbit planning (incremental)
   /** gap between two oriented rectangles (> 0 clear distance, < 0 penetration depth): separating-axis test over the four edge normals */
-  function obbGap(ax, ay, ahw, ahh, ac, as_, bx, by, bhw, bhh, bc, bs) {
-    var dx = bx - ax, dy = by - ay, best = -1e9, k, nx, ny, d, ra, rb, g;
+  //   (b at (bx,by), a at (ax,ay); a has half sizes ahw x ahh and orientation (ac, as_), b likewise:
+  //      gap = max over the axes n of  |(b - a) . n| - (ahw |(ac,as_) . n| + ahh |(-as_,ac) . n|) - (bhw |(bc,bs) . n| + bhh |(-bs,bc) . n|).)
+  // PERF: the axes and the |cos| factors depend only on the two orientations, which never change while planning, so they are computed once per pair
+  // (obbAxes: 4 axes x [nx, ny, 4 factors]); obbSep() then does exactly the same arithmetic per axis as the plain test (bit-identical gaps) and stops at
+  // the first axis whose gap is >= thr: every caller only uses the gap when it is below its threshold, and the gap is the maximum over the axes.
+  function obbAxes(ac, as_, bc, bs, K, o) {
+    var k, nx, ny, b;
     for (k = 0; k < 4; k++) {
       if (k === 0) { nx = ac; ny = as_; } else if (k === 1) { nx = -as_; ny = ac; } else if (k === 2) { nx = bc; ny = bs; } else { nx = -bs; ny = bc; }
-      d = abs(dx * nx + dy * ny);
-      ra = ahw * abs(ac * nx + as_ * ny) + ahh * abs(-as_ * nx + ac * ny);
-      rb = bhw * abs(bc * nx + bs * ny) + bhh * abs(-bs * nx + bc * ny);
-      g = d - ra - rb; if (g > best) best = g;
+      b = o + k * 6;
+      K[b] = nx; K[b + 1] = ny;
+      K[b + 2] = abs(ac * nx + as_ * ny); K[b + 3] = abs(-as_ * nx + ac * ny);
+      K[b + 4] = abs(bc * nx + bs * ny); K[b + 5] = abs(-bs * nx + bc * ny);
+    }
+  }
+  function obbSep(dx, dy, ahw, ahh, bhw, bhh, K, o, thr) {   // dx, dy = b - a
+    var best = -1e9, k, b, g;
+    for (k = 0; k < 4; k++) {
+      b = o + k * 6;
+      g = abs(dx * K[b] + dy * K[b + 1]) - (ahw * K[b + 2] + ahh * K[b + 3]) - (bhw * K[b + 4] + bhh * K[b + 5]);
+      if (g >= thr) return g;
+      if (g > best) best = g;
     }
     return best;
+  }
+  /** the slow breathing factors of an orbit (1 + 0.04 sin(0.33 t + p1), 1 + 0.05 sin(0.27 t + p2)) at the plan's sample times: a table per phase value
+      (a job's candidates share their item's / leader's phases, so the table is rebuilt only when the phase changes) */
+  function planBreath(Pl, which, ph) {
+    var B = which === 1 ? Pl.B1 : Pl.B2, m, TT = Pl.TT;
+    if (B.ph === ph) return B.v;
+    for (m = 0; m < Pl.M; m++) B.v[m] = which === 1 ? 1 + 0.04 * sin(0.33 * TT[m] + ph) : 1 + 0.05 * sin(0.27 * TT[m] + ph);
+    B.ph = ph;
+    return B.v;
+  }
+  /** the placed items another item is scored against, in ascending index (so the penalties add up in the same order), as flat arrays: their sample range,
+      the pair's constants (comfort, depth-layer / behind flags, half sizes, separating axes) and the offset of their samples in the plan's position tables.
+      Small-vs-small pairs in which either piece has a finite life are never scored (planScore skipped them), so they are left out.  Cached until the set of
+      placed items changes. */
+  function planPairs(it, i) {
+    var Pl = G.plan, Q = Pl.Q, items = Pl.items, n = 0, j, q, lt = it.light, comfort = it.comfort;
+    if (Q.i === i && Q.v === Pl.pv) return Q;
+    for (j = 0; j < Pl.N; j++) {
+      q = items[j];
+      if (j === i || !q.placed) continue;
+      if (lt && q.light && (q.life < 1e8 || it.life < 1e8)) continue;
+      Q.m0[n] = q.m0; Q.m1[n] = q.m1; Q.off[n] = j * Pl.M; Q.ll[n] = lt && q.light ? 1 : 0;
+      Q.cf[n] = lt ? it.comfort : comfort > q.comfort ? comfort : q.comfort; Q.dd[n] = it.dl !== q.dl ? 1 : 0; Q.nb[n] = it.noBehind && q.noBehind ? 1 : 0;
+      Q.hw[n] = q.ohw; Q.hh[n] = q.ohh;
+      obbAxes(it.oc, it.os, q.oc, q.os, Q.K, n * 24); n++;
+    }
+    Q.n = n; Q.i = i; Q.v = Pl.pv;
+    return Q;
   }
   var PK = ['a', 'b', 'tilt', 'ct', 'st', 'ox', 'oy', 'phi0', 'w', 'R0', 'p1', 'p2', 'sg'];
   function copyParams(src, dst) { for (var k = 0; k < PK.length; k++) dst[PK[k]] = src[PK[k]]; }
@@ -8106,25 +8148,38 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       rx: G.rx, ry: G.ry, AMAX: G.rx * 1.04, AMIN: G.rx * 0.3, BMAX: G.ry * 1.06, BMIN: G.ry * 0.2, cand: blankParams(), best: blankParams(),
       xm: CFG.VIS_MARGIN, vt: G.vt + CFG.VIS_MARGIN, vb: G.vb - CFG.VIS_MARGIN, sTop: CFG.Y_MIN, sBot: G.groundY - CFG.Y_BOTTOM_GAP, hdY: G.hy - 20,
       hv: [], lt: [], stage: 0, idx: 0, job: null, order0: null, bad: null, rs: 0, done: false,
+      FF: new Float64Array(M), B1: { ph: NaN, v: new Float64Array(M) }, B2: { ph: NaN, v: new Float64Array(M) }, pv: 0,
+      PX: new Float32Array(N * M), PY: new Float32Array(N * M), PS: new Float32Array(N * M), PZ: new Float32Array(N * M),     // the placed samples of every item (copies of it.px / py / ps / pz, flat)
+      Q: { i: -1, v: -1, n: 0, m0: new Int32Array(N), m1: new Int32Array(N), off: new Int32Array(N), ll: new Uint8Array(N), dd: new Uint8Array(N), nb: new Uint8Array(N),
+        cf: new Float64Array(N), hw: new Float64Array(N), hh: new Float64Array(N), K: new Float64Array(N * 24) },
     };
-    for (m = 0; m < M; m++) { Pl.TT[m] = tg0 + m * dtg; Pl.RT[m] = rint(Pl.TT[m]); }
+    for (m = 0; m < M; m++) { Pl.TT[m] = tg0 + m * dtg; Pl.RT[m] = rint(Pl.TT[m]); Pl.FF[m] = 1 - CFG.FUNNEL * sstep(G.tNom - 2.6, G.tNom - 0.4, Pl.TT[m]); }   // (FF = orbitXY's funnel factor at the samples)
     for (i = 0; i < N; i++) {
       it = items[i];
       it.m0 = max(0, ceil((it.ts - tg0) / dtg - 1e-6)); it.m1 = isFinite(it.life) ? min(M, floor((it.ts + it.life - tg0) / dtg) + 1) : M; if (it.m1 <= it.m0) it.m1 = min(M, it.m0 + 1);
       it.mstep = isFinite(it.life) ? 1 : it.heavy ? 1 : 2;
       it.px = new Float32Array(M); it.py = new Float32Array(M); it.ps = new Float32Array(M); it.pz = new Float32Array(M); it.placed = false;
       it.ohw = 0.5 * it.bw * 0.9; it.ohh = 0.5 * it.bh * 0.9; it.oc = cos(it.rz0); it.os = sin(it.rz0);
+      it.kS = new Float64Array(24); obbAxes(it.oc, it.os, 1, 0, it.kS, 0);      // separating axes against the upright boxes (her column, her face, the ball corridor)
       (it.heavy ? Pl.hv : Pl.lt).push(i);
     }
     Pl.hv.sort(function (a, b) { return items[b].bw * items[b].bh - items[a].bw * items[a].bh; });   // big pieces choose first
   }
 
   function planScore(it, i, cand, bound) {
-    var Pl = G.plan, items = Pl.items, N = Pl.N, M = Pl.M, RT = Pl.RT, TT = Pl.TT, W = G.W, lt = it.light;
-    var pen = 0, dmin = 1e9, comfort = it.comfort, sx = 0, sy = 0, cnt = 0, x, y, v, g, q, m2, j2, ex, ey, hw, hh, cf, zn, gwU, exb, eyb, dx, dy, dl, df, nr, qz, kk, pairs;
+    var Pl = G.plan, items = Pl.items, RT = Pl.RT, TT = Pl.TT, FF = Pl.FF, W = G.W, lt = it.light;
+    var pen = 0, dmin = 1e9, comfort = it.comfort, sx = 0, sy = 0, cnt = 0, x, y, v, g, q, m2, qi, ex, ey, hw, hh, cf, zn, gwU, exb, eyb, dx, dy, dl, df, nr, qz, kk, thr, qs;
+    // the candidate's orbit = orbitXY() inlined, term for term (the funnel factor and the breathing factors come from per-plan tables of the same values)
+    var B1 = planBreath(Pl, 1, cand.p1), B2 = planBreath(Pl, 2, cand.p2), oa = cand.a, ob = cand.b, oct = cand.ct, ost = cand.st, oox = cand.ox, ooy = cand.oy, ophi = cand.phi0, oR0 = cand.R0;
+    var okw = G.dir * cand.sg * cand.w, olift = cand.oy + CFG.FUNNEL_LIFT, phi, sp, cp, f, oex, oey;
+    var QL = planPairs(it, i), QN = QL.n, QK = QL.K, Qm0 = QL.m0, Qm1 = QL.m1, Qoff = QL.off, Qll = QL.ll, Qcf = QL.cf, Qdd = QL.dd, Qnb = QL.nb, Qhw = QL.hw, Qhh = QL.hh, KS = it.kS;
+    var PX = Pl.PX, PY = Pl.PY, PS = Pl.PS, PZ = Pl.PZ, po, third;
     for (m2 = it.m0; m2 < it.m1; m2++) {
-      orbitXY(cand, RT[m2], TT[m2], TMP);
-      x = TMP.x; y = TMP.y; zn = TMP.zn; sx += x; sy += y; cnt++;
+      phi = ophi + okw * (RT[m2] - oR0); sp = sin(phi); cp = cos(phi); f = FF[m2];
+      oex = oa * f * B1[m2] * cp; oey = ob * f * B2[m2] * sp;
+      x = G.cx + oox * f + oex * oct - oey * ost;
+      y = G.cy + ooy + oex * ost + oey * oct - olift * (1 - f);
+      zn = sp; sx += x; sy += y; cnt++;
       kk = (1 + CFG.PERSP * zn) * 1.03; ex = it.ex * kk; ey = it.ey * kk + 9; hw = it.ohw * kk; hh = it.ohh * kk;
       exb = ex * 1.1 + 6 + 0.6 * it.bobMax; eyb = ey * 1.1 + 6 + 0.6 * it.bobMax;      // + the entrance overshoot + the wobble
       if (it.popR > exb) exb = it.popR; if (it.popR > eyb) eyb = it.popR;      // + the pop ring / dots
@@ -8139,29 +8194,30 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (nr > CFG.ENV_K) pen += (nr - CFG.ENV_K) * Pl.rx * 14;                 // the centre stays inside the vortex envelope
       gwU = zn < -0.15 || it.dl < 0 ? it.gwFar : it.gw;                          // far side / far depth layer: she may hide part of it
       var gxt = TT[m2] > G.tNom - 2.6 ? 60 : 0;                                   // (act IV: the funnel moves pieces ~250 u/s: keep 60 extra units so nothing drifts into her between two samples)
-      g = obbGap(x, y, hw, hh, it.oc, it.os, G.cx, Pl.gy, gwU, Pl.ghh, 1, 0); if (g < it.gg + gxt) pen += (it.gg + gxt - g) * (zn > -0.15 && it.dl >= 0 ? 25 : 5);   // (a piece passing in FRONT of her column is never acceptable: 5x the far-side weight)
-      g = obbGap(x, y, hw, hh, it.oc, it.os, G.cx, Pl.hdY, CFG.FACE_HW, CFG.FACE_HH, 1, 0); if (g < 20) pen += (20 - g) * 5;     // never crowd her face
-      if (Pl.corridor && TT[m2] > G.tHit - 1.7) { g = obbGap(x, y, hw, hh, it.oc, it.os, G.cx, Pl.hy, Pl.hhw, Pl.hhh, 1, 0); if (g < 0) pen -= g * 2; }
+      thr = it.gg + gxt;
+      g = obbSep(G.cx - x, Pl.gy - y, hw, hh, gwU, Pl.ghh, KS, 0, thr); if (g < thr) pen += (thr - g) * (zn > -0.15 && it.dl >= 0 ? 25 : 5);   // (a piece passing in FRONT of her column is never acceptable: 5x the far-side weight)
+      g = obbSep(G.cx - x, Pl.hdY - y, hw, hh, CFG.FACE_HW, CFG.FACE_HH, KS, 0, 20); if (g < 20) pen += (20 - g) * 5;     // never crowd her face
+      if (Pl.corridor && TT[m2] > G.tHit - 1.7) { g = obbSep(G.cx - x, Pl.hy - y, hw, hh, Pl.hhw, Pl.hhh, KS, 0, 0); if (g < 0) pen -= g * 2; }
       if (it.lead && it.lead.placed && m2 >= it.lead.m0 && m2 < it.lead.m1) {                 // a satellite stays tethered to its leader (centre within TETHER of touching it)
         var ld = it.lead; v = hypot(x - ld.px[m2], y - ld.py[m2]) - 0.45 * (ld.diag * ld.ps[m2] + it.diag * kk) - CFG.TETHER; if (v > 0) pen += v * 0.5;
       }
       if ((m2 - it.m0) % it.mstep === 0) {
-        for (j2 = 0; j2 < N; j2++) {
-          q = items[j2];
-          if (j2 === i || !q.placed || q.m0 > m2 || m2 >= q.m1) continue;
-          if (lt && q.light) {                                                   // small vs small: only a sparse check (no pile-ups of icons / marks), overlaps stay cheap and slight
-            if ((m2 - it.m0) % 3 !== 0 || q.life < 1e8 || it.life < 1e8) continue;
-            g = obbGap(x, y, hw, hh, it.oc, it.os, q.px[m2], q.py[m2], q.ohw * q.ps[m2], q.ohh * q.ps[m2], q.oc, q.os);
+        third = (m2 - it.m0) % 3 === 0;
+        for (qi = 0; qi < QN; qi++) {                                            // (the placed items other than this one, ascending index: see planPairs)
+          if (Qm0[qi] > m2 || m2 >= Qm1[qi]) continue;
+          po = Qoff[qi] + m2; qs = PS[po];
+          if (Qll[qi]) {                                                         // small vs small: only a sparse check (no pile-ups of icons / marks), overlaps stay cheap and slight
+            if (!third) continue;
+            g = obbSep(PX[po] - x, PY[po] - y, hw, hh, Qhw[qi] * qs, Qhh[qi] * qs, QK, qi * 24, 14);
             if (g < 14) pen += (14 - (g > 0 ? g : 0)) * 0.6 + (g < 0 ? -g * 0.8 : 0);
             continue;
           }
-          g = obbGap(x, y, hw, hh, it.oc, it.os, q.px[m2], q.py[m2], q.ohw * q.ps[m2], q.ohh * q.ps[m2], q.oc, q.os);
-          cf = lt ? it.comfort : comfort > q.comfort ? comfort : q.comfort;
-          qz = q.pz[m2]; df = (zn * qz < 0 && abs(zn - qz) > 0.6) || it.dl !== q.dl ? 0.5 : 1;       // different depth layers / one in front of her, one behind: they may overlap a little
-          if (it.noBehind && q.noBehind) df = 1;
-          cf *= df;
+          qz = PZ[po]; df = (zn * qz < 0 && abs(zn - qz) > 0.6) || Qdd[qi] ? 0.5 : 1;       // different depth layers / one in front of her, one behind: they may overlap a little
+          if (Qnb[qi]) df = 1;
+          cf = Qcf[qi] * df;
+          g = obbSep(PX[po] - x, PY[po] - y, hw, hh, Qhw[qi] * qs, Qhh[qi] * qs, QK, qi * 24, cf);
           if (g < cf) pen += (cf - (g > 0 ? g : 0)) * (lt ? 0.3 : 0.45) + (g < 0 ? (12 - g * 3) * df * (lt ? 0.4 : 1) : 0);
-          if (m2 === it.m0) { v = hypot(x - q.px[m2], y - q.py[m2]); if (v < dmin) dmin = v; }
+          if (m2 === it.m0) { v = hypot(x - PX[po], y - PY[po]); if (v < dmin) dmin = v; }
         }
       }
       if (pen > bound + 80) return Infinity;
@@ -8229,7 +8285,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   function planStep(budget) {
     var Pl = G.plan;
     if (!Pl || Pl.done) return;
-    var deadline = budget === Infinity ? Infinity : now() + budget, items = Pl.items, J, it, sc, k, m;
+    var deadline = budget === Infinity ? Infinity : now() + budget, items = Pl.items, J, it, sc, k, m, po;
     for (;;) {
       if (!Pl.job) {
         J = planNextJob();
@@ -8246,7 +8302,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         else {
           copyParams(Pl.best, it);
           for (m = 0; m < Pl.M; m++) { orbitXY(it, Pl.RT[m], Pl.TT[m], TMP); it.px[m] = TMP.x; it.py[m] = TMP.y; it.ps[m] = (1 + CFG.PERSP * TMP.zn) * 1.03; it.pz[m] = TMP.zn; }
-          it.placed = true; it.planScore = J.bestScore; Pl.job = null;
+          for (m = 0, po = J.i * Pl.M; m < Pl.M; m++, po++) { Pl.PX[po] = it.px[m]; Pl.PY[po] = it.py[m]; Pl.PS[po] = it.ps[m]; Pl.PZ[po] = it.pz[m]; }
+          it.placed = true; it.planScore = J.bestScore; Pl.job = null; Pl.pv++;
           break;
         }
         if (sc < J.bestScore) { J.bestScore = sc; copyParams(Pl.cand, Pl.best); }
@@ -8258,7 +8315,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var Pl = G.plan, i, it;
     Pl.done = true; G.planned = true;
     for (i = 0; i < Pl.N; i++) { it = Pl.items[i]; it.px = it.py = it.ps = it.pz = null; }
-    Pl.RT = Pl.TT = null;
+    Pl.RT = Pl.TT = null; Pl.PX = Pl.PY = Pl.PS = Pl.PZ = null;
   }
 
   // ------------------------------------------------------------------------------------------------ dissolve templates: ink analysis, cube sites, erase noise (incremental, per item)
