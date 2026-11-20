@@ -341,10 +341,15 @@
     z-index: 7;
   }
 
+  /* --intro-top and --intro-size (scripts/project-viewer.js fitIntro) make the first view end above the dark fade over the close button */
   .project-viewer[data-project-mode="stacked"] .project-track {
     gap: clamp(2.5rem, 8vw, 4.5rem);
     width: 100vw;
-    padding: clamp(5rem, 14vh, 7rem) 0 clamp(7.5rem, 20vh, 10rem);
+    padding: var(--intro-top, clamp(5rem, 14vh, 7rem)) 0 clamp(7.5rem, 20vh, 10rem);
+  }
+
+  .project-viewer[data-project-mode="stacked"] .project-panel-intro .project-panel-image {
+    width: var(--intro-size, min(90vw, 520px));
   }
 
   .project-viewer[data-project-mode="stacked"] .project-panel {

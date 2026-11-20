@@ -338,6 +338,46 @@
       track.style.transform = value ? "translate3d(" + -value + "px, 0, 0)" : "";
     }
 
+    /*
+      Phones (stacked): the first view - picture, heading, summary and the fact line - ends above the dark fade that sits over the close
+      button (styles/responsive.css, the viewer's ::after), so nothing of it is read through the fade or under the x. The text keeps its
+      size and width; the picture gets what height is left (square, at most 90vw / 520px as before) and, only when that would make it
+      smaller than 60 % of the screen's width, the empty space above it gives way first (down to 40px). Measured once per opening and on
+      resize: the text's height does not depend on the picture's size, so one measurement is enough.
+    */
+    function fitIntro() {
+      var figure = introFigure();
+      var copy = track.querySelector(".project-panel-intro .project-panel-copy");
+      var band;
+      var rest;
+      var room;
+      var widest;
+      var floor;
+      var defaultTop;
+      var size;
+      var top;
+
+      viewer.style.removeProperty("--intro-size");
+      viewer.style.removeProperty("--intro-top");
+
+      if (!isStackedMode() || !figure || !copy) {
+        return;
+      }
+
+      band = parseFloat(window.getComputedStyle(viewer, "::after").height) || 0;
+      rest = copy.getBoundingClientRect().bottom - figure.getBoundingClientRect().bottom;
+      room = viewportHeight - band - 12 - rest;
+      widest = Math.min(viewportWidth * 0.9, 520);
+      floor = Math.min(widest, viewportWidth * 0.6);
+      defaultTop = clamp(viewportHeight * 0.14, 80, 112);
+      size = Math.min(widest, Math.max(room - defaultTop, Math.min(floor, room - 40)));
+      size = Math.max(size, 140);
+      top = clamp(room - size, 40, defaultTop);
+
+      viewer.style.setProperty("--intro-size", Math.floor(size) + "px");
+      viewer.style.setProperty("--intro-top", Math.floor(top) + "px");
+    }
+
     function setViewerVars(trigger, measuredRect) {
       var rect = measuredRect || tileBox(trigger).getBoundingClientRect();
       var vw = viewportWidth;
@@ -697,6 +737,7 @@
       notifyProjectState("harini:project-open");
       setViewerVars(trigger, rect);
       fillProject(project);
+      fitIntro();
       observePanelImages();
       applyShift(0);
       track.style.transition = "";
@@ -1509,6 +1550,7 @@
       }
 
       setViewerVars(activeTrigger);
+      fitIntro();
       updateMaxShift();
     });
 
