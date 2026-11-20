@@ -1826,7 +1826,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     runArmFwd: 52, runArmBack: -40, runGammaFwd: 95, runGammaBack: 72,
     runKick: [-222, 105, -55], runKickU: 0.375, runFwd: [60, 70, 6], runXoff: 0, runPelvisF: 0, runHead: 11, runBendH: 30, runLeanDeg: 18, runLean0: 0.4, idleChest: 5.2, idleSway: 10, idleSwayF: 8, idleRoll: 0.22, idleNod: 0.08, shrugAmp: 4.5, idleBeat: 1, idleScript: 1, ideaT: [6.95, 7.95, 2.4, 10.9], dizzyC: 12, dizzyF: 9, hopAbsorb: 14,
     thinkHand: [30, -44, -58], thinkPole: [0.1, -1, -0.9],          // 'hmm': the hand at the side of her jaw, fingers up (at the temple it read as a headache; in front of the chin it vanished in the silhouette)
-    mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], clutchAt: [6, 46, 24], reachAt: [70, 14, -110], reachPole: [0.9, 0.3, -0.2], scratchHz: 6.5, scratchAmp: [8, 11], scratchAt: [0, -18, 51], paw: [18, 135, 16], pelvisSmooth: 20, liftPow: 1.6, swingTan: 1, swingTan1: 1, liftSkew: 0.35, walkDrop: 0, bobH2: 0, bobH2ph: 0, bobPh: 0.27, hipSway: 2.2, shoulderCounter: 1.9, handLag: 0, headNod: 2, headTilt: 0, hemBounce: 0, headMorph: 0, headMorph0: 1, headW: 0.88, freezeBack: 6, bowDeg: 35, twistDeg: 52, chestHand: [18, -9, -20], chestPole: [-0.25, -1, -0.45], stepLift: 11, turnLift: 8, armIdleM: 0.25, armIdleGP: 0.5, sleeveR: [11.4, 10], sleeveRS: [13.5, 12], sleeveL: 26, neckShort: 0.88, shDrop: -3, armOut: 6, kneeSoft: 0.008, hemTiltA: 7.5, walkChest: 2.4, headBob: 2.6, pelvTilt: 3, hemFlutter: 1.8, shLag: 0.07, armLag: 0.035, foreLag: 0.11, headLag: 0.15, spineAmp: 3.4, spineLag: 0.1, asym: 1,
+    mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], clutchAt: [6, 46, 24], reachAt: [70, 14, -110], reachPole: [0.9, 0.3, -0.2], scratchHz: 6.5, scratchAmp: [8, 11], scratchAt: [0, -18, 51], paw: [18, 135, 16], pelvisSmooth: 20, liftPow: 1.6, swingTan: 1, swingTan1: 1, liftSkew: 0.35, walkDrop: 0, bobH2: 0, bobH2ph: 0, bobPh: 0.27, hipSway: 2.2, shoulderCounter: 1.9, handLag: 0, headNod: 2, headTilt: 0, hemBounce: 0, headMorph: 0, headMorph0: 1, headW: 0.88, freezeBack: 6, bowDeg: 35, twistDeg: 52, chestHand: [18, -9, -20], chestPole: [-0.25, -1, -0.45], stepLift: 11, firstLift: 16, firstHeel: 16, turnLift: 8, armIdleM: 0.25, armIdleGP: 0.5, sleeveR: [11.4, 10], sleeveRS: [13.5, 12], sleeveL: 26, neckShort: 0.88, shDrop: -3, armOut: 6, kneeSoft: 0.008, hemTiltA: 7.5, walkChest: 2.4, headBob: 2.6, pelvTilt: 3, hemFlutter: 1.8, shLag: 0.07, armLag: 0.035, foreLag: 0.11, headLag: 0.15, spineAmp: 3.4, spineLag: 0.1, asym: 1,
     femWeight: 1, femPeriod: 14, femShift: 10, femRoll: 8, femCounter: 11, femHead: 0.5, femChest: 4, femFoot: [13, 9, 14], femHand: [3, 60, -25], femHandPole: [-0.1, 1, -0.1], peekSpread: 0.75, peekNeck: 12, peekLean: 58, peekHead: 72, peekYaw: 0.2, peekHand: [20, -22, -60], peekPelvisF: 52, peekLegBack: 140, peekHemF: 140, peekHemTilt: 18, peekPole: [0.8, -0.3, -0.5], runBobK: [[0, 0.3], [0.2, -0.536], [0.35, -0.7], [0.5, 0.1], [0.62, 0.85], [0.78, 1.1], [0.9, 0.75]], runLeanK: 0.06, runHemF: 16, runHemTilt: 5, runHemLift: 0.6, runSpread: 0.06, runTilt: [0, 0, 0, 0], runShift: [0, 0, 0],   // run swing foot keys: [f, z, beta deg] at the kick-back extreme (u = runKickU of the swing) and at u = 0.75
     runKeyed: false, runLegK: 0, runArmK: 0, runShoulderBack: 0, runShoulderFwd: 0, runPelvisPitch: -6, runCrownK: 0, runWaistK: 0, runNeckK: 0,                                           // limbs are a bit longer in the traced run drawing
     runArmA: [52, 95], runArmB: [-40, 72],                                  // (old pumping run arms: unused since the Jack run)
@@ -2002,7 +2002,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     return {
       x: num(p.x, 0), y: num(p.y, 880), yaw: num(p.yaw, 0),
       amount: clamp(num(g.amount, 0), 0, 1), phase: num(g.phase, 0), speed: num(g.speed, 0), run: clamp(num(g.run, 0), 0, 1),
-      xoff: num(g.xoff, 0), settle: clamp(num(g.settle, 0), 0, 1),          // (round 12 stop) world-anchoring offset of the walk's contact points (timeline: keeps a planted foot fixed while the stride shrinks); settle = the feet are already placed (no lifted catch-up step)
+      xoff: num(g.xoff, 0), set0: typeof g.set0 === 'number' && isFinite(g.set0) ? g.set0 : NaN, settle: clamp(num(g.settle, 0), 0, 1),          // (round 12 stop) world-anchoring offset of the walk's contact points (timeline: keeps a planted foot fixed while the stride shrinks); settle = the feet are already placed (no lifted catch-up step)
       runLeg: g.runLeg && g.runLeg.length === 2 ? [clamp(num(g.runLeg[0], 0), 0, 1), clamp(num(g.runLeg[1], 0), 0, 1)] : null,          // optional per-leg run weight of the feet (else gait.run)
       strideG: g.stride > 0 ? g.stride : 0, jack: g.jack >= 0 ? clamp(num(g.jack, 0), 0, 1) : -1,
       strideK: g.stride > 0 ? clamp(g.stride / lerp(C.stride, C.strideRun, clamp(num(g.run, 0), 0, 1)), 0.02, 1.5) : 1,          // optional: the stride the scene integrates the phase with (see gaitSets)
@@ -2124,7 +2124,16 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var q = frac(ph + (li === 0 ? 0 : 0.5)), rL = P.runLeg ? sstep(0, 1, P.runLeg[li]) : run;          // the run weight of THIS leg's foot (the '+' dash holds it while the foot is planted: see the scene)
       if (P.runLeg && P.strideG > 0) gaitSets(clamp(P.strideG / lerp(C.stride, C.strideRun, rL), 0.2, 1.5));          // (its stride scale follows its own weight: the planted foot moves exactly with the body)
       S.legQ[li] = q;
-      var wf = legFoot(q, GW, C.lift * lerp(0.3, 1, sstep(0.08, 0.9, GW.k)), C.walkXoff + P.xoff), rf = legFoot(q, GR, C.runLift, C.runXoff);          // (short steps: a lower foot lift)
+      var wLift = C.lift * lerp(0.3, 1, sstep(0.08, 0.9, GW.k)), wf = legFoot(q, GW, wLift, C.walkXoff + P.xoff), rf = legFoot(q, GR, C.runLift, C.runXoff);          // (short steps: a lower foot lift)
+      if (P.set0 === P.set0 && a > 0 && rL < 1) {          // SETTING OFF from standing (walk-out): the leg that is already in its swing phase at the start makes ONE plain step - its foot goes straight from where it
+        // stands to its first heel strike on a low arc (world-keyed: zero world speed at both ends), instead of first swinging back up under her body with a folded knee
+        // (that early-swing pose, held while she accelerates, read as a crouched squat-walk). At the heel strike it is exactly the gait's own contact pose.
+        var qs0 = frac(P.set0 + C.phaseOff + (li === 0 ? 0 : 0.5)), prg = P.phase - P.set0;
+        if (qs0 >= GW.rho && prg >= 0 && prg < 1 - qs0) {
+          var uF = prg / (1 - qs0), hsC = legFoot(0, GW, wLift, C.walkXoff + P.xoff), dW = GW.S * (1 - qs0), eF = sstep(0, 1, pow(uF, 0.6));          // (the foot travels early and reaches out into the heel strike: a step, not a shuffle)
+          wf = [(hsC[0] + dW) * eF - dW * uF, lerp(C.ankleZ, hsC[1], sstep(0.45, 1, uF)) + C.firstLift * 6.75 * uF * (1 - uF) * (1 - uF), -rad(C.firstHeel) * sin(PI * min(1, 1.4 * uF)) * (1 - sstep(0.55, 1, uF)) + hsC[2] * sstep(0.55, 1, uF)];
+        }
+      }
       // the swing foot LIFTS first and travels afterwards when the gait starts / stops (its clearance and pitch ramp in over a ~0.3 amount, its stride travel with the amount): no slide along the floor
       var swF = sstep(GW.rho, GW.rho + 0.07, q) * (1 - sstep(0.93, 1, q)), aL = lerp(a, sstep(0, 0.3, a), swF);
       var f = lerp(a * wf[0], rf[0], rL), z = lerp(lerp(C.ankleZ, wf[1], aL), rf[1], rL), beta = lerp(aL * wf[2], rf[2], rL);
@@ -2145,7 +2154,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         // the free foot never slides: when the weight changes legs it moves in a short window as a small LIFTED step (the lift follows how fast it travels)
         var swc = sin(TAU * t / C.femPeriod + 1.2), th2 = Math.tanh(2.2 * swc), dwc = (1 - th2 * th2) * 2.2 * cos(TAU * t / C.femPeriod + 1.2) * TAU / C.femPeriod;
         var xw = (-side * th2 - fE0) / (fE1 - fE0), dsw = xw > 0 && xw < 1 ? 6 * xw * (1 - xw) / (fE1 - fE0) : 0, spd = abs(femKF * dsw * side * dwc) * C.femFoot[0];
-        z += min(14, 1.1 * spd);
+        var swA = xw > 0 && xw < 1 ? sin(PI * xw) : 0; z += min(14, 2.5 * spd) * swA * swA;          /* (an arch over the step: the plain min(14, 1.1 x speed) jumped to 14 u within ~0.03 s of the window opening - the speed rises that fast - and held there: an ankle flick at every weight change) */
         if (P.settle > 0) z += 12 * fwin * sin(PI * idleA);          // (round 12: arriving from the walk the free foot steps out into the stance as a small lifted step, not a slide)
       }
       var heelUp = max(0.85 * unw, side < 0 ? sstep(0, 1, e1s) : 0);          // the unloaded foot / E1's free foot: the heel rises ON THE BALL of the foot, along the turned-out foot (it used to lift the ankle and tip the foot: the ball sank ~3 u and slid 3-8 u, and E1 left the foot hovering 4-8 u up)
@@ -2799,14 +2808,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     girl.walkPresetName = function () { return A.walkPreset; };
 
     // ---- per-tick memo: step() (x2 per frame), draw() and anchors() are called with the same pose, so the rig is solved once per distinct pose
-    var memoVer = -1, KEYN = 51, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
+    var memoVer = -1, KEYN = 52, kLast = new Float64Array(KEYN), kNow = new Float64Array(KEYN), sLast = null, anchLast = null;
     function poseKey(p, o) {
       var g = p.gait || {}, w = p.wind || {};
       o[0] = p.x; o[1] = p.y; o[2] = p.yaw; o[3] = g.amount; o[4] = g.phase; o[5] = g.speed; o[6] = g.run; o[7] = p.headYaw; o[8] = p.headPitch; o[9] = p.headRoll; o[10] = p.lean; o[11] = p.squash;
       o[12] = p.scratch; o[13] = p.scratchT; o[14] = p.think; o[15] = p.shudder; o[16] = p.shudderT; o[17] = p.air; o[18] = p.peek; o[19] = p.flinch; o[20] = p.dizzy; o[24] = p.bow; o[25] = p.twist; o[26] = p.chestHand; o[21] = w.x; o[22] = w.y; o[23] = p.t;
       o[27] = p.startle; o[28] = p.spread; o[29] = p.poke; o[30] = p.clutch; o[31] = p.shrug; o[32] = p.thinkT; o[33] = p.reach; o[34] = g.stride || 0; o[35] = p.wave;
       o[36] = p.footYaw || 0; o[37] = p.footYawW || 0; var ts = p.turnStep; o[38] = ts ? ts.u : -1; o[39] = ts ? ts.yaw0 : 0; o[40] = ts ? ts.yaw1 : 0; o[41] = ts ? ts.w : 0; o[42] = ts && ts.first ? 1 : 0;
-      o[43] = p.waveT || 0; o[44] = p.clasp || 0; o[45] = p.burst || 0; o[46] = p.flutter || 0; o[47] = p.handsFree || 0; var rl = g.runLeg; o[48] = rl ? rl[0] : -1; o[49] = rl ? rl[1] : -1; o[50] = g.jack >= 0 ? g.jack : -1;
+      o[43] = p.waveT || 0; o[44] = p.clasp || 0; o[45] = p.burst || 0; o[46] = p.flutter || 0; o[47] = p.handsFree || 0; var rl = g.runLeg; o[48] = rl ? rl[0] : -1; o[49] = rl ? rl[1] : -1; o[50] = g.jack >= 0 ? g.jack : -1; o[51] = typeof g.set0 === 'number' && isFinite(g.set0) ? g.set0 : -99;
     }
     function solveMemo(pose) {
       poseKey(pose, kNow);
@@ -4393,6 +4402,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         p.gait.speed = speedOut(t);
         p.gait.amount = amountOf(p.gait.speed);
         p.gait.phase = phaseOut(t);
+        p.gait.set0 = OUT_PH0;          // (the first step from standing: see the rig's SETTING OFF)
         p.gait.stride = STRIDE * strideKOut(t);
         var tl2 = turnLeftAt(t, 0);
         p.yaw = tl2.yaw; p.headYaw = tl2.headYaw; p.twist = tl2.twist;
@@ -4743,7 +4753,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     },
     thoughts: function () {
       var W = S.W, H = S.H, c = sc.T.cues, G = sc.geom;
-      if (GA.thoughts) GA.thoughts.build({ W: W, H: H, cx: G.cx, cy: G.cy, rx: G.rx, ry: G.ry, seed: 9, tStart: c.swirlStart, tFull: c.swirlFull, tHit: Infinity, swirl: GA.swirl });
+      if (GA.thoughts) GA.thoughts.build({ W: W, H: H, cx: G.cx, cy: G.cy, rx: G.rx, ry: G.ry, seed: 9, tStart: c.swirlStart, tFull: c.swirlFull, tHit: Infinity, swirl: GA.swirl,
+        hitHint: c.tHit });   // (hint only: the cloud pre-renders its dissolve for the scheduled hit at c.tHit + 0.04 in idle time; the dissolve itself is still triggered below)
     },
     fx: function (g) {
       var W = S.W, H = S.H, c = sc.T.cues, hit = g.hit;
@@ -4767,10 +4778,11 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var g = null; // measured when the first slice runs (the layout may change while the build waits for the landing to be on screen)
     if (GA.fx) { GA.fx.cubes.reset(); GA.fx.dots.reset(); }
     var names = ['swirl', 'thoughts', 'fx'], i = 0;
+    sc._staging = true;
     (function next() {
       if (!sc.visible) { window.setTimeout(next, 500); return; } // nothing is built while the landing is scrolled out of view (it would only steal frames from whatever the visitor is doing)
       if (!g) g = geometry();
-      if (i >= names.length) { sc.heavyReady = true; sc.fresh = true; if (done) done(); return; }
+      if (i >= names.length) { sc.heavyReady = true; sc.fresh = true; sc._staging = false; if (done) done(); return; }
       var n = names[i++];
       if (n === 'swirl' && GA.swirl && GA.swirl.isReady) { // sliced build: returns at once, the work is done in small idle slices
         safe('swirl.build', function () { STEP.swirl(g, true); });
@@ -4833,6 +4845,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     safe('rescale', function () { GA.thoughts.rescale(); GA.swirl.rescale(); if (GA.fx && GA.fx.rescale) GA.fx.rescale(); });
   };
 
+  /** the same reset, built in idle slices (sc.buildHeavyStaged): heavyReady is false until it is done (used at the loop end, on an empty screen) */
+  sc.rebuildModulesStaged = function () {
+    if (GA.fx) { GA.fx.cubes.reset(); GA.fx.dots.reset(); if (GA.fx.ball && GA.fx.ball.reset) GA.fx.ball.reset(); }
+    sc.heavyReady = false;
+    sc.buildHeavyStaged();
+  };
   sc.rebuildModules = function () {
     // reset every module to its pre-start state for the next loop (swirl/thoughts/ball/cubes)
     if (GA.fx) { GA.fx.cubes.reset(); GA.fx.dots.reset(); if (GA.fx.ball && GA.fx.ball.reset) GA.fx.ball.reset(); }
@@ -4916,7 +4934,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       // thoughts/swirl/ball/cubes are finished a few seconds after the hit: hide them until the next loop starts
       if (sc.live && sc.trig.hit && sc.tl >= c.tHit + 4.5) sc.live = false;
       // rebuild the modules while NOTHING is on screen (no visible hitch); they stay hidden (live=false) until the loop wraps
-      if (!sc.trig.rebuilt && sc.tl >= c.rebuild && sc.heavyReady) { sc.trig.rebuilt = true; sc.live = false; sc.rebuildModules(); }
+      // (staged, like at page load: the swirl's ~60-120 ms build is spread over idle slices; nothing of the modules is drawn before the next loop's tDots)
+      if (!sc.trig.rebuilt && sc.tl >= c.rebuild && sc.heavyReady) { sc.trig.rebuilt = true; sc.live = false; sc.rebuildModulesStaged(); }
       if (sc.tl >= c.teleport && !sc.trig.teleported && sc.tl < c.teleport + 0.05) { sc.trig.teleported = true; sc.pose = T.poseAt(sc.tl); resetHair(true); }
       if (sc.tl >= c.loopEnd) {
         sc.tl -= c.loopEnd; sc.trig = { hit: false, rebuilt: false }; sc.live = true;
@@ -5012,8 +5031,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     for (var i = 0; i < n; i++) tick(h);
   };
   /** deterministic test driver: advance (from the current state) until loop-local time tl >= t */
-  sc.advanceTo = function (t) { if (!sc.heavyReady) sc.buildHeavy(); var n = 0; while (sc.tl < t && n < 200000) { tick(DT); n++; } };
-  sc.advanceBy = function (s) { if (!sc.heavyReady) sc.buildHeavy(); var n = Math.round(s / DT); for (var i = 0; i < n; i++) tick(DT); };
+  sc.advanceTo = function (t) { if (!sc.heavyReady && !sc._staging) sc.buildHeavy(); var n = 0; while (sc.tl < t && n < 200000) { tick(DT); n++; } };
+  sc.advanceBy = function (s) { if (!sc.heavyReady && !sc._staging) sc.buildHeavy(); var n = Math.round(s / DT); for (var i = 0; i < n; i++) tick(DT); };
 
   // ---------------------------------------------------------------- interaction
   sc.setNavOpen = function (open) { sc.navOpen = !!open; };
