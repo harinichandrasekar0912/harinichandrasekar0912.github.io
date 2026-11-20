@@ -5288,12 +5288,33 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   };
 
   /** mount: opts {bg:'transparent', debug, paused, impactTicks} */
+  /** the same start as init() split over separate tasks, so the page's start-up is not one long main-thread task: the girl and the timeline (task 2), the restart with
+      the hair's pre-roll (task 3), the GPU warm-up (task 4), then - in the first animation frame - the start render and the first frame itself (exactly what play()
+      would have run in that frame), so every picture on screen is the same as before.  (The start render stays: leaving it out changes the first frames.)  If the site restarts / plays / pauses the scene in between, the stage that has already
+      been done for it is skipped. */
+  function stagedStart(opts) {
+    window.setTimeout(function () {
+      if (!sc.T) sc.buildCore();
+      window.setTimeout(function () {
+        if (!sc.pose) sc.restart(opts.startAt);
+        window.setTimeout(function () {
+          if (!sc.reduced) { var wg = 0; while (!sc._warm.done && wg++ < 16) warmUp(); }
+          window.requestAnimationFrame(function (ts) {
+            if (sc.playing) return;
+            sc.render();
+            if (!opts.paused && sc.visible !== false && !sc.reduced) { sc.playing = true; sc._last = 0; frame(ts); }
+          });
+        }, 0);
+      }, 0);
+    }, 0);
+  }
   sc.init = function (canvas, opts) {
     opts = opts || {};
     sc.canvas = canvas; sc.debug = !!opts.debug; sc.bg = opts.bg || 'transparent';
     if (opts.impactTicks === false) sc.impactTicks = false;
     S.maxPixels = opts.maxPixels || 7e6;
     S.setup(canvas, opts.stage || {}); // follows the canvas's CSS box (resize handled by site.js)
+    if (opts.staged) { stagedStart(opts); return sc; }
     sc.buildCore();
     sc.restart(opts.startAt);
     sc.render();
@@ -5419,7 +5440,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     layoutCanvas();
     scene.reduced = reduced.matches;
     scene.visible = landingVisibleNow();
-    scene.init(canvas, { stage: { manualResize: true }, paused: !scene.visible || reduced.matches, startAt: FIRST_LOOK });
+    scene.init(canvas, { stage: { manualResize: true }, paused: !scene.visible || reduced.matches, startAt: FIRST_LOOK, staged: true });          // (staged: the start is spread over a few tasks, see stagedStart)
     booted = true;
     var r0 = root.getBoundingClientRect(); lastW = r0.width; lastH = r0.height;
     syncNav();
