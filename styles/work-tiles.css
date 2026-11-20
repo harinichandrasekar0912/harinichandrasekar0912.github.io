@@ -317,6 +317,29 @@
   transform: scaleX(1);
 }
 
+/* short wide screens (a phone held sideways, 390 to 430 px tall): a slab is taller than what is left of the screen under the section title,
+   so a caption level with its underside started below the screen and only the number showed. Here the caption hangs from the slab's top
+   instead (the hairline still leads from the tip into the meta line), and the slab is never taller than the screen less the title and the
+   navigation, keeping its 7:5 shape */
+@media (min-width: 761px) and (max-height: 540px) {
+  [data-tiles="cantilever"] .work-tile {
+    width: min(clamp(320px, 52vw, 960px), calc((100svh - 7rem) * 7 / 5));
+  }
+
+  [data-tiles="cantilever"] .work-caption {
+    top: 0;
+    bottom: auto;
+  }
+
+  [data-tiles="cantilever"] .work-title {
+    margin-top: var(--space-1);
+  }
+
+  [data-tiles="cantilever"] .work-line {
+    margin: var(--space-2) 0;
+  }
+}
+
 /* phones: the caption under the slab; its hairline runs under the slab from the page margin to the tip */
 @media (max-width: 760px) {
   [data-tiles="cantilever"] .work-list {
