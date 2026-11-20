@@ -1,4 +1,4 @@
-/* scripts/landing-girl-thoughts.js (source af76da7c8ba4fe67), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/landing-girl-thoughts.js (source b0fb259836b03b56), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 var GA = (window.__landingGirl = window.__landingGirl || {});
@@ -4984,12 +4984,12 @@ if (ric) ric(run, { timeout: 250 }); else setTimeout(run, 6);
 }
 function run(dl) {
 armed = false;
-var t0 = now(), k = 0, r, left, fixed = !dl || typeof dl.timeRemaining !== 'function' || dl.didTimeout;
+var t0 = now(), k = 0, r, left, avail, fixed = !dl || typeof dl.timeRemaining !== 'function' || dl.didTimeout;
 while (k < tasks.length) {
-left = fixed ? (ric ? SLICE_BUSY : SLICE_NO_RIC) - (now() - t0) : dl.timeRemaining() - MARGIN;
+avail = left = fixed ? (ric ? SLICE_BUSY : SLICE_NO_RIC) - (now() - t0) : dl.timeRemaining() - MARGIN;
 if (left > CAP) left = CAP;
 if (left < 0.5) break;
-try { r = tasks[k](left); } catch (e) { r = false; }
+try { r = tasks[k](left, avail); } catch (e) { r = false; }
 if (r === 'wait') { k++; continue; }
 last = now();
 if (r !== true) tasks.splice(k, 1);
@@ -6252,9 +6252,10 @@ o = o || {};
 var speed = o.speed > 0 ? +o.speed : 1, stagger = o.stagger >= 0 ? +o.stagger : 0.9;
 D = makeD(+t0, speed, stagger, false);
 G.items = [];
-startDissolve();
+if (!adoptSpec()) startDissolve();
 G.info = D.info;
 lastT = NaN;
+if (GA.idleWork) GA.idleWork.add(idleJobs);
 return true;
 }
 function prepare(budgetMs) {
@@ -6286,11 +6287,45 @@ if (dm) fx.dots.rollback(dm);
 G.warm++;
 return G.warm < WARM_N;
 }
-function idleWarm(budget) {
-if (!G || !G.ready || D || G.warm >= WARM_N) return false;
-if (budget < 4) return 'wait';
-warmStep(budget);
-return G.warm < WARM_N;
+function idleWarm(budget, avail) {
+if (!G || D) return false;
+if (!G.ready) return 'wait';
+if (G.warm < WARM_N) { if (!(avail >= 4)) return 'wait'; warmStep(avail); return true; }
+if (!isFinite(G.P.tHit) || (SPEC && SPEC.G === G && SPEC.tHit === G.P.tHit)) return false;
+if (!(avail >= 4)) return 'wait';
+specDissolve();
+return false;
+}
+var SPEC = null;
+function specDissolve() {
+var lines = G.lines, keep = [], st = [], i, L, k, t0 = G.P.tHit + 0.04;
+for (i = 0; i < lines.length; i++) { L = lines[i]; keep.push([L.visLen, L.wt, L.maxCube, L.lb, L.lf]); }
+D = makeD(t0, 1, 0.55, false);
+G.items = [];
+try {
+startDissolve();
+for (i = 0; i < lines.length; i++) { L = lines[i]; st.push([L.pieces, L.fz, L.nE, L.visLen, L.wt, L.maxCube, L.lb, L.lf]); }
+SPEC = { G: G, t0: t0, tHit: G.P.tHit, D: D, items: G.items, lines: st };
+} finally {
+clearDissolve();
+for (i = 0; i < lines.length; i++) { L = lines[i]; k = keep[i]; L.visLen = k[0]; L.wt = k[1]; L.maxCube = k[2]; L.lb = k[3]; L.lf = k[4]; }
+}
+}
+function adoptSpec() {
+var s = SPEC, i, L, v;
+SPEC = null;
+if (!s || s.G !== G || s.t0 !== D.t0 || D.speed !== 1 || D.stagger !== 0.55 || s.tHit !== G.P.tHit || s.lines.length !== G.lines.length) return false;
+D = s.D;
+D.cubeAPI = GA.fx && GA.fx.cubes && GA.fx.cubes.spawn ? GA.fx.cubes : null;
+D.dotAPI = GA.fx && GA.fx.dots && GA.fx.dots.spawn ? GA.fx.dots : null;
+for (i = 0; i < G.lines.length; i++) { L = G.lines[i]; v = s.lines[i]; L.pieces = v[0]; L.fz = v[1]; L.nE = v[2]; L.visLen = v[3]; L.wt = v[4]; L.maxCube = v[5]; L.lb = v[6]; L.lf = v[7]; }
+G.items = s.items;
+D.info.spec = true;
+return true;
+}
+function idleJobs(budget) {
+if (!G || !D || !D.jobs || D.ji >= D.jobs.length) return false;
+return runJobs(budget);
 }
 function makeD(t0, speed, stagger, dry) {
 return { t0: t0, speed: speed, stagger: stagger, lastDeath: t0, tLines: t0, tEnd: t0, dry: dry, info: { cubes: 0, dots: 0, lines: 0, lastDeath: 0 },
@@ -6424,6 +6459,7 @@ MATE_TRIES: 52, TETHER: 54,
 BURSTS: 16,
 MIN_POP_GAP: 0.30,
 WAIT_MS: 8,
+SPEC_LEAD: 8,
 IDLE_LEAD: 1.5,
 WAIT_DT: 0.25,
 FRONT_Z: 0.12,
@@ -7356,7 +7392,7 @@ it.fieldOK = true;
 function dissolveFrom(t0, o) {
 if (!G || !G.items.length) return null;
 o = o || {};
-var speed = o.speed > 0 ? o.speed : 1, stagger = o.stagger !== undefined ? max(0, o.stagger) : 0.35, dry = !!o.dry;
+var speed = o.speed > 0 ? o.speed : 1, stagger = o.stagger !== undefined ? max(0, o.stagger) : 0.35, dry = !!o.dry, spec = dry && !!o.spec;
 var rng = U.rng(G.seed * 7919 + ((t0 * 1000) | 0) + (o.seed || 0) + 13), items = G.items, part = [], i, j, k, it;
 if (!dry && isFinite(G.shockT)) return G.lastResult || { items: 0, cubes: 0, dots: 0, lastDeath: 0, skipped: 0 };
 if (G.plan && !G.plan.done) planStep(Infinity);
@@ -7364,7 +7400,7 @@ for (i = 0; i < items.length; i++) {
 it = items[i];
 if (it.dead || it.t0 <= t0) continue;
 if (it.tp + it.life <= t0) continue;
-if (it.tp > t0) { it.dead = true; continue; }
+if (it.tp > t0) { if (!spec) it.dead = true; continue; }
 if (!it.ready) itemReady(it);
 part.push(it);
 }
@@ -7459,16 +7495,17 @@ var job = G.job = { part: part, order: order, next: 0, spawnItem: spawnItem, sta
 var last = 0; for (i = 0; i < part.length; i++) last = max(last, part[i].tEnd);
 job.stats = { items: part.length, get cubes() { return nCubes; }, get dots() { return nDots; }, lastDeath: last - t0, skipped: 0 };
 if (dry) {
-runJob(job, Infinity, Infinity);
-for (i = 0; i < part.length; i++) { part[i].t0 = Infinity; part[i].tEnd = Infinity; }
+if (!spec) runJob(job, Infinity, Infinity);
+for (i = 0; i < part.length; i++) { part[i].specT0 = part[i].t0; part[i].t0 = Infinity; part[i].tEnd = Infinity; }
 G.job = null; G.shockT = Infinity; G.spawnEnd = -Infinity; G.lastT = NaN; refreshSpan();
-return { items: part.length, cubes: nCubes, dots: nDots, lastDeath: last - t0, skipped: 0 };
+return { items: part.length, cubes: nCubes, dots: nDots, lastDeath: last - t0, skipped: 0, part: part };
 }
 G.spawnEnd = max(G.spawnEnd, lastTe + 2.2);
 G.lastT = NaN; refreshSpan();
 var skipped = 0; for (i = 0; i < items.length; i++) if (items[i].dead) skipped++;
 job.stats.skipped = skipped;
 runJob(job, t0 - 0.06, 0.5);
+if (!job.done && GA.idleWork) GA.idleWork.add(idleSpawn);
 return (G.lastResult = job.stats);
 }
 function runJob(job, t, budget) {
@@ -7490,7 +7527,7 @@ function reset(o) {
 if (!G) return;
 for (var i = 0; i < G.items.length; i++) {
 var it = G.items[i];
-it.dead = false; it.t0 = Infinity; it.tEnd = Infinity; it.vis = false; it.cache = null; it.sc0 = 0;
+it.dead = false; it.t0 = Infinity; it.tEnd = Infinity; it.vis = false; it.cache = null; it.sc0 = 0; it.spec = null;
 }
 G.job = null; G.lastResult = null; G.shockT = Infinity; G.spawnEnd = -Infinity; G.lastT = NaN; G.maxT = -Infinity;
 refreshSpan();
@@ -7520,6 +7557,7 @@ G = {
 W: W, H: H, cx: cx, cy: cy, groundY: groundY, rx: rxE, ry: ryE, vt: vt, vb: vb, seed: seed, gen: gen,
 tStart: tStart, tFull: tFull, tHit: tHit, tNom: tNom0, actOff: actOff, kScale: kScale, hx: cx, hy: cy - 0.36 * CFG.GIRL_TOP,
 items: [], order: [], dir: -1, lastT: NaN, shockT: Infinity, spawnEnd: -Infinity, tFirst: Infinity, tLast: -Infinity, maxT: -Infinity,
+hitHint: typeof o.hitHint === 'number' ? o.hitHint : NaN, kaSet: false,
 capC: o.cubes || CFG.CUBE_CAP, capD: o.dots || CFG.DOT_CAP, prepAt: -1e9, plan: null, planned: false, prepared: false, coreReady: false, armed: false, delay: 0, waited: 0, drawT: -Infinity, anIdx: 0, warmN: 0, warmGo: false, lastResult: null, job: null,
 info: { items: 0, names: [], roles: [], heroes: [], cast: '', variant: gen, spawn: [], cubes: 0, dots: 0, lastDeath: 0, missing: [], dir: -1, buildMs: 0 },
 };
@@ -7554,6 +7592,7 @@ G.info.cubes = r.cubes; G.info.dots = r.dots; G.info.lastDeath = r.lastDeath;
 }
 G.info.buildMs = Math.round(now() - t00);
 idleStart();
+if (isFinite(G.hitHint) && GA.idleWork) GA.idleWork.add(idleHit);
 }
 var KA = 1, KD = 1, TE = 0, TF = 0;
 function update(t) {
@@ -7753,7 +7792,7 @@ if (!it.mImg || !MK.cx) return;
 var st = fillMask(it, t);
 if (st === 2) return;
 var c = it.cache;
-if (!c || c.k !== KA || c.kd !== KD || c.te !== TE || c.tf !== TF) c = it.cache = buildCache(it);
+if (!c || c.k !== KA || c.kd !== KD || c.te !== TE || c.tf !== TF) c = it.cache = takeSpec(it) || buildCache(it);
 var q = c.q, dx = KA * po.x + TE, dy = KD * po.y + TF, ix = round(c.rx0 - c.Wc / (2 * q)) + round(dx - c.dx0), iy = round(c.ry0 - c.Hc / (2 * q)) + round(dy - c.dy0);
 ctx.save();
 ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -7789,7 +7828,17 @@ setProp(it, po0, 1);
 cx.translate(-it.ocx * P.s, -it.ocy * P.s);
 it.def.draw(cx, P);
 cx.setTransform(1, 0, 0, 1, 0, 0);
-return { cv: cv, k: KA, kd: KD, te: TE, tf: TF, q: q, Wc: Wc, Hc: Hc, rx0: rx, ry0: ry, dx0: dx, dy0: dy };
+return { cv: cv, k: KA, kd: KD, te: TE, tf: TF, q: q, Wc: Wc, Hc: Hc, rx0: rx, ry0: ry, dx0: dx, dy0: dy,
+px: po0.x, py: po0.y, psc: po0.sc, prx: po0.rx, pry: po0.ry, prz: po0.rz, ppt: po0.pt };
+}
+var TPS = {};
+function takeSpec(it) {
+var s = it.spec; it.spec = null;
+if (!s || s.k !== KA || s.kd !== KD || s.te !== TE || s.tf !== TF || s.cv !== it.ccv) return null;
+var po = poseInto(it, it.t0, rint(it.t0), TPS);
+if (po.x !== s.px || po.y !== s.py || po.sc !== s.psc || po.rx !== s.prx || po.ry !== s.pry || po.rz !== s.prz || po.pt !== s.ppt) return null;
+G.info.specUsed = (G.info.specUsed || 0) + 1;
+return s;
 }
 function drawPop(ctx, it, age) {
 var T = it.wipeT * 1.1, u = age / T;
@@ -7817,13 +7866,37 @@ prepStep(CFG.WAIT_MS); G.prepAt = now();
 if (G.armed) compressTail(t);
 } else { planStep(Infinity); prepStep(Infinity); }
 }
-function idlePrep(budget) {
+function idlePrep(budget, avail) {
 if (!G || G.prepared || isFinite(G.shockT)) return false;
-if (G.coreReady && G.warmN < CFG.WARM_RUNS) { if (budget < 4) return 'wait'; G.warmGo = true; }
+if (G.coreReady && G.warmN < CFG.WARM_RUNS) { if (!(avail >= 4)) return 'wait'; G.warmGo = true; }
 prepStep(budget);
 return !G.prepared;
 }
 function idleStart() { if (G && !G.prepared && GA.idleWork) GA.idleWork.add(idlePrep); }
+var SPECT = { G: null, list: null, k: 0, t0: NaN, done: false };
+function idleHit(budget) {
+if (SPECT.G !== G) { SPECT.G = G; SPECT.list = null; SPECT.k = 0; SPECT.done = false; }
+if (!G || SPECT.done || !isFinite(G.hitHint)) return false;
+if (isFinite(G.shockT)) { SPECT.done = true; return false; }
+if (!G.prepared || !G.kaSet || !(G.drawT >= G.hitHint - CFG.SPEC_LEAD)) return 'wait';
+if (!SPECT.list) { SPECT.t0 = G.hitHint + 0.04; SPECT.list = dissolveFrom(SPECT.t0, { speed: 1, stagger: CFG.STAGGER, dry: true, spec: true }).part; SPECT.k = 0; return true; }
+var dl = now() + budget, it, keepT0, keepShock;
+while (SPECT.k < SPECT.list.length) {
+it = SPECT.list[SPECT.k++];
+if (!it.dead && isFinite(it.specT0)) {
+keepT0 = it.t0; keepShock = G.shockT; it.t0 = it.specT0; G.shockT = SPECT.t0;
+try { it.spec = buildCache(it); } finally { it.t0 = keepT0; G.shockT = keepShock; }
+}
+if (now() >= dl) break;
+}
+if (SPECT.k >= SPECT.list.length) SPECT.done = true;
+return !SPECT.done;
+}
+function idleSpawn(budget) {
+if (!G || !G.job || G.job.done) return false;
+runJob(G.job, -Infinity, budget);
+return !G.job.done;
+}
 function idleCovers(t) { return !!GA.idleWork && GA.idleWork.active() && !(t > G.tFirst - CFG.IDLE_LEAD); }
 function syncInfo() {
 var i, it, b = [];
@@ -7864,7 +7937,7 @@ if (G.job && !G.job.done && G.job.t !== t) { G.job.t = t; runJob(G.job, t, CFG.S
 if (t < G.tFirst || t >= G.tLast) return;
 update(t);
 var m = ctx.getTransform ? ctx.getTransform() : null, S = GA.stage || {};
-KA = m ? m.a : (S.px || 1); KD = m ? m.d : (S.px || 1); TE = m ? m.e : 0; TF = m ? m.f : ((S.offsetY || 0) * (S.dpr || 1));
+KA = m ? m.a : (S.px || 1); KD = m ? m.d : (S.px || 1); TE = m ? m.e : 0; TF = m ? m.f : ((S.offsetY || 0) * (S.dpr || 1)); G.kaSet = true;
 var ord = G.order, i, it, wantFront = layer === 'front', both = layer !== 'front' && layer !== 'back';
 if (G.sprT !== t) { G.sprT = t; refreshSprites(t); }
 ctx.save();
@@ -7895,7 +7968,7 @@ function rescale() {
 function drop(h) { if (h.cv) { h.cv.width = h.cv.height = 1; } h.cx = null; h.w = 0; }
 drop(SC); drop(WK); SC.need = 0;
 if (!G) return true;
-for (var i = 0; i < G.items.length; i++) { G.items[i].cache = null; G.items[i].sprite = null; if (i === G.items.length - 1) atlasReset(); if (G.items[i].ccv) G.items[i].ccv.width = G.items[i].ccv.height = 1; }
+for (var i = 0; i < G.items.length; i++) { G.items[i].cache = null; G.items[i].spec = null; G.items[i].sprite = null; if (i === G.items.length - 1) atlasReset(); if (G.items[i].ccv) G.items[i].ccv.width = G.items[i].ccv.height = 1; }
 if (G.coreReady) { G.prepared = false; G.warmN = max(G.warmN, CFG.WARM_RUNS); }
 G.lastT = NaN;
 idleStart();
