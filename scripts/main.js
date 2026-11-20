@@ -545,6 +545,76 @@
     }
   }
 
+  /*
+    The plus's paper disc (styles/motion.css, .nav-core::before) keeps it readable over a picture; over text it would hide letters and over
+    paper it is not needed. So .is-over-picture is set on the navigation only while a picture is under the centre of the plus. Cost: one hit
+    test per animation frame while the page scrolls or resizes (the plus's centre is measured only on resize), nothing when idle, and the class
+    is written only when the answer changes.
+  */
+  function initPlusDisc() {
+    var nav = document.querySelector(".nav-object");
+    var core = nav && nav.querySelector(".nav-core");
+    var PICTURE = "img, picture, video, canvas, .work-tile-media, .archive-bar, .about-portrait";
+    var frame = 0;
+    var centre = null;
+    var over = false;
+
+    if (!core || !document.elementsFromPoint) {
+      return;
+    }
+
+    function measure() {
+      var rect = core.getBoundingClientRect();
+
+      centre = rect.width ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null;
+    }
+
+    function update() {
+      var hits;
+      var next = false;
+      var i;
+
+      frame = 0;
+
+      if (!centre) {
+        return;
+      }
+
+      /* the first thing under the plus that is not the navigation or the travelling ball decides */
+      hits = document.elementsFromPoint(centre.x, centre.y);
+
+      for (i = 0; i < hits.length; i += 1) {
+        if (!hits[i].closest(".nav-object, [data-travel-ball]")) {
+          next = Boolean(hits[i].closest(PICTURE));
+          break;
+        }
+      }
+
+      if (next !== over) {
+        over = next;
+        nav.classList.toggle("is-over-picture", over);
+      }
+    }
+
+    function queueUpdate() {
+      if (!frame) {
+        frame = window.requestAnimationFrame(update);
+      }
+    }
+
+    measure();
+    queueUpdate();
+    window.addEventListener("scroll", queueUpdate, { passive: true });
+    window.addEventListener("resize", function () {
+      measure();
+      queueUpdate();
+    }, { passive: true });
+    window.addEventListener("load", function () {
+      measure();
+      queueUpdate();
+    }, { once: true });
+  }
+
   /* A work tile whose picture has not arrived yet shows its empty frame; the picture fades in when it does (no pop-in while scrolling). */
   function initTileImageFade() {
     Array.prototype.forEach.call(document.querySelectorAll(".work-tile img"), function (img) {
@@ -622,6 +692,7 @@
     initViewportEdgeBlur();
     initTileImageFade();
     initImageVignette();
+    initPlusDisc();
     initContactLinks();
     initThemeColour();
   });

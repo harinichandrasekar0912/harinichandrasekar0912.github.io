@@ -21,13 +21,33 @@ html.is-ball-animating {
   padding: 0;
   border: 0;
   border-radius: var(--radius-circle);
-  /* a disc of paper behind the plus: invisible on the page, but it keeps the plus readable when a picture (or the dark edge of one)
-     scrolls under it */
-  background: var(--color-paper);
+  background: transparent;
   cursor: pointer;
   pointer-events: auto;
   overflow: visible;
   transform: translateX(-50%);
+}
+
+/* a disc of paper behind the plus that keeps it readable over a picture (or the dark edge of one). It shows only while a picture is under
+   the plus (.is-over-picture, set by scripts/main.js initPlusDisc): over text it would hide letters, over paper it is not needed */
+.nav-core::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-circle);
+  background: var(--color-paper);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) linear;
+}
+
+.nav-object.is-over-picture .nav-core::before {
+  opacity: 1;
+}
+
+/* the project viewer's close button sits on the dark stage: no disc */
+.nav-object.is-project-close .nav-core::before {
+  opacity: 0;
 }
 
 .nav-core::after {
@@ -331,7 +351,7 @@ html.is-ball-animating {
 
 .nav-object[data-nav-state="plus_restored"] .nav-core {
   opacity: 1;
-  background: var(--color-paper);
+  background: transparent;
   pointer-events: auto;
 }
 
