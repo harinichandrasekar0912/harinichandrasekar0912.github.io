@@ -4753,7 +4753,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     },
     thoughts: function () {
       var W = S.W, H = S.H, c = sc.T.cues, G = sc.geom;
-      if (GA.thoughts) GA.thoughts.build({ W: W, H: H, cx: G.cx, cy: G.cy, rx: G.rx, ry: G.ry, seed: 9, tStart: c.swirlStart, tFull: c.swirlFull, tHit: Infinity, swirl: GA.swirl });
+      if (GA.thoughts) GA.thoughts.build({ W: W, H: H, cx: G.cx, cy: G.cy, rx: G.rx, ry: G.ry, seed: 9, tStart: c.swirlStart, tFull: c.swirlFull, tHit: Infinity, swirl: GA.swirl,
+        hitHint: c.tHit });   // (hint only: the cloud pre-renders its dissolve for the scheduled hit at c.tHit + 0.04 in idle time; the dissolve itself is still triggered below)
     },
     fx: function (g) {
       var W = S.W, H = S.H, c = sc.T.cues, hit = g.hit;
@@ -4777,10 +4778,11 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     var g = null; // measured when the first slice runs (the layout may change while the build waits for the landing to be on screen)
     if (GA.fx) { GA.fx.cubes.reset(); GA.fx.dots.reset(); }
     var names = ['swirl', 'thoughts', 'fx'], i = 0;
+    sc._staging = true;
     (function next() {
       if (!sc.visible) { window.setTimeout(next, 500); return; } // nothing is built while the landing is scrolled out of view (it would only steal frames from whatever the visitor is doing)
       if (!g) g = geometry();
-      if (i >= names.length) { sc.heavyReady = true; sc.fresh = true; if (done) done(); return; }
+      if (i >= names.length) { sc.heavyReady = true; sc.fresh = true; sc._staging = false; if (done) done(); return; }
       var n = names[i++];
       if (n === 'swirl' && GA.swirl && GA.swirl.isReady) { // sliced build: returns at once, the work is done in small idle slices
         safe('swirl.build', function () { STEP.swirl(g, true); });
@@ -4843,6 +4845,12 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     safe('rescale', function () { GA.thoughts.rescale(); GA.swirl.rescale(); if (GA.fx && GA.fx.rescale) GA.fx.rescale(); });
   };
 
+  /** the same reset, built in idle slices (sc.buildHeavyStaged): heavyReady is false until it is done (used at the loop end, on an empty screen) */
+  sc.rebuildModulesStaged = function () {
+    if (GA.fx) { GA.fx.cubes.reset(); GA.fx.dots.reset(); if (GA.fx.ball && GA.fx.ball.reset) GA.fx.ball.reset(); }
+    sc.heavyReady = false;
+    sc.buildHeavyStaged();
+  };
   sc.rebuildModules = function () {
     // reset every module to its pre-start state for the next loop (swirl/thoughts/ball/cubes)
     if (GA.fx) { GA.fx.cubes.reset(); GA.fx.dots.reset(); if (GA.fx.ball && GA.fx.ball.reset) GA.fx.ball.reset(); }
@@ -4926,7 +4934,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       // thoughts/swirl/ball/cubes are finished a few seconds after the hit: hide them until the next loop starts
       if (sc.live && sc.trig.hit && sc.tl >= c.tHit + 4.5) sc.live = false;
       // rebuild the modules while NOTHING is on screen (no visible hitch); they stay hidden (live=false) until the loop wraps
-      if (!sc.trig.rebuilt && sc.tl >= c.rebuild && sc.heavyReady) { sc.trig.rebuilt = true; sc.live = false; sc.rebuildModules(); }
+      // (staged, like at page load: the swirl's ~60-120 ms build is spread over idle slices; nothing of the modules is drawn before the next loop's tDots)
+      if (!sc.trig.rebuilt && sc.tl >= c.rebuild && sc.heavyReady) { sc.trig.rebuilt = true; sc.live = false; sc.rebuildModulesStaged(); }
       if (sc.tl >= c.teleport && !sc.trig.teleported && sc.tl < c.teleport + 0.05) { sc.trig.teleported = true; sc.pose = T.poseAt(sc.tl); resetHair(true); }
       if (sc.tl >= c.loopEnd) {
         sc.tl -= c.loopEnd; sc.trig = { hit: false, rebuilt: false }; sc.live = true;
@@ -5022,8 +5031,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     for (var i = 0; i < n; i++) tick(h);
   };
   /** deterministic test driver: advance (from the current state) until loop-local time tl >= t */
-  sc.advanceTo = function (t) { if (!sc.heavyReady) sc.buildHeavy(); var n = 0; while (sc.tl < t && n < 200000) { tick(DT); n++; } };
-  sc.advanceBy = function (s) { if (!sc.heavyReady) sc.buildHeavy(); var n = Math.round(s / DT); for (var i = 0; i < n; i++) tick(DT); };
+  sc.advanceTo = function (t) { if (!sc.heavyReady && !sc._staging) sc.buildHeavy(); var n = 0; while (sc.tl < t && n < 200000) { tick(DT); n++; } };
+  sc.advanceBy = function (s) { if (!sc.heavyReady && !sc._staging) sc.buildHeavy(); var n = Math.round(s / DT); for (var i = 0; i < n; i++) tick(DT); };
 
   // ---------------------------------------------------------------- interaction
   sc.setNavOpen = function (open) { sc.navOpen = !!open; };
