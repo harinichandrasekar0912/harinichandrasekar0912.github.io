@@ -5724,6 +5724,50 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
 })();
 
 
+/* ===== idle.js ===== */
+/* GA.idleWork  -  the thought cloud's one-off background work (orbit planning, ink analysis, JIT warm-up trials) runs in the browser's IDLE time between
+   frames instead of inside requestAnimationFrame: a 144 Hz frame has 6.9 ms for everything, and the girl + the cloud already use a good part of it.
+     GA.idleWork.add(task)   task(budgetMs) -> true while it has more to do (it works about budgetMs, a little longer at most); it is called again in the
+                             next idle periods until it returns false.  Every task is a slicing-independent computation (the modules' results never depend
+                             on how their work is cut up), so moving it from the frames into idle time changes no pixel.
+     GA.idleWork.active()    true while the runner makes progress (an idle slice ran in the last 150 ms): the modules then leave out their in-frame slices
+                             until a deadline is close, and keep them as the safety net (a starving runner never delays anything).
+   Slices: requestIdleCallback; a slice = what the browser says is idle minus 0.4 ms, at most 3 ms (input stays responsive).  Without requestIdleCallback
+   (Safari): 2 ms setTimeout slices. */
+(function () {
+  'use strict';
+  var GA = (window.__landingGirl = window.__landingGirl || {});
+  if (GA.idleWork) return;
+  var tasks = [], armed = false, last = -1e9, CAP = 3, MARGIN = 0.4, SLICE_BUSY = 1.5, SLICE_NO_RIC = 2;
+  var ric = typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback.bind(window) : null;
+  function now() { return typeof performance !== 'undefined' ? performance.now() : Date.now(); }
+  function arm() {
+    if (armed || !tasks.length) return;
+    armed = true;
+    if (ric) ric(run, { timeout: 250 }); else setTimeout(run, 6);
+  }
+  function run(dl) {
+    armed = false;
+    var t0 = now(), k = 0, r, left, fixed = !dl || typeof dl.timeRemaining !== 'function' || dl.didTimeout;   // (fixed: no deadline / the page is busy: one short slice)
+    while (k < tasks.length) {
+      left = fixed ? (ric ? SLICE_BUSY : SLICE_NO_RIC) - (now() - t0) : dl.timeRemaining() - MARGIN;
+      if (left > CAP) left = CAP;
+      if (left < 0.5) break;
+      try { r = tasks[k](left); } catch (e) { r = false; }
+      if (r === 'wait') { k++; continue; }          // (its next piece of work is longer than this slice: it waits for a longer idle period; the next task may run)
+      last = now();
+      if (r !== true) tasks.splice(k, 1);
+      if (fixed) break;
+    }
+    arm();
+  }
+  GA.idleWork = {
+    add: function (task) { if (tasks.indexOf(task) < 0) tasks.push(task); last = now(); arm(); },
+    active: function () { return tasks.length > 0 && now() - last < 150; },
+  };
+})();
+
+
 /* ===== swirl.js ===== */
 /* ============================================================================================================================
    GA.swirl  -  thought dots + the flowing "vortex" of ribbon lines around the girl   (SPEC 4.2)
@@ -7242,6 +7286,15 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     return G.warm < WARM_N;
   }
 
+  /** PERF: the warm-up trials in idle time (GA.idleWork) instead of one per frame in draw(): a trial is one ~3-6 ms piece of work, so it waits for an idle
+      period of >= 4 ms (draw() still runs the ones that are left from tStart + 0.6 on, as before).  Trials leave no trace (rolled back). */
+  function idleWarm(budget) {
+    if (!G || !G.ready || D || G.warm >= WARM_N) return false;
+    if (budget < 4) return 'wait';
+    warmStep(budget);
+    return G.warm < WARM_N;
+  }
+
   function makeD(t0, speed, stagger, dry) {   // one constructor for real and trial dissolves: same hidden class => the optimised code never deoptimises
     return { t0: t0, speed: speed, stagger: stagger, lastDeath: t0, tLines: t0, tEnd: t0, dry: dry, info: { cubes: 0, dots: 0, lines: 0, lastDeath: 0 },
       jobs: null, ji: 0, cubePerW: 0, dotPerW: 0, K08: 1, cubeAPI: null, dotAPI: null, sub: 1, lastT: -1e9 };
@@ -7342,6 +7395,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     build: function (o) {
       build(o, !!(o && o.sliced));
       if (G.ready) afterBuild(true);
+      if (GA.idleWork) GA.idleWork.add(idleWarm);
     },
     isReady: function () { return !!(G && G.ready); },
     draw: draw, track: track, intensity: intensity,
@@ -7503,6 +7557,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     BURSTS: 16,          // fireworks: one-shot bursts at seeded polar positions at the BEAT.fw / fwExtra times (see below); caps their number
     MIN_POP_GAP: 0.30,   // pops are never closer than this (at most two entrance wipes at a time)
     WAIT_MS: 8,          // while the first pop waits for the preparation, each frame spends this long on it
+    IDLE_LEAD: 1.5,      // while GA.idleWork does the preparation in idle time the frames do none of it, until this long (s) before the first pop (then: PREP_MS slices again)
     WAIT_DT: 0.25,       // a frame step larger than this is a seek / jump: the preparation is completed synchronously instead of waiting
     FRONT_Z: 0.12,       // sin(orbit angle) above which an item is in front of the girl ('front' layer)
     PERSP: 0.12,         // near items are drawn this much bigger (far ones smaller)
@@ -8762,6 +8817,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       G.info.cubes = r.cubes; G.info.dots = r.dots; G.info.lastDeath = r.lastDeath;
     }
     G.info.buildMs = Math.round(now() - t00);
+    idleStart();
   }
 
   // ------------------------------------------------------------------------------------------------ drawing
@@ -9048,13 +9104,25 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   function frameLogic(t) {
     var dtf = t - G.drawT, tn = now(); G.drawT = t;
     if (G.armed || isFinite(G.shockT)) { if (!G.prepared && tn - G.prepAt > 6) { prepStep(CFG.PREP_MS); G.prepAt = now(); } return; }
-    if (t < G.tFirst) { if (tn - G.prepAt > 6) { prepStep(t > G.tFirst - 0.3 ? CFG.WAIT_MS : CFG.PREP_MS); G.prepAt = now(); } return; }
+    if (t < G.tFirst) { if (tn - G.prepAt > 6 && !idleCovers(t)) { prepStep(t > G.tFirst - 0.3 ? CFG.WAIT_MS : CFG.PREP_MS); G.prepAt = now(); } return; }
     if (dtf > 0 && dtf <= CFG.WAIT_DT) {                    // the first pop is due and the cast is not ready: wait
       setDelay(G.delay + (t - G.tFirst)); G.waited += dtf;
       prepStep(CFG.WAIT_MS); G.prepAt = now();
       if (G.armed) compressTail(t);
     } else { planStep(Infinity); prepStep(Infinity); }
   }
+  /** PERF: the preparation runs in idle time between the frames (GA.idleWork, see idle.js): the same prepStep() slices, so the result is the same; a dry
+      dissolve (one ~4-6 ms piece of work) only in an idle period of >= 4 ms.  It stops for good once everything is ready, or as soon as a real dissolve
+      exists (the frames then keep their old path). */
+  function idlePrep(budget) {
+    if (!G || G.prepared || isFinite(G.shockT)) return false;
+    if (G.coreReady && G.warmN < CFG.WARM_RUNS) { if (budget < 4) return 'wait'; G.warmGo = true; }
+    prepStep(budget);
+    return !G.prepared;
+  }
+  function idleStart() { if (G && !G.prepared && GA.idleWork) GA.idleWork.add(idlePrep); }
+  /** the idle runner is doing the preparation and the first pop is not close yet (scene time t): the frames leave their preparation slices out */
+  function idleCovers(t) { return !!GA.idleWork && GA.idleWork.active() && !(t > G.tFirst - CFG.IDLE_LEAD); }
   /** info.spawn / info.beats follow the real pop times (after a wait for the preparation or a tail compression).  beats = the SYNC POINTS for the girl's performance:
       {kind: 'hero' | 'bulb' | 'firework', name, t: loop seconds, k: seconds after turnFront1 (= t - info.acts.turnFront1), sync: a scripted beat (the extra bursts are not)} */
   function syncInfo() {
@@ -9136,6 +9204,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     for (var i = 0; i < G.items.length; i++) { G.items[i].cache = null; G.items[i].sprite = null; if (i === G.items.length - 1) atlasReset(); if (G.items[i].ccv) G.items[i].ccv.width = G.items[i].ccv.height = 1; }
     if (G.coreReady) { G.prepared = false; G.warmN = max(G.warmN, CFG.WARM_RUNS); }      // (the next prepare() slice re-allocates the scratch canvas)
     G.lastT = NaN;
+    idleStart();
     return true;
   }
 
@@ -9251,7 +9320,11 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     build: build,
     testBounds: testBounds,
     draw: draw,
-    prepare: function (budgetMs) { return prepStep(budgetMs === undefined ? CFG.PREP_MS : budgetMs); },
+    prepare: function (budgetMs) {          // (a finite budget while the idle runner covers the preparation: nothing to do in this frame)
+      var b = budgetMs === undefined ? CFG.PREP_MS : budgetMs;
+      if (b !== Infinity && G && !G.prepared && !isFinite(G.shockT) && idleCovers(G.drawT)) return false;
+      return prepStep(b);
+    },
     isReady: function () { return !G || G.prepared; },
     isCoreReady: function () { return !G || G.coreReady || G.prepared; },
     warmGPU: warmGPU,
