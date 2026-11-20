@@ -6096,8 +6096,19 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
 
   /** the vortex envelope: soft world-space fade of the width from 0.80 of the envelope ellipse, gone at 1.03, positions squeezed so that NOTHING ever leaves the ellipse */
   var TURB_A = 15, KX = TAU / 820, KY = TAU / 700, K2 = TAU / 560 * 0.7071, K3 = TAU / 640 * 0.7071;
-  /** fill X,Y,Wd,F for the whole line at (clamped) time te */
-  function evalLine(L, te, g) {
+  /** fill X,Y,Wd,F for the whole line at (clamped) time te.
+      lazy (the per-frame update): only what the frame draws.  A line that is not born yet (growth 0) is skipped (nothing reads it), a growing one is
+      evaluated up to its drawing head (index i + 1, the vertex the head interpolates to) instead of all n vertices; beyond it only the positions are
+      followed until the first vertex inside the visible box, because drawRuns' range (iA - 3 .. min(iEnd, iB + 3)) depends on whether one exists:
+      iA / iB are then set so that this range is exactly the one the full evaluation gives.  Everything that is drawn is bit-identical. */
+  function evalLine(L, te, g, lazy) {
+    var hs = growth(L, te), lim = L.n - 1, iE = L.n - 1;
+    if (lazy && hs < 1) {
+      if (hs <= 0) { L.hs = hs; return; }
+      var jh0 = hs * (L.n - 1), i0 = Math.floor(jh0), fr0 = jh0 - i0;
+      if (i0 >= L.n - 1) { i0 = L.n - 2; fr0 = 1; }
+      lim = i0 + 1; iE = fr0 > 0.002 ? i0 + 1 : i0;              // (= the iEnd of the head code below)
+    }
     var P = G.P, n = L.n, W0 = -L.omega * g.R, rwA = L.rw, rigid = L.rigid, cr = 1, sr = 0;
     if (rigid) { var an0 = W0 * rwA[0]; cr = Math.cos(an0); sr = Math.sin(an0); }
     var wu = L.uOm * te, cu = Math.cos(wu), su = Math.sin(wu);
@@ -6129,6 +6140,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     var inv = n > 1 ? 1 / (n - 1) : 0;
     for (var j = 0; j < n; j++) {
+      if (j > lim && iA >= 0 && iB + 3 >= iE) break;                // (lazy: the drawn range already ends at the head, whatever lies beyond)
       if (!rigid) { var an = W0 * rwA[j]; cr = Math.cos(an); sr = Math.sin(an); }
       var u0 = C[j] * cr - S[j] * sr, v0 = C[j] * sr + S[j] * cr;
       var sn = v0 * iR[j], k = 1 + (uS[j] * cu - uC[j] * su) + kpul, pf = 1 + PERSP * sn;
@@ -6155,6 +6167,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         if (qq >= 1.04) ef = 0; else if (qq <= 0.91) ef = 1; else { var fe = (qq - 0.91) / 0.13; ef = 1 - fe * fe * (3 - 2 * fe); }
         if (qq > 0.96) { var dd = (qq - 0.96) / 0.04, q3 = 0.96 + 0.04 * dd / (1 + dd), sc2 = q3 / qq; x = ecx + (x - ecx) * sc2; y = ecy + (y - ecy) * sc2; }
       }
+      if (j > lim) {                                                // (lazy, beyond the head: the first visible vertex is all that matters)
+        if (x > x0 && x < x1 && y > y0 && y < y1 && (!fk || (fh > 0 && j * inv >= fa - 0.02 && j * inv <= fb + 0.02))) { if (iA < 0) iA = j; iB = j; break; }
+        continue;
+      }
       // 'front' = the near half of the vortex, EXCEPT inside the girl's exclusion box: there everything passes BEHIND her, so no pale stroke / halo can ever
       // slice her shins, feet, face, hands (a front stroke over the black silhouette can only show up as a hard pale cut)
       X[j] = x; Y[j] = y; F[j] = (sn > 0 && !(x > gx0 && x < gx1 && y > gy0 && y < gy1)) ? 1 : 0;
@@ -6179,7 +6195,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     }
     L.iA = iA; L.iB = iB;
     // growth head (fractional) ------------------------------------------------------
-    var hs = growth(L, te); L.hs = hs;
+    L.hs = hs;
     if (hs >= 1) { L.iEnd = n - 1; }
     else {
       var jh = hs * (n - 1), i = Math.floor(jh), fr = jh - i;
@@ -7178,7 +7194,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     lastT = t;
     var i, ft = freezeT(), te = Math.min(t, ft), g = gstate(t, G.g);
     if (t < ft) {
-      for (i = 0; i < G.lines.length; i++) evalLine(G.lines[i], te, g);
+      for (i = 0; i < G.lines.length; i++) evalLine(G.lines[i], te, g, true);
       for (i = 0; i < G.acc.length; i++) accentPos(G.acc[i], te, g, G.accPos[i]);
     }
   }
