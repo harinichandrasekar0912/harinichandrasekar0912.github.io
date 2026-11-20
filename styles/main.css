@@ -377,6 +377,27 @@ textarea:focus-visible {
   );
 }
 
+/* a light picture (scripts/main.js isLightPicture) fades to paper instead: black on a pale placeholder read as a heavy dark band */
+.is-light-picture > .edge-vignette-top {
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--color-paper-rgb) / 0.9) 0%,
+    rgb(var(--color-paper-rgb) / 0.72) 30%,
+    rgb(var(--color-paper-rgb) / 0.3) 66%,
+    rgb(var(--color-paper-rgb) / 0) 100%
+  );
+}
+
+.is-light-picture > .edge-vignette-bottom {
+  background: linear-gradient(
+    to top,
+    rgb(var(--color-paper-rgb) / 0.9) 0%,
+    rgb(var(--color-paper-rgb) / 0.72) 30%,
+    rgb(var(--color-paper-rgb) / 0.3) 66%,
+    rgb(var(--color-paper-rgb) / 0) 100%
+  );
+}
+
 body.is-scroll-middle .viewport-edge-blur {
   opacity: 1;
 }

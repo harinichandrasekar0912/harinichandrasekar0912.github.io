@@ -440,6 +440,37 @@
     and moved by a transform so that it stays pinned to the edge of the screen (full black at the edge, clear at the end of the zone) while the
     picture scrolls through it. Only a transform changes while scrolling, nothing is repainted; the rest of the page keeps the paper-coloured fade.
   */
+  /* true for a picture whose average brightness is above 0.7 (0 black, 1 white): the archive placeholders are about 0.95, the photographs
+     0.14 to 0.5. A picture that cannot be read counts as dark, which keeps the black fade it always had */
+  function isLightPicture(img) {
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext && canvas.getContext("2d", { willReadFrequently: true });
+    var data;
+    var sum = 0;
+    var i;
+
+    if (!context) {
+      return false;
+    }
+
+    canvas.width = 16;
+    canvas.height = 16;
+
+    try {
+      context.drawImage(img, 0, 0, 16, 16);
+      data = context.getImageData(0, 0, 16, 16).data;
+    } catch (error) {
+      return false;
+    }
+
+    for (i = 0; i < data.length; i += 4) {
+      /* a transparent pixel shows the paper behind it */
+      sum += ((0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) * data[i + 3] + 247 * (255 - data[i + 3])) / 255;
+    }
+
+    return sum / (data.length / 4) / 255 > 0.7;
+  }
+
   function initImageVignette() {
     var holders = Array.prototype.slice.call(document.querySelectorAll(".work-tile-media, .archive-bar, .about-portrait"));
     var topEdge = document.querySelector(".viewport-edge-blur-top");
@@ -464,6 +495,26 @@
       holder.appendChild(bottom);
 
       return { top: top, bottom: bottom };
+    });
+
+    /* a light picture (the archive placeholders, a pale drawing) fades to paper at the screen edge, like the page around it; only darker
+       pictures fade to black. Its brightness is read once from a 16 x 16 copy when it has arrived (and again if a different size of it loads) */
+    holders.forEach(function (holder) {
+      var img = holder.querySelector("img");
+
+      function judge() {
+        holder.classList.toggle("is-light-picture", isLightPicture(img));
+      }
+
+      if (!img) {
+        return;
+      }
+
+      if (img.complete && img.naturalWidth > 0) {
+        judge();
+      }
+
+      img.addEventListener("load", judge);
     });
 
     function measureEdges() {
