@@ -2154,7 +2154,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         // the free foot never slides: when the weight changes legs it moves in a short window as a small LIFTED step (the lift follows how fast it travels)
         var swc = sin(TAU * t / C.femPeriod + 1.2), th2 = Math.tanh(2.2 * swc), dwc = (1 - th2 * th2) * 2.2 * cos(TAU * t / C.femPeriod + 1.2) * TAU / C.femPeriod;
         var xw = (-side * th2 - fE0) / (fE1 - fE0), dsw = xw > 0 && xw < 1 ? 6 * xw * (1 - xw) / (fE1 - fE0) : 0, spd = abs(femKF * dsw * side * dwc) * C.femFoot[0];
-        z += min(14, 1.1 * spd);
+        var swA = xw > 0 && xw < 1 ? sin(PI * xw) : 0; z += min(14, 2.5 * spd) * swA * swA;          /* (an arch over the step: the plain min(14, 1.1 x speed) jumped to 14 u within ~0.03 s of the window opening - the speed rises that fast - and held there: an ankle flick at every weight change) */
         if (P.settle > 0) z += 12 * fwin * sin(PI * idleA);          // (round 12: arriving from the walk the free foot steps out into the stance as a small lifted step, not a slide)
       }
       var heelUp = max(0.85 * unw, side < 0 ? sstep(0, 1, e1s) : 0);          // the unloaded foot / E1's free foot: the heel rises ON THE BALL of the foot, along the turned-out foot (it used to lift the ankle and tip the foot: the ball sank ~3 u and slid 3-8 u, and E1 left the foot hovering 4-8 u up)
