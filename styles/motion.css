@@ -1242,6 +1242,13 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   grid-template-columns: minmax(260px, 1fr) var(--fw);
 }
 
+/* a project that opened from the right: every board after the first stops a small margin short of the right edge of the screen, so
+   its rounded corners are never cut by it (a project that opened from the left gets the same margin on the left from stepPanel in
+   scripts/project-viewer.js) */
+.project-viewer[data-project-mode="horizontal"][data-project-side="right"] .project-panel:not(.project-panel-intro) {
+  padding-right: clamp(16px, 2.4vw, 40px);
+}
+
 .project-viewer[data-project-side="left"] .project-hero-frame,
 .project-panel-image.is-initial-left-edge {
   border-radius: 0 var(--image-radius) var(--image-radius) 0;
