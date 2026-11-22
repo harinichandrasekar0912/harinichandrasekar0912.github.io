@@ -1,4 +1,4 @@
-/* scripts/project-viewer.js (source 32999743d1acd5b8), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/project-viewer.js (source 7ddbff306f789d3c), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 var SCRIPT_DIR = (document.currentScript && document.currentScript.src ? document.currentScript.src.replace(/[^\/]*$/, "") : "") || "scripts/";
 function clamp(value, min, max) {
@@ -294,7 +294,7 @@ var bottomUiZone = stacked ? clamp(vh * 0.14, 104, 150) : clamp(vh * 0.16, 120, 
 var maxFocusHeight = Math.max(240, vh - topBuffer - bottomUiZone);
 var mobileFocusWidth = Math.min(vw * 0.9, 520);
 var focusHeight = stacked ? Math.min(mobileFocusWidth, maxFocusHeight, 520) : maxFocusHeight;
-var focusWidth = stacked ? mobileFocusWidth : Math.min(vw * 0.54, focusHeight * 1.25, 780);
+var focusWidth = stacked ? mobileFocusWidth : Math.min(vw * 0.54, focusHeight * 1.25, 960);
 var panelPeek = stacked || side === "right" ? 0 : clamp(vw * 0.16, 72, 220);
 var panelWidth = stacked ? vw : vw - panelPeek;
 var focusLeft = stacked ? (vw - focusWidth) / 2 : side === "right" ? vw - focusWidth : 0;

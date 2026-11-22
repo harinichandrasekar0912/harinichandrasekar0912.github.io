@@ -1313,6 +1313,21 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   margin-inline: 0;
 }
 
+/* the text is centred in the space beside its picture, but never more than 8rem away from it: on a 2560px screen it floated ~570px
+   off, in the middle of nowhere. (The margin is what centring gives - half of what the column leaves, its own width being 26rem or the
+   column less clamp(2rem, 8vw, 7rem) - capped at 8rem; up to ~1900px wide nothing moves.) */
+.project-viewer[data-project-mode="horizontal"] .project-panel-copy {
+  --copy-gap: min(max(calc(clamp(2rem, 8vw, 7rem) / 2), calc((100% - 26rem) / 2)), 8rem);
+  justify-self: start;
+  margin-left: var(--copy-gap);
+}
+
+.project-viewer[data-project-mode="horizontal"][data-project-side="right"] .project-panel-copy {
+  justify-self: end;
+  margin-left: 0;
+  margin-right: var(--copy-gap);
+}
+
 .project-step {
   margin: 0 0 var(--space-4);
   color: var(--project-text-soft);

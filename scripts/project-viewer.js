@@ -389,7 +389,8 @@
       var maxFocusHeight = Math.max(240, vh - topBuffer - bottomUiZone);
       var mobileFocusWidth = Math.min(vw * 0.9, 520);
       var focusHeight = stacked ? Math.min(mobileFocusWidth, maxFocusHeight, 520) : maxFocusHeight;
-      var focusWidth = stacked ? mobileFocusWidth : Math.min(vw * 0.54, focusHeight * 1.25, 780);
+      /* at most 960px: as wide as the widest work tile, so on a big screen the picture never shrinks as it opens (it was capped at 780) */
+      var focusWidth = stacked ? mobileFocusWidth : Math.min(vw * 0.54, focusHeight * 1.25, 960);
       var panelPeek = stacked || side === "right" ? 0 : clamp(vw * 0.16, 72, 220);
       var panelWidth = stacked ? vw : vw - panelPeek;
       var focusLeft = stacked ? (vw - focusWidth) / 2 : side === "right" ? vw - focusWidth : 0;
