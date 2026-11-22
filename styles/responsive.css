@@ -292,20 +292,22 @@
     margin-right: 0;
   }
 
+  /* the longest bar starts at the page margin, level with the text above it (at 99vw it stopped 4px short of the screen edge, which
+     read as a mistake); the others step in from there */
   .archive-bar-long {
-    --bar-width: 99vw;
+    --bar-width: calc(100vw - var(--page-x));
   }
 
   .archive-bar-medium {
-    --bar-width: 94vw;
+    --bar-width: 87vw;
   }
 
   .archive-bar-midshort {
-    --bar-width: 88vw;
+    --bar-width: 80vw;
   }
 
   .archive-bar-short {
-    --bar-width: 78vw;
+    --bar-width: 71vw;
   }
 
   /* the close button (the x) sits at the bottom of the screen: the story fades into the dark under it, so no line of text is ever read through it */
