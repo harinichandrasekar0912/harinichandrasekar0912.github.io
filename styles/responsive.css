@@ -350,8 +350,12 @@
     padding: var(--intro-top, clamp(5rem, 14vh, 7rem)) 0 clamp(7.5rem, 20vh, 10rem);
   }
 
+  /* when fitIntro makes the first picture narrower than the column, it keeps to the column's left edge, like the text under it */
   .project-viewer[data-project-mode="stacked"] .project-panel-intro .project-panel-image {
+    justify-self: start;
     width: var(--intro-size, min(90vw, 520px));
+    margin-left: calc((100vw - min(90vw, 520px)) / 2);
+    margin-right: 0;
   }
 
   .project-viewer[data-project-mode="stacked"] .project-panel {
@@ -380,17 +384,14 @@
     border-radius: var(--image-radius);
   }
 
+  /* the text sets off from the left edge of the picture above it, at the picture's width (each paragraph keeps its 26rem measure):
+     centred, a story of eight to ten lines had a ragged edge on both sides and no line to read down */
   .project-viewer[data-project-mode="stacked"] .project-panel-copy {
     order: 0;
     justify-self: center;
-    width: min(88vw, 26rem);
+    width: min(90vw, 520px);
     margin-inline: auto;
-    text-align: center;
-  }
-
-  /* the heading's box is narrower than the column (max-width 14em): centred as a box too, or its centred text sits left of the rest */
-  .project-viewer[data-project-mode="stacked"] .project-panel h3 {
-    margin-inline: auto;
+    text-align: left;
   }
 
   .project-progress {
