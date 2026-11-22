@@ -131,6 +131,7 @@
   font-size: var(--text-xs);
   font-weight: var(--weight-regular);
   line-height: 1.55;
+  text-wrap: balance;
 }
 
 /* the opening line of the project's summary (prose, so in sentence case like the about text); shown by cantilever and index, not the sheet */
@@ -141,6 +142,8 @@
   font-weight: var(--weight-regular);
   line-height: var(--leading-body);
   text-transform: none;
+  /* two lines of even length, never one word left on a line of its own ("means?", "for?") */
+  text-wrap: balance;
 }
 
 .work-year {
