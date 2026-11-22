@@ -821,16 +821,31 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   border-color: var(--color-line);
 }
 
+/* "go" fills with ink under the pointer or keyboard focus */
 .submit-button:hover,
 .submit-button:focus-visible {
-  background: var(--color-line);
-  color: var(--color-ink);
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-paper);
 }
 
+/* a link circle answers by drawing its ring and letters in ink (it used to fade out, as if it were going away); one waiting for its
+   address does not answer the pointer */
 .contact-links a:hover,
 .contact-links a:focus-visible {
-  opacity: 0.58;
   text-decoration: none;
+}
+
+.contact-icon-placeholder {
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.contact-links a:not(.is-unset):hover .contact-icon-placeholder,
+.contact-links a:focus-visible .contact-icon-placeholder {
+  border-color: var(--color-line-strong);
+  color: var(--color-ink);
 }
 
 .nav-core,

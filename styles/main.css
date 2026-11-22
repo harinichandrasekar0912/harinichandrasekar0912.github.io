@@ -809,6 +809,11 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
   line-height: var(--leading-tight, 1.2);
 }
 
+/* the placeholder drawing is already drawn in paper and ink: greyed, its warm paper turned a cold grey against the page */
+.archive-bar img[src*="placeholder"] {
+  filter: none;
+}
+
 /* light text is for real (dark) pictures; on the pale placeholder drawing it would vanish, so it is ink there */
 .archive-bar:has(img[src*="placeholder"]) .archive-bar-meta {
   color: var(--color-ink-soft);
@@ -941,10 +946,11 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
   min-width: 4.25rem;
   margin-top: var(--space-2);
   padding: 0.65rem 1.15rem;
-  border: 0;
+  /* drawn like the link circles under it (one hairline, no fill): a filled grey pill read as a disabled button */
+  border: var(--hairline) solid var(--color-line-strong);
   border-radius: var(--radius-round);
-  background: var(--color-line-soft);
-  color: var(--color-ink-soft);
+  background: transparent;
+  color: var(--color-ink);
   font-size: var(--text-xs);
   text-transform: lowercase;
   cursor: pointer;
