@@ -1,4 +1,4 @@
-/* scripts/project-viewer.js (source 730f1143166bd9a9), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/project-viewer.js (source 32999743d1acd5b8), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 var SCRIPT_DIR = (document.currentScript && document.currentScript.src ? document.currentScript.src.replace(/[^\/]*$/, "") : "") || "scripts/";
 function clamp(value, min, max) {
@@ -600,16 +600,12 @@ track.classList.remove("is-dragging");
 }, 120);
 }
 }
-function panelTarget(panels, index) {
-var margin = viewer.dataset.projectSide === "right" ? 0 : clamp(viewportWidth * 0.024, 16, 40);
-return index === 0 ? 0 : clamp(panels[index].offsetLeft - margin, 0, maxShift);
-}
 function stepPanel(direction) {
 var panels = track.children;
 var target = currentShift;
 var index;
 for (index = 0; index < panels.length; index += 1) {
-var left = panelTarget(panels, index);
+var left = panels[index].offsetLeft;
 if (direction > 0 && left > currentShift + 8) {
 target = left;
 break;

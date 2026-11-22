@@ -787,25 +787,15 @@
       }
     }
 
-    /*
-      The arrow keys move panel by panel: the shift that puts the next (or the previous) panel at the left edge. The first frame hangs
-      from the screen edge; in a project that opened from the left every later board stops a small margin short of that edge, so its
-      rounded corners are never cut by the screen (the margin shows the empty end of the text column before it). A project that opened
-      from the right gets the same margin on the right from its panels' own padding (styles/motion.css).
-    */
-    function panelTarget(panels, index) {
-      var margin = viewer.dataset.projectSide === "right" ? 0 : clamp(viewportWidth * 0.024, 16, 40);
-
-      return index === 0 ? 0 : clamp(panels[index].offsetLeft - margin, 0, maxShift);
-    }
-
+    /* the arrow keys move panel by panel: the shift that puts the next (or the previous) panel at the left edge (a board after the first
+       keeps a small margin from the screen edge: its panel's padding, styles/motion.css) */
     function stepPanel(direction) {
       var panels = track.children;
       var target = currentShift;
       var index;
 
       for (index = 0; index < panels.length; index += 1) {
-        var left = panelTarget(panels, index);
+        var left = panels[index].offsetLeft;
 
         if (direction > 0 && left > currentShift + 8) {
           target = left;

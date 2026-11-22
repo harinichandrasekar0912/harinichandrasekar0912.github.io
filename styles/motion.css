@@ -1230,13 +1230,27 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   very wide drawings (.is-wide) get a frame wider than the screen that the story pans across.
 */
 .project-panel:not(.project-panel-intro) {
-  --board-max-width: min(66vw, 1240px);
+  /* the margin between a board and the screen edge it would otherwise touch (see the padding below) */
+  --board-gutter: clamp(16px, 2.4vw, 40px);
+  /* never so wide that the board, its text column and the margin are wider than the screen (at 768px the board ran 27px off it) */
+  --board-max-width: min(66vw, 1240px, calc(100vw - var(--copy-col) - var(--board-gutter)));
   --fw: min(calc(var(--focus-height) * var(--ratio, 1.143)), var(--board-max-width));
   --fh: calc(var(--fw) / var(--ratio, 1.143));
   --copy-col: clamp(18rem, 30vw, 32rem);
-  flex-basis: max(var(--panel-width), calc(var(--fw) + var(--copy-col)));
-  width: max(var(--panel-width), calc(var(--fw) + var(--copy-col)));
+  flex-basis: max(var(--panel-width), calc(var(--fw) + var(--copy-col) + var(--board-gutter)));
+  width: max(var(--panel-width), calc(var(--fw) + var(--copy-col) + var(--board-gutter)));
   grid-template-columns: var(--fw) minmax(260px, 1fr);
+}
+
+/* only the first frame hangs from the screen edge: every later board, where the arrow keys stop it, keeps a small margin from that
+   edge (the left edge, or the right one in a project that opened from the right), so its rounded corners are never cut by the screen */
+.project-viewer[data-project-mode="horizontal"] .project-panel:not(.project-panel-intro) {
+  padding-left: var(--board-gutter);
+}
+
+.project-viewer[data-project-mode="horizontal"][data-project-side="right"] .project-panel:not(.project-panel-intro) {
+  padding-right: var(--board-gutter);
+  padding-left: 0;
 }
 
 .project-panel.is-wide:not(.project-panel-intro) {
@@ -1255,13 +1269,6 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
 
 .project-viewer[data-project-side="right"] .project-panel:not(.project-panel-intro) {
   grid-template-columns: minmax(260px, 1fr) var(--fw);
-}
-
-/* a project that opened from the right: every board after the first stops a small margin short of the right edge of the screen, so
-   its rounded corners are never cut by it (a project that opened from the left gets the same margin on the left from stepPanel in
-   scripts/project-viewer.js) */
-.project-viewer[data-project-mode="horizontal"][data-project-side="right"] .project-panel:not(.project-panel-intro) {
-  padding-right: clamp(16px, 2.4vw, 40px);
 }
 
 .project-viewer[data-project-side="left"] .project-hero-frame,
