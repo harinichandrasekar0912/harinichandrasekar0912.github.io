@@ -4387,7 +4387,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
           p.headPitch = U.lerp(p.headPitch, -0.1 * env, kS);
         }
         // sheepish shrug ('oops... well.'): shoulders up, palms out, head cocked; the turn away blends it out
-        var shr = bump(t, SH1 - 0.1, SH1 + 0.22, c.turnLeft0 + 0.15, c.turnLeft0 + 0.55);
+        var shr = bump(t, SH1 - 0.1, SH1 + 0.22, c.turnLeft0 + 0.02, c.turnLeft0 + 0.4);          // (the arms come down as her head leads the turn: held into the turn, the upturned forearms swung round into profile - one jutting forward with an open hand, the other up behind her back)
         p.shrug = Math.max(p.shrug, shr); p.headRoll = U.lerp(p.headRoll, 0.3, shr); p.headPitch = U.lerp(p.headPitch, -0.12, shr); p.headYaw = U.lerp(p.headYaw, 0.15, 0.8 * shr);
 
         if (t >= c.turnLeft0) {
