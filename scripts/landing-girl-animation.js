@@ -1831,11 +1831,11 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     runKeyed: false, runLegK: 0, runArmK: 0, runShoulderBack: 0, runShoulderFwd: 0, runPelvisPitch: -6, runCrownK: 0, runWaistK: 0, runNeckK: 0,                                           // limbs are a bit longer in the traced run drawing
     runArmA: [52, 95], runArmB: [-40, 72],                                  // (old pumping run arms: unused since the Jack run)
     // JACK RUN (the '+' dash: an elegant, cute, girly Captain Jack Sparrow run; see the runJack block of girl_a_tuned.js). All of it is weighted by gait.run.
-    //   jUp / jFore [swing mean, amplitude, phase, elevation mean, amplitude, phase] (deg) of the upper arm / forearm: a loose flap once per gait cycle, the two arms half a cycle apart;
-    //   jWrist [droop mean, droop amplitude, phase deg, flutter]: the limp hand hangs from the wrist toward the floor by this fraction and flaps after the forearm;
+    //   jUp [swing mean, amplitude, abduction (deg), lag (cycles)]: the upper arm swings fore / aft in opposition to the legs, close to the body;
+    //   jFore [elbow bend at the back of the swing, extra bend toward the front (deg), (unused), lag (cycles)]; jHand: how far the relaxed hands close further (fist loft weight; 0 = her own relaxed walking hand, already a soft closed mitt, and no extra loft blending per frame);
     //   jTwist [mean, amplitude, lag]: the chest opens toward the viewer (twist units, 52 deg each) and sways with the arms; jRock [deg, lag] torso rock per step; jRoll [deg, lag] side sway per cycle;
     //   jHead [yaw, roll amplitude, nod amplitude, lag]; jHem: the hem bounces with every step; jLoft: weight of the traced scurry lofts (0 = her own walking shapes)
-    jRun: 1, jUp: [10, 24, 70, -10, 14, 0], jFore: [30, 24, 20, 55, 20, -40], jFlutter: 6, jArmLag: 0.08, jWrist: [0.55, 0.2, -50, 0.08], jShLift: 4,
+    jRun: 1, jUp: [-4, 18, 10, 0.15], jFore: [82, 4, 0, 0.25], jHand: 0, jShLift: 1,
     jTwist: [0.5, 0.12, 0.05], jRock: [2.5, 0.1], jRoll: [4, 0.05], jHead: [-0.25, 0.35, 0.12, 0.12], jHem: 4, jLoft: 0, jPelvYaw: 0, jOpen: 0,
     headRowStep: 2, skirtRowStep: 2, shoeRowStep: 2, handRowStep: 2, limbStep: 2, ringHead: 52, ringTrunk: 40, ringShoe: 24, ringHand: 24,   // ring resolution of the lofts (silhouettes are faired, so this only needs to beat the fairing radius)
     fair: { head: 0.9, trunk: 1.4, shoe: 1.0, hand: 0.7 },     // outline fairing radius (screen units) per component
@@ -2366,7 +2366,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var gamma = lerp(gIdle, rad(C.gammaWalk0) + rad(C.gammaWalk1) * sstep(-0.3, 1, fwF), a);
       var beta = rad(side < 0 ? C.armBetaL : C.armBetaR) + sq * rad(18) + rad(C.armOut) * S.yawS * (1 - run) * (1 - a);          // front view: the arms hang a little away from the body (clear gap at the waist)
       if (S.femK > 0 && side < 0) { var fk2 = S.femK * S.yawS; beta = lerp(beta, rad(15), fk2); gamma += rad(12) * fk2; alpha += rad(4) * fk2; }          // feminine stance: the free arm hangs softly, close to the body, elbow slightly bent
-      var jph = TAU * (ph - C.jArmLag) + (side < 0 ? 0 : PI), jr = S.jr;
+      var jr = S.jr;
       gamma += rad(24) * min(1, max(sq, 0)) * (1 - air) * (1 - run);
       alpha -= rad(36) * min(1, max(sq, 0)) * (1 - air) * (1 - 0.7 * run);          // crouch (hop anticipation / landing): the arms swing back
       if (sq < 0) { var sqn2 = -sq; alpha += sqn2 * sstep(0, 0.12, sqn2) * rad(70); }          // boing stretch: the arms fly up a little (eased in: no kink where the squash turns into a stretch)
@@ -2394,9 +2394,16 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         alpha = lerp(lerp(alpha, rad(24), bLo), rad(16), bHi); beta = lerp(lerp(beta, rad(30), bLo), rad(94), bHi);
       }
       var Ssh = K.fApply(Fsh, -1.0, side * C.shoulderC, 0);
-      if (jr > 0) Ssh[2] += jr * C.jShLift * (0.6 + 0.4 * sin(jph + rad(C.jUp[5])));          // Jack run: the shoulder rises a little with its flapping elbow (soft, never hunched)
+      if (jr > 0) Ssh[2] += jr * C.jShLift * (0.5 + 0.5 * side * cos(TAU * (ph - C.jUp[3])));          // run: the shoulder rises a hair as its arm swings forward (soft, never hunched)
       if (side === -1) Ssh[2] += 21 * sstep(0, 1, min(1, P.scratch));          // the scratching shoulder is hiked up
       Ssh[2] += C.shDrop * S.yawS + 7 * S.hunchS + 5 * max(sq, 0) + 4 * P.scratch + C.shrugAmp * S.b3 * (side === S.s3 ? 1 : 0.15) + 2 * S.b1 + 2.5 * S.e1 * (side === 1 ? 1 : 0.3) + 3 * S.e3 + 3 * S.shrugX + 2 * S.startle + (side === 1 ? 4 * wvU : 0) + 5 * bsU + 3 * S.clasp;
+      if (jr > 0) {          // '+' RUN arms: normal arms - close to the body, swinging in opposition to the legs, the elbows softly bent at ~80-90 deg (a touch more on
+                             // the forward swing, the forearm following the upper arm a moment later)
+        var jU = C.jUp, jF = C.jFore, fwJ = side * cos(TAU * (ph - jU[3])), fwE = side * cos(TAU * (ph - jF[3]));
+        alpha = lerp(alpha, rad(jU[0] + jU[1] * fwJ), jr);
+        beta = lerp(beta, rad(jU[2]), jr);
+        gamma = lerp(gamma, rad(jF[0] + jF[1] * sstep(-0.5, 1, fwE)), jr);
+      }
       var ca = cos(alpha), sa = sin(alpha), cb = cos(beta), sb = sin(beta);
       var d1 = K.mVec(Rarm, sa * cb, side * sb, -ca * cb);
       var a2 = alpha + gamma, b2 = beta * C.foreBeta;
@@ -2413,25 +2420,10 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         d2 = v3norm(v3lerp(d2, K.mVec(Rarm, b2L[0], side * b2L[1], b2L[2]), sstep(0, 0.6, bsF)));
         hdW = K.mVec(Rarm, 0.12, side * sin(thB + rad(10) + fl8), -cos(thB + rad(10) + fl8)); wvF = max(wvF, bsF);
       }
-      if (jr > 0) {          // JACK RUN arms: the upper arm out to the side with the elbow about shoulder high, the forearm raised; one loose flap per gait cycle (the two arms
-                             // half a cycle apart): the upper arm swings fore / aft and up / down on a loop, the forearm follows later (overlapping action) and jiggles with every footfall.
-                             // Directions in the arm frame (x forward, y out to her side, z up): az = swing forward of the pure side direction, el = elevation above the horizontal
-        var jU = C.jUp, jF = C.jFore;
-        var azU = rad(jU[0] + jU[1] * sin(jph + rad(jU[2]))), elU = rad(jU[3] + jU[4] * sin(jph + rad(jU[5])));
-        var azF = rad(jF[0] + jF[1] * sin(jph + rad(jF[2]))), elF = rad(jF[3] + jF[4] * sin(jph + rad(jF[5])) + C.jFlutter * sin(2 * jph + 1.1));
-        var uJ = K.mVec(Rarm, sin(azU) * cos(elU), side * cos(azU) * cos(elU), sin(elU)), fJ = K.mVec(Rarm, sin(azF) * cos(elF), side * cos(azF) * cos(elF), sin(elF));
-        var d1j = v3lerp(d1, uJ, jr), d2j = v3lerp(d2, fJ, jr);
-        if (v3len(d1j) > 0.05) d1 = v3norm(d1j);
-        if (v3len(d2j) > 0.05) d2 = v3norm(d2j);
-      }
       var E = v3mad(Ssh, d1, C.armU * S.ak), W = v3mad(E, d2, C.armF * S.ak);
       var arm = { side: side, S: Ssh, E: E, W: W, fw: fw, hd: v3norm(v3add(d2, K.mVec(Rarm, 0.16 + C.handLag * a * (1 - run) * side * sin(TAU * ph), side * C.handOut, 0))), curl: K.mVec(Rarm, 0, -side, 0), thumbDir: K.mVec(Rarm, 1, 0, 0) };
-      if (jr > 0) {          // Jack run: a LIMP WRIST - the relaxed hand hangs from the wrist toward the floor (a little out and forward, never into the body) and flaps after the forearm
-        var jw = C.jWrist, dro = clamp(jw[0] + jw[1] * sin(jph + rad(jw[2])) + jw[3] * sin(2 * jph + 2.3), 0, 0.92), dn = [0.32, side * 0.3, -1];
-        var hj = [d2[0] + (dn[0] - d2[0]) * dro, d2[1] + (dn[1] - d2[1]) * dro, d2[2] + (dn[2] - d2[2]) * dro];
-        if (v3len(hj) > 0.05) arm.hd = v3norm(v3lerp(arm.hd, v3norm(hj), jr));
-      }
-      arm.fist = max(hunch * 0.7, 0.5 * air); arm.scrW = 0; arm.scrPh = 0;
+      arm.fist = max(hunch * 0.7, 0.5 * air, C.jHand * jr); arm.scrW = 0; arm.scrPh = 0;          // (run: relaxed, loosely closed hands, in line with the forearm - no wrist flop)
+      if (jr > 0) arm.hd = v3norm(v3lerp(arm.hd, d2, jr));
       if (hdW) { arm.hd = v3norm(v3lerp(arm.hd, hdW, wvF)); arm.fist *= 1 - wvF; }
       arm.openW = max(max(S.spread, 0.85 * sstep(0, 1, S.shrugX), side === 1 ? sstep(0.1, 0.7, S.wave) : 0) * (1 - 0.8 * run), C.jOpen * jr);          // open hand with spread fingers (startled jump / shrug)
       if (side === -1 && (scr > 1e-3 || P.think > 1e-3 || S.pk > 1e-3 || P.chestHand > 1e-3 || P.poke > 1e-3 || P.clutch > 1e-3)) applyArmTargets(S, arm, P, scr);
@@ -2994,19 +2986,19 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   var walkGrace = {"stride":380,"walkXoff":0,"hsF":73,"rho":0.6,"q1":0.11,"q2":0.36,"bhs":18,"bto":46,"lift":31,"walkLean":0,"walkStance":17,"toeWalk":6,"toeIdle":10,"toeL":-1,"toeR":-1,
     "hipSway":4.6,"walkYaw":11,"shoulderCounter":1.8,"swingFwd":24,"swingBack":26,"gammaWalk0":9,"gammaWalk1":9,"handLag":0.25,"kneeSoft":0,"pelvisSmooth":20,"legReach":1.0};
   for (k in walkGrace) A.cfg[k] = walkGrace[k];
-  // ---- JACK RUN (the '+' dash, rebuilt from scratch: an elegant, cute, girly Captain Jack Sparrow run; replaces the cartoon sprint, the scurry fit above is fully overridden):
-  //      an upright, very slightly back-leaning torso with the chest opened toward the viewer, arms up and flung loosely out to the sides with the elbows high, limp wrists with
-  //      the hands flapping after the forearms, a loose sway of the chest, head bobbing and tilting; quick light steps on the balls of the feet with the knees lifting in front
-  //      (not kicked up behind), a springy bounce with a real flight between the steps, the hem bouncing.  Delighted, not frightened.
-  var runJack = {"strideRun":480,"runRho":0.34,"runQ1":0.06,"runQ2":0.18,"runXoff":0,"runHsF":58,"runBhs":-16,
+  // ---- '+' RUN (the dash; replaces the cartoon sprint, the scurry fit above is fully overridden): a cute, elegant girl's run with only a whisper of Captain Jack Sparrow.
+  //      Upright with her walk's willowy carriage, the chest barely turned toward us; the arms soft and close to the body, swinging in opposition to the legs with the elbows
+  //      gently bent and the hands relaxed, loosely closed (normal arms: no Sparrow arm motion); a slight sway of the shoulders is the only hint of Sparrow;
+  //      the head steady with a small bob; quick light steps on the balls of the feet with a modest knee lift, a small springy flight, the hem bouncing.  Happy, not frightened.
+  var runJack = {"strideRun":480,"runRho":0.34,"runQ1":0.06,"runQ2":0.16,"runXoff":0,"runHsF":58,"runBhs":-16,
     "runE":[[0,0],[0.14,0.04],[0.32,0.2],[0.52,0.52],[0.72,0.8],[0.88,0.95],[1,1]],"runR":0.1,
-    "runZ":[[0.14,56],[0.32,84],[0.52,98],[0.72,82],[0.88,48]],"runZ1":-25,"runB":[[0.14,-58],[0.32,-80],[0.52,-68],[0.72,-50],[0.88,-32]],
-    "runPelvis":236,"runBob":13,"runBobK":[[0,0.43],[0.16,-0.54],[0.32,-1],[0.48,-0.54],[0.64,0.43],[0.82,1]],
+    "runZ":[[0.14,56],[0.32,78],[0.52,88],[0.72,76],[0.88,48]],"runZ1":-25,"runB":[[0.14,-58],[0.32,-80],[0.52,-68],[0.72,-50],[0.88,-32]],
+    "runPelvis":236,"runBob":12,"runBobK":[[0,0.43],[0.16,-0.54],[0.32,-1],[0.48,-0.54],[0.64,0.43],[0.82,1]],
     "runLean":-1,"runLeanDeg":8,"runLean0":0,"runBendH":60,"runHead":6,"runHeadLevel":1,"runPelvisPitch":0,"runPelvisF":0,
     "runCrownK":0,"runWaistK":0,"runNeckK":0,"runLegK":0,"runArmK":0,"runShoulderBack":0,"runShoulderFwd":0,
     "runHemLift":1.2,"runHemF":8,"runHemTilt":3,"runSpread":0.1,"runTilt":[0,2,4,7],"runShift":[0,0,0],
-    "jRun":1,"jLoft":0,"jOpen":0.5,"jPelvYaw":14,"jTwist":[0.6,0.08,0.05],"jHead":[-0.45,0.25,0.1,0.12],
-    "jUp":[5,20,70,-2,10,0],"jFore":[5,18,20,30,12,-40],"jWrist":[0.9,0.13,-50,0.07],"jShLift":3,"jFlutter":4,"jArmLag":0.08,"jRock":[1.8,0.1],"jRoll":[3,0.05],"jHem":3.5};          // (refined: a light, poised flutter rather than a big flail)
+    "jRun":1,"jLoft":0,"jOpen":0,"jPelvYaw":17,"jTwist":[-0.25,0.04,0.05],"jHead":[-0.1,0.1,0.04,0.12],
+    "jUp":[-4,18,10,0.15],"jFore":[82,4,0,0.25],"jHand":0,"jShLift":1,"jRock":[1,0.1],"jRoll":[1.5,0.05],"jHem":2.5};          // (round 2: a cute, elegant girl's run - normal arms, upright (the hips stay a little open, as before, and the chest turns back against them: it faces us only ~4 deg), a lighter bob and a slower roll over the ball; only a little sway hints at Sparrow)
   for (k in runJack) A.cfg[k] = runJack[k];
 
   // ---- WALK STYLE PRESETS (runtime switch: landingGirlAnimation.scene.girl.setWalkPreset('A'|'B'|'C'|'current'); the stride (372) and the foot contact are the same in all of them)
@@ -4515,7 +4507,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var headUp = sm(TJ - 0.03, TJ + 0.1);                 // the head snaps back / up in the jump
       var landW = sm(TL - 0.05, TL + 0.14);
       var uA = U.clamp((rt - TJ) / TA), inAir = sm(TJ, TJ + 0.1) * (1 - sm(TL - 0.14, TL - 0.02));
-      var glance = bm(TG, TG + 0.14, TG + 0.26, TG + 0.46);
+      var glance = bm(TG, TG + 0.12, TG + 0.2, TG + 0.38);
       var ut = U.clamp((rt - TT0) / (TT1 - TT0)), turnK = U.easeInOutCubic(ut);
 
       // ---- beat 1 + 2: look / jump (per scenario, blended from the captured pose)
@@ -4576,15 +4568,14 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         P.headYaw = U.lerp(P.headYaw, -0.55 * Math.sin(Math.PI * Math.min(1, ut * 1.1)), sm(TT0 - 0.02, TT0 + 0.08));
         P.twist += -0.5 * Math.sin(Math.PI * (1 - (1 - ut) * (1 - ut))) * sm(TT0 - 0.02, TT0 + 0.05);
       }
-      P.headYaw = U.lerp(P.headYaw, 0.85, glance);          // the Jack run: as she sets off, a quick delighted glance round at US (head ~47 deg + the shoulders ~16 deg, chin level), not a
+      P.headYaw = U.lerp(P.headYaw, 0.5, glance);          // as she sets off, a brief, small delighted glance round at US (head ~28 deg, the shoulders a hair, chin level), not a
       P.headPitch = U.lerp(P.headPitch, 0.04, glance);       //   furtive look back over the shoulder (that read as a thief checking whether she is being followed)
       P.twist += 0.3 * glance;
 
-      // ---- beat 4: the JACK RUN (rebuilt): a little coil, then she is off - the legs go first and the upper body is left a touch behind (a small 'whoa' lean back,
-      //      chin up, delighted), and it settles upright with the chest open toward us, arms up and flapping (the rig's Jack layer, weighted by the run).  No look back:
-      //      she is not being chased, she is thrilled.
-      P.lean = -0.3 * bm(TR - 0.14, TR - 0.03, TR + 0.03, TR + 0.15) - 0.4 * bm(TR + 0.02, TR + 0.16, TR + 0.3, TR + 0.75) + 0.15 * sm(TR + 0.3, TR + 0.9);
-      P.headPitch += 0.14 * sm(TR + 0.1, TR + 0.5) + 0.1 * bm(TR + 0.02, TR + 0.16, TR + 0.3, TR + 0.75);          // chin up: delighted
+      // ---- beat 4: the RUN: a little coil, then she is off - the legs go first and the upper body is left a hair behind (barely a 'whoa'), and it settles upright with
+      //      soft swinging arms (the rig's run layer, gait.jack).  No look back: she is not being chased, she is happy.
+      P.lean = -0.1 * bm(TR - 0.14, TR - 0.03, TR + 0.03, TR + 0.15) - 0.12 * bm(TR + 0.02, TR + 0.16, TR + 0.3, TR + 0.7) + 0.12 * sm(TR + 0.3, TR + 0.9);
+      P.headPitch += 0.06 * sm(TR + 0.1, TR + 0.5) + 0.03 * bm(TR + 0.02, TR + 0.16, TR + 0.3, TR + 0.7);          // chin a touch up: happy
       P.squash += 0.3 * bm(TR - 0.1, TR, TR + 0.06, TR + 0.18);
       var vRun = V_RUN * U.easeOutQuad(U.clamp((rt - TR) / 0.62)), vLow = 0;          // round 11: 0.62 s to top speed (was 0.45): the first steps are really short and quick before she is up to speed
       if (standing) o.speed = vRun;
@@ -4597,7 +4588,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var spdN = o.speed / V_WALK, amtRun = U.smoothstep(0.01, 0.3, spdN) * sm(TR - 0.02, TR + 0.26);          // the stride builds up over ~0.25 s at the burst (no one-frame leg pop; the rig lifts the swing foot while the amount ramps)
       P.gait.amount = standing ? amtRun : Math.max(amtRun, U.smoothstep(0.01, 0.3, vLow / V_WALK));
       P.gait.run = o.run;
-      P.gait.jack = U.smoothstep(0, 1, U.clamp((rt - TR - 0.02) / 0.5)) * U.smoothstep(0.05, 0.4, o.speed / V_RUN);          // the Jack arms / open chest / head bob float in over ~0.5 s from the take-off (a fling, not a snap; on a phone she is across the screen in ~1 s)
+      P.gait.jack = U.smoothstep(0, 1, U.clamp((rt - TR - 0.02) / 0.6)) * U.smoothstep(0.05, 0.4, o.speed / V_RUN);          // the run arms / sway ease in over ~0.6 s from the take-off (on a phone she is across the screen in ~1 s)
       P.gait.speed = o.speed;
       P.wind.x += 140 * o.run; P.wind.y += -40 * o.run;
       o.TR = TR;
