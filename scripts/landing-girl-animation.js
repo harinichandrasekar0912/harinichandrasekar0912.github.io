@@ -1798,6 +1798,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     shoulderC: 44,        // lateral offset of the shoulder joints
     armU: 68, armF: 58,
     foreBeta: 0.55,       // forearm lateral angle as a fraction of the upper arm's
+    spreadBend: 12, spreadHand: [0.25, 0.7, -0.65, 0.6],          // happy open hands (pose.spread): extra elbow bend (deg); the hand direction it turns toward [fwd, out, up] and by how much
     handOut: -0.22,       // lateral lean of the hand direction (+ = outward, away from the body)
     ele: 0.15,            // camera elevation term applied to the skirt only (hem "smile")
     headPivot: [-7, 0, -41.5],
@@ -2371,6 +2372,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       alpha -= rad(36) * min(1, max(sq, 0)) * (1 - air) * (1 - 0.7 * run);          // crouch (hop anticipation / landing): the arms swing back
       if (sq < 0) { var sqn2 = -sq; alpha += sqn2 * sstep(0, 0.12, sqn2) * rad(70); }          // boing stretch: the arms fly up a little (eased in: no kink where the squash turns into a stretch)
       if (S.e3 > 0) { alpha += rad(11) * S.e3; beta += rad(9) * S.e3; }          // the 'aha': the arms lift a little
+      var spA = S.spread * (1 - sstep(0, 0.5, S.burst)) * (1 - run);          // happy open hands: the elbows soften (straight arms held out from the body read as a stiff A-pose; P.spread is already an eased envelope)
+      gamma += rad(C.spreadBend) * spA;
       if (S.dzy > 0) { var dzw = 0.8 * S.dzy; alpha = lerp(alpha, rad(34) + rad(14) * side * S.dS1, dzw); beta = lerp(beta, rad(34), dzw); gamma = lerp(gamma, rad(22), 0.6 * S.dzy); }       // dizzy: arms out for balance
       if (hunch > 0) {
         alpha = lerp(alpha, rad(C.paw[0]), hunch * 0.9); gamma = lerp(gamma, rad(C.paw[1]), hunch * 0.9); beta = lerp(beta, rad(C.paw[2]), hunch * 0.8);          // paws: the forearms fold up, the hands come to the chest
@@ -2425,6 +2428,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       arm.fist = max(hunch * 0.7, 0.5 * air, C.jHand * jr); arm.scrW = 0; arm.scrPh = 0;          // (run: relaxed, loosely closed hands, in line with the forearm - no wrist flop)
       if (jr > 0) arm.hd = v3norm(v3lerp(arm.hd, d2, jr));
       if (hdW) { arm.hd = v3norm(v3lerp(arm.hd, hdW, wvF)); arm.fist *= 1 - wvF; }
+      if (spA > 0) arm.hd = v3norm(v3lerp(arm.hd, K.mVec(Rarm, C.spreadHand[0], side * C.spreadHand[1], C.spreadHand[2]), C.spreadHand[3] * spA));          // ... and the open hands flick a little outward at the wrist (fingers out and down, not hanging straight down like claws)
       arm.openW = max(max(S.spread, 0.85 * sstep(0, 1, S.shrugX), side === 1 ? sstep(0.1, 0.7, S.wave) : 0) * (1 - 0.8 * run), C.jOpen * jr);          // open hand with spread fingers (startled jump / shrug)
       if (side === -1 && (scr > 1e-3 || P.think > 1e-3 || S.pk > 1e-3 || P.chestHand > 1e-3 || P.poke > 1e-3 || P.clutch > 1e-3)) applyArmTargets(S, arm, P, scr);
       if (side === 1 && S.femK * S.yawS > 1e-3) applyFemArm(S, arm, S.femK * S.yawS);
@@ -4253,7 +4257,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var ahaGive = bump(k, 3.02, 3.12, 3.14, 3.3), ahaReb = bump(k, 3.24, 3.34, 3.36, 3.56);
       sq += 0.11 * ahaDip - 0.1 * ahaPop - 0.035 * ahaOver + 0.06 * ahaGive - 0.025 * ahaReb;
       hp += -0.12 * ahaDip + 0.1 * ahaPop + 0.04 * ahaOver; hr += 0.17 * ahaPop - 0.1 * bump(k, 3.0, 3.22, 3.36, 3.75);
-      p.spread = Math.max(p.spread, 0.85 * ahaPop);
+      p.spread = Math.max(p.spread, 0.85 * bump(k, 2.48, 2.74, 2.9, 3.3));          // (the open hands let go a little slower than the pop itself: the softly bent arms then come down without a flick)
       p.poke = bump(k, 3.0, 3.6, 4.3, 5.0);                               // a hand rises to poke at a floating piece; the head follows the hand
       hy += 0.3 * p.poke; hp += 0.25 * p.poke;
       hr -= 0.22 * bump(k, 4.9, 5.3, 5.7, 6.3);                           // the hand drops, the head cocks the other way
