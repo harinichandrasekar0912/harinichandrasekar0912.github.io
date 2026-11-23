@@ -4365,25 +4365,33 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
           p.headRoll = U.lerp(p.headRoll, 0.18, U.smoothstep(0, 0.2, h) * (1 - U.smoothstep(0.7, 1.2, h)));
           var hw = h - HOLD;
           if (hw > 0) { var wobE = Math.exp(-4 * hw); p.headRoll += 0.1 * wobE * Math.sin(Math.PI * 2 * 3.2 * hw); }
-          var lookUp = bump(h, 0.45, 0.7, 0.95, 1.25);          // ... then she looks up after the ball, surprised, and starts to giggle
+          var lookUp = bump(h, 0.45, 0.7, 0.95, 1.25);          // ... then she looks up after the ball, surprised and puzzled
           p.headPitch = U.lerp(p.headPitch, 0.45, lookUp); p.headYaw = U.lerp(p.headYaw, 0.25, lookUp);
           windX += 420 * bump(h, 0, 0.05, 0.12, 0.32) - 320 * bump(h, 0.26, 0.36, 0.46, 0.72);
         }
 
-        // she laughs at herself: two little waves of giggles (shoulders bobbing, the head tipping back and to the side, a hand coming up in front of her mouth)
-        var SH1 = c.shake0 + 0.75;
-        var gig = bump(t, c.scratch0 - 0.05, c.scratch0 + 0.15, SH1 - 0.3, SH1 - 0.05), gT = t - c.scratch0;
-        if (gig > 0) {
-          var burst = 0.55 + 0.45 * Math.max(Math.sin(Math.PI * 2 * 0.55 * gT), 0);
-          p.shrug = Math.max(p.shrug, 0.3 * gig * burst * Math.pow(Math.abs(Math.sin(Math.PI * 5.5 * gT)), 1.5));
-          p.headPitch = U.lerp(p.headPitch, 0.3 + 0.06 * Math.sin(Math.PI * 11 * gT), gig);
-          p.headRoll = U.lerp(p.headRoll, 0.22 + 0.06 * Math.sin(Math.PI * 5.5 * gT), gig);
-          p.headYaw = U.lerp(p.headYaw, 0.1, gig);
-          p.chestHand = Math.max(p.chestHand, 1.25 * bump(t, c.scratch0 + 0.1, c.scratch0 + 0.35, c.scratch0 + 0.9, c.scratch0 + 1.2));          // a hand to her mouth as she giggles
+        if (t >= c.scratch0 && t < c.scratch1 + 0.45) { // she rubs the bonked spot, comically puzzled, with a tiny wince (her request, 23 Nov: as on the live site)
+          var up = U.easeOutBack(U.smoothstep(0, 1, U.clamp((t - c.scratch0) / 0.5)), 1.2);          // (a smooth start, the little overshoot at the head kept: the plain ease-out-back left her side at full speed - a hand snap)
+          var down = 1 - U.smoothstep(0, 1, U.clamp((t - c.scratch1) / 0.4));
+          p.scratch = U.clamp(up * down, 0, 1.05);
+          p.scratchT = t - c.scratch0;
+          p.headRoll = U.lerp(p.headRoll, 0.2 * Math.sin(p.scratchT * 9), 0.5 * p.scratch);
+          p.headPitch = U.lerp(p.headPitch, -0.2, 0.7 * p.scratch);
+          p.shrug = Math.max(p.shrug, 0.22 * p.scratch * bump(p.scratchT, 0.05, 0.2, 0.45, 0.75));          // the little wince: shoulders up a touch as the hand meets the sore spot
         }
-        // a happy shrug ('oops!'): shoulders up, palms out, head cocked, chin up; the turn away blends it out
+
+        var SH1 = c.shake0 + 0.75;          // a short puzzled head shake, then a sheepish shrug before she turns away
+        if (t >= c.shake0 && t < SH1) {
+          var sK = (t - c.shake0) / (SH1 - c.shake0);
+          var env = Math.sin(Math.PI * Math.min(1, sK * 1.05)) * (1 - 0.25 * sK);
+          var kS = U.smoothstep(c.shake0, c.shake0 + 0.18, t); // cross-fade from the rub's head pose (no 1-frame pop)
+          p.headYaw = U.lerp(p.headYaw, 0.95 * env * Math.sin(sK * Math.PI * 4.0), kS);
+          p.headRoll = U.lerp(p.headRoll, 0.15 * env * Math.sin(sK * Math.PI * 4.0 + 1.4), kS);
+          p.headPitch = U.lerp(p.headPitch, -0.1 * env, kS);
+        }
+        // sheepish shrug ('oops... well.'): shoulders up, palms out, head cocked; the turn away blends it out
         var shr = bump(t, SH1 - 0.1, SH1 + 0.22, c.turnLeft0 + 0.15, c.turnLeft0 + 0.55);
-        p.shrug = Math.max(p.shrug, shr); p.headRoll = U.lerp(p.headRoll, 0.3, shr); p.headPitch = U.lerp(p.headPitch, 0.1, shr); p.headYaw = U.lerp(p.headYaw, 0.15, 0.8 * shr);
+        p.shrug = Math.max(p.shrug, shr); p.headRoll = U.lerp(p.headRoll, 0.3, shr); p.headPitch = U.lerp(p.headPitch, -0.12, shr); p.headYaw = U.lerp(p.headYaw, 0.15, 0.8 * shr);
 
         if (t >= c.turnLeft0) {
           var tl = turnLeftAt(t, p.headYaw), tb = U.smoothstep(c.turnLeft0, c.turnLeft0 + 0.3, t);
