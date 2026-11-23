@@ -31,7 +31,17 @@
   /* physics: one cartoon gravity for the flight, the bounces and the roll-off (phones: divided by MOBILE_BALL_TIME_SCALE, so their
    * bounces stay a little calmer). About 2.5 x what the old flight implied: rises slow down, falls snap. */
   const FLIGHT_GRAVITY = 2400; // px/s^2
-  const NAV_BALL_CAMERA = "page"; // "page": the scroll follows the ball's throw / fall through the page; "screen": physics on screen only
+  /* how the page scroll and the ball's fall share the motion (?fall=a|b|c|d in the address overrides it, to compare):
+   *   "a": physics on screen only, the page scrolls (smootherstep) during the straight part - snappy, but the scroll is very short
+   *   "b": physics in the page, the scroll is a camera following the ball from the straight part (the ball slows on screen as it takes over)
+   *   "c": the camera takes over at the top: on screen the ball's speed only rises after the top, the page speeds up evenly and stops dead
+   *        with the impact (it also scrolls while the ball still moves sideways on the arc)
+   *   "d": like "c" on screen, but the page scrolls only during the straight part */
+  const NAV_BALL_FALL = "c";
+  const FALL_SECONDS_BASE = 0.55; // "c" / "d": the camera leg lasts 0.55 s + (its distance through the page) / 8000 px/s, 0.6 - 1.2 s
+  const FALL_PX_PER_SECOND = 8000;
+  const FALL_SECONDS_MIN = 0.6;
+  const FALL_SECONDS_MAX = 1.2;
   const CAMERA_LEG_MAX_SECONDS = 1.2; // a long trip through the page gets stronger gravity, so its scrolling part never takes longer than this
   const APEX_SPEED_MIN = 40; // px/s: the slowest the ball crosses the top of an arc (narrow arcs: a short natural hang)
   const APEX_SPEED_MAX = 900;
@@ -309,7 +319,7 @@
    *      left / right movement of the ball. The scroll arrives exactly as the ball lands.
    *   (upward trips are the mirror: a straight rise with the page scrolling, then the arc, then a short fall onto B)
    * The speed and the direction never jump at E (the arc ends vertical, at the speed the drop starts with). */
-  function planBezierPath(A, B, z, safeTop, scrollDistance, upward, gravity, camera) {
+  function planBezierPath(A, B, z, safeTop, scrollDistance, upward, gravity, fall) {
     const room = Math.max(B.y - safeTop, 0); // screen space above B
     // downward trips: a long straight drop (the page scrolls during it); upward trips: only a short fall onto B at the end (the page has
     // already scrolled, during the straight rise)
@@ -429,7 +439,7 @@
     const lastIndex = points.length - 1;
     const scrollSigned = scrollDistance || 0;
     const scrollAbs = Math.abs(scrollSigned);
-    const pageCamera = camera !== "screen" && scrollAbs > 1;
+    const pageCamera = fall === "b" && scrollAbs > 1;
 
     // the bigger the trip through the page, the stronger the cartoon gravity: the scrolling part stays under CAMERA_LEG_MAX_SECONDS
     if (pageCamera) {
@@ -483,6 +493,192 @@
 
         vTop = high;
       }
+    }
+
+    /* "c" and "d" (the default is "c"): the camera takes over at the top. On screen the ball's height changes at ONE constant rate from the
+     * top: downward, it falls from the top under a gentle on-screen gravity all the way to B (through the rest of the arc and the
+     * straight drop; bead on a wire, so its on-screen speed only ever rises, and the straight drop is one constant acceleration); the camera (page scroll) speeds up at a constant rate and stops dead with the
+     * impact. Upward is the mirror: from the launch the ball's on-screen climb slows at a constant rate to rest at the top while the camera
+     * starts at its fastest and slows at a constant rate. The whole camera leg lasts FALL_SECONDS_* (0.6 - 1.2 s, longer trips longer).
+     *   "c": the camera runs from the top (downward) / up to the top (upward), so it also scrolls while the ball still moves sideways on the
+     *        arc;
+     *   "d": the same on-screen motion, but the camera only runs during the straight part (downward from E, upward up to S): the page never
+     *        scrolls while the ball moves sideways.
+     * The part of the flight without the camera (downward: the climb; upward: the way down after the top) stays the bead-on-a-wire physics
+     * above, with the speed over the top matched to the camera leg's, so nothing jumps at the top. */
+    if ((fall === "c" || fall === "d") && scrollAbs > 1) {
+      const depthAt = function (index) {
+        return Math.max(points[index].y - apexY, 0);
+      };
+      const lengthBetween = function (from, to) {
+        let total = 0;
+
+        for (let index = Math.min(from, to) + 1; index <= Math.max(from, to); index += 1) {
+          total += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+        }
+
+        return total;
+      };
+      // the bead-on-a-wire time over [from, to] with gravity gs and speed v0 over the top: speed^2 = v0^2 + 2 gs depth
+      const beadSeconds = function (from, to, gs, v0) {
+        let totalSeconds = 0;
+
+        for (let index = from + 1; index <= to; index += 1) {
+          const va = Math.sqrt(v0 * v0 + 2 * gs * depthAt(index - 1));
+          const vb = Math.sqrt(v0 * v0 + 2 * gs * depthAt(index));
+          const length = Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+
+          totalSeconds += length > 0 ? (2 * length) / Math.max(va + vb, 1e-6) : 0;
+        }
+
+        return totalSeconds;
+      };
+      // the gentle on-screen gravity that makes [from, to] take exactly `seconds` (time falls as the gravity grows)
+      const fitGravity = function (from, to, v0, seconds) {
+        let low = 0;
+        let high = 100;
+
+        while (beadSeconds(from, to, high, v0) > seconds && high < 1e8) {
+          high *= 2;
+        }
+
+        for (let stepIndex = 0; stepIndex < 50; stepIndex += 1) {
+          const middle = (low + high) / 2;
+
+          if (beadSeconds(from, to, middle, v0) > seconds) {
+            low = middle;
+          } else {
+            high = middle;
+          }
+        }
+
+        return high;
+      };
+      const ct = new Array(points.length);
+      let camStart;
+      let camEnd;
+      let scrollShare;
+      let screenGravity;
+
+      if (!upward) {
+        const T = fallSeconds(depthAt(lastIndex) + scrollAbs);
+
+        // over the top at the throw's speed (at most 0.6 x the average the way down needs, so a gentle gravity can still fit the time)
+        const overTop = Math.max(Math.min(vTop, (0.6 * lengthBetween(apexIndex, lastIndex)) / T), 20);
+
+        screenGravity = fitGravity(apexIndex, lastIndex, overTop, T);
+        ct[0] = 0;
+
+        for (let index = 1; index <= apexIndex; index += 1) {
+          ct[index] = ct[index - 1] + segmentSeconds(index, overTop);
+        }
+
+        for (let index = apexIndex + 1; index <= lastIndex; index += 1) {
+          ct[index] = ct[index - 1] + beadSeconds(index - 1, index, screenGravity, overTop);
+        }
+
+        camStart = fall === "c" ? ct[apexIndex] : ct[eIndex];
+        camEnd = ct[lastIndex];
+        scrollShare = function (t) {
+          const u = clamp((t - camStart) / Math.max(camEnd - camStart, 1e-6), 0, 1);
+
+          return u * u; // constant acceleration from rest
+        };
+      } else {
+        const T = fallSeconds(depthAt(0) + scrollAbs);
+        const overTop = Math.max(Math.min(vTop, (0.6 * lengthBetween(0, apexIndex)) / T), 20);
+
+        screenGravity = fitGravity(0, apexIndex, overTop, T);
+        ct[0] = 0;
+
+        for (let index = 1; index <= apexIndex; index += 1) {
+          ct[index] = ct[index - 1] + beadSeconds(index - 1, index, screenGravity, overTop);
+        }
+
+        for (let index = apexIndex + 1; index <= lastIndex; index += 1) {
+          ct[index] = ct[index - 1] + segmentSeconds(index, overTop);
+        }
+
+        camStart = 0;
+        camEnd = fall === "c" ? ct[apexIndex] : ct[sIndex];
+        scrollShare = function (t) {
+          const u = clamp(t / Math.max(camEnd, 1e-6), 0, 1);
+
+          return 1 - (1 - u) * (1 - u); // fastest at the launch, a constant slow-down to rest
+        };
+      }
+
+      const total = Math.max(ct[lastIndex], 0.05);
+      const cdPoint = function (seconds) {
+        if (seconds <= 0) {
+          return { x: A.x, y: A.y };
+        }
+
+        if (seconds >= total) {
+          return { x: B.x, y: B.y };
+        }
+
+        let low = 1;
+        let high = ct.length - 1;
+
+        while (low < high) {
+          const middle = (low + high) >> 1;
+
+          if (ct[middle] < seconds) {
+            low = middle + 1;
+          } else {
+            high = middle;
+          }
+        }
+
+        const span = ct[low] - ct[low - 1];
+        const fraction = span > 1e-12 ? clamp((seconds - ct[low - 1]) / span, 0, 1) : 0;
+
+        return { x: mix(points[low - 1].x, points[low].x, fraction), y: mix(points[low - 1].y, points[low].y, fraction) };
+      };
+      const cdScroll = function (seconds) {
+        return seconds >= total ? 1 : scrollShare(seconds);
+      };
+      const cdWorld = function (seconds) {
+        const point = cdPoint(seconds);
+
+        return { x: point.x, y: point.y + cdScroll(seconds) * scrollSigned };
+      };
+      const step = 0.008;
+      const launchSpeed = Math.hypot(cdWorld(step).x - cdWorld(0).x, cdWorld(step).y - cdWorld(0).y) / step;
+      const impactSpeed = Math.hypot(cdWorld(total).x - cdWorld(total - step).x, cdWorld(total).y - cdWorld(total - step).y) / step;
+      let cdLength = 0;
+
+      for (let index = 1; index < points.length; index += 1) {
+        cdLength += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+      }
+
+      return {
+        mode: upward ? "rise-then-bezier" : "bezier-then-drop",
+        camera: fall,
+        duration: total,
+        length: cdLength,
+        speed: cdLength / total,
+        pointAt: cdPoint,
+        progressAt: function (seconds) {
+          return clamp(seconds / total, 0, 1);
+        },
+        scrollProgressAt: cdScroll,
+        worldAt: cdWorld,
+        launchSpeed: launchSpeed,
+        impactSpeed: impactSpeed,
+        gravity: g,
+        samples: points.map(function (point) {
+          return { x: point.x, y: point.y };
+        }),
+        apex: copyPoint(points[apexIndex]),
+        guides: [
+          { name: "P1", point: copyPoint(plan.P1), colour: "#1fa34a" },
+          { name: "P2", point: copyPoint(plan.P2), colour: "#11a5b8" },
+          { name: "camera " + (upward ? "stops" : "starts"), point: copyPoint(points[upward ? (fall === "c" ? apexIndex : sIndex) : (fall === "c" ? apexIndex : eIndex)]), colour: "#8a2be2" }
+        ],
+        geometry: { A: copyPoint(A), E: copyPoint(E), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, drop: drop, fall: fall, cameraStart: camStart, cameraEnd: camEnd, screenGravity: screenGravity, gravity: g, launchSpeed: launchSpeed, impactSpeed: impactSpeed, safeTop: safeTop }
+      };
     }
 
     const times = [0];
@@ -673,7 +869,7 @@
    *   up into B, then the first landing bounce takes over). One gravity for both legs. x never changes (B.x = A.x).
    * Scroll: downward trips scroll only while the ball falls, upward trips only while it rises. With the page camera (default) the leg that
    * scrolls is a throw / fall through the page, and the page moves with the ball's own speed; with the screen camera it is smootherstep. */
-  function planPhoneBounce(A, B, phoneZ, safeTop, upward, gravity, scrollDistance, camera) {
+  function planPhoneBounce(A, B, phoneZ, safeTop, upward, gravity, scrollDistance, fall) {
     const topY = Math.min(A.y, B.y);
     const wantedLift = clamp(phoneZ * PHONE_MAIN_LIFT_FACTOR, PHONE_MAIN_LIFT_MIN, PHONE_MAIN_LIFT_MAX);
     const lift = Math.max(Math.min(wantedLift, topY - safeTop), PHONE_MAIN_LIFT_FLOOR);
@@ -682,14 +878,18 @@
     const downDistance = Math.abs(B.y - apex.y);
     const scrollSigned = scrollDistance || 0;
     const scrollAbs = Math.abs(scrollSigned);
-    const pageCamera = camera !== "screen" && scrollAbs > 1;
+    const pageCamera = fall === "b" && scrollAbs > 1;
+    // "c" / "d" (the same on a phone: the ball only moves up and down): the leg that scrolls lasts fallSeconds(its distance through the
+    // page); on screen and in the page it is one constant acceleration (downward, from rest at the top) / deceleration (upward, to rest at
+    // the top), so the camera speeds up evenly and stops dead with the impact, or starts fast and slows evenly to rest at the top
+    const shareCamera = (fall === "c" || fall === "d") && scrollAbs > 1;
     // one gravity, a real throw and a real fall: with the page camera the leg that scrolls is a throw / fall through the page (its screen
     // distance + the scroll), and a long one gets stronger gravity (CAMERA_LEG_MAX_SECONDS)
     const upWorld = upDistance + (pageCamera && upward ? scrollAbs : 0);
     const downWorld = downDistance + (pageCamera && !upward ? scrollAbs : 0);
     const g = Math.max(gravity || FLIGHT_GRAVITY, 1, pageCamera ? (2 * (upward ? upWorld : downWorld)) / (CAMERA_LEG_MAX_SECONDS * CAMERA_LEG_MAX_SECONDS) : 1);
-    const upT = Math.max(Math.sqrt((2 * upWorld) / g), 0.05);
-    const downT = Math.max(Math.sqrt((2 * downWorld) / g), 0.05);
+    const upT = shareCamera && upward ? fallSeconds(upDistance + scrollAbs) : Math.max(Math.sqrt((2 * upWorld) / g), 0.05);
+    const downT = shareCamera && !upward ? fallSeconds(downDistance + scrollAbs) : Math.max(Math.sqrt((2 * downWorld) / g), 0.05);
     const hangT = PHONE_APEX_HANG / 1000;
     const total = upT + hangT + downT;
     const camT = upward ? upT : downT;
@@ -740,7 +940,9 @@
           return { y: apex.y + screenLeft, scroll: clamp((upWorld - worldLeft - (upDistance - screenLeft)) / scrollAbs, 0, 1) };
         }
 
-        return { y: apex.y + (upDistance * worldLeft) / Math.max(upWorld, 1e-6), scroll: upward ? smootherstep(t / upT) : 0 };
+        const left = (r / upT) * (r / upT); // share of the climb still to go (constant deceleration)
+
+        return { y: apex.y + upDistance * left, scroll: upward ? (shareCamera ? 1 - left : smootherstep(t / upT)) : 0 };
       }
 
       if (t < upT + hangT) {
@@ -756,7 +958,9 @@
         return { y: apex.y + screenDone, scroll: clamp((worldDone - screenDone) / scrollAbs, 0, 1) };
       }
 
-      return { y: apex.y + (downDistance * worldDone) / Math.max(downWorld, 1e-6), scroll: upward ? 1 : smootherstep(r / downT) };
+      const done = Math.min((r / downT) * (r / downT), 1); // share of the fall done (constant acceleration)
+
+      return { y: apex.y + downDistance * done, scroll: upward ? 1 : shareCamera ? done : smootherstep(r / downT) };
     }
 
     function pointAt(seconds) {
@@ -783,12 +987,13 @@
       samples.push({ x: point.x, y: point.y });
     }
 
-    const launchSpeed = Math.sqrt(2 * g * upWorld);
-    const impactSpeed = Math.sqrt(2 * g * downWorld);
+    // (the camera leg of "c" / "d" covers distance + scroll in its time from or to rest: its end speed is twice its average)
+    const launchSpeed = shareCamera && upward ? (2 * (upDistance + scrollAbs)) / upT : Math.sqrt(2 * g * upWorld);
+    const impactSpeed = shareCamera && !upward ? (2 * (downDistance + scrollAbs)) / downT : Math.sqrt(2 * g * downWorld);
 
     return {
       mode: "phone-bounce",
-      camera: pageCamera ? "page" : "screen",
+      camera: fall,
       duration: total,
       length: upDistance + downDistance,
       speed: (upDistance + downDistance) / total,
@@ -800,7 +1005,7 @@
       worldAt: function (seconds) {
         const point = pointAt(seconds);
 
-        return pageCamera ? { x: point.x, y: point.y + scrollProgressAt(seconds) * scrollSigned } : point;
+        return pageCamera || shareCamera ? { x: point.x, y: point.y + scrollProgressAt(seconds) * scrollSigned } : point;
       },
       launchSpeed: launchSpeed,
       impactSpeed: impactSpeed,
@@ -996,18 +1201,28 @@
 
   /* ------------------------------------------------------------------ trajectory debug overlay (off unless asked for) */
 
-  function cameraMode() {
+  function fallMode() {
     try {
-      const wanted = new URLSearchParams(window.location.search).get("navcam");
+      const params = new URLSearchParams(window.location.search);
+      const wanted = params.get("fall");
+      const legacy = params.get("navcam");
 
-      if (wanted === "page" || wanted === "screen") {
+      if (wanted === "a" || wanted === "b" || wanted === "c" || wanted === "d") {
         return wanted;
+      }
+
+      if (legacy === "screen" || legacy === "page") {
+        return legacy === "screen" ? "a" : "b";
       }
     } catch (error) {
       // no URLSearchParams: the default
     }
 
-    return NAV_BALL_CAMERA;
+    return NAV_BALL_FALL;
+  }
+
+  function fallSeconds(distance) {
+    return clamp(FALL_SECONDS_BASE + distance / FALL_PX_PER_SECOND, FALL_SECONDS_MIN, FALL_SECONDS_MAX);
   }
 
   function trajectoryDebugRequested() {
@@ -2361,8 +2576,8 @@
         const upward = scrollTarget < scrollStart - 1; // the destination is above: scroll during the rise, not the fall
 
         path = isPhone ?
-          planPhoneBounce(A0, F, z, safeTop, upward, gravity, scrollTarget - scrollStart, cameraMode()) :
-          planBezierPath(A0, F, z, safeTop, scrollTarget - scrollStart, upward, gravity, cameraMode());
+          planPhoneBounce(A0, F, z, safeTop, upward, gravity, scrollTarget - scrollStart, fallMode()) :
+          planBezierPath(A0, F, z, safeTop, scrollTarget - scrollStart, upward, gravity, fallMode());
         mainMs = Math.max(1, launchContactMs + path.duration * 1000); // the anticipation squash at A, then the flight
 
         // the landing bounces: the first rises to what the impact gives back (restitution^2 x the fall), within LAND_FIRST_* x z; each next
