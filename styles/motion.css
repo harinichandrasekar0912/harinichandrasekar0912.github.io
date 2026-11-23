@@ -836,6 +836,12 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   text-decoration: none;
 }
 
+/* the focus ring keeps the page's usual 4 px from what is drawn (the 32 px circle), not from the 44 px tap area around it: two rings
+   10 px apart read as a target */
+.contact-links a:focus-visible {
+  outline-offset: calc((var(--contact-icon-size) - var(--contact-tap)) / 2 + var(--focus-offset));
+}
+
 .contact-icon-placeholder {
   transition:
     border-color var(--duration-fast) var(--ease-standard),
