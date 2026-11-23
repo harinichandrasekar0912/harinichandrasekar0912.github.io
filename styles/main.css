@@ -73,9 +73,9 @@
 
   /* the navigation's own sequence (scripts/navigation-ball.js times the spokes and the ball against these; change them together) */
   --nav-blink: 120ms; /* a linear cut in or out */
-  --nav-draw: 500ms; /* the ring draws, then the spokes and the black disc arrive */
+  --nav-draw: 360ms; /* the ring draws, then the spokes and the black disc arrive */
   --nav-pop: 440ms; /* each circle pops in ... */
-  --nav-pop-after: 940ms; /* ... starting once the drawing is done */
+  --nav-pop-after: 700ms; /* ... as its spoke reaches it (the whole fan is open in ~1.25 s; it was ~1.5 s) */
   --nav-choose: 900ms; /* the chosen circle shrinks into the ball */
   --nav-restore: 420ms; /* the plus comes back after a trip */
 

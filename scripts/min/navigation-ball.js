@@ -1,4 +1,4 @@
-/* scripts/navigation-ball.js (source 16fa5cfa342d7753), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/navigation-ball.js (source 7a00acadf1a13944), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 const NAV_BALL_PATH_MODE = "bezier";
@@ -52,6 +52,7 @@ const PHONE_MENU_SPOKE_DURATION = 780;
 const PHONE_MENU_SPOKE_STAGGER = 100;
 const PHONE_MENU_SPOKE_EASE = "cubic-bezier(0.3, 0.1, 0.2, 1)";
 const PHONE_MENU_READY_DELAY = 1270;
+const SPOKE_GAP = 7;
 const SECTION_IDS = ["landing", "about", "work", "archive", "contact"];
 const SECTION_INDEX = { landing: 0, about: 1, work: 2, archive: 3, contact: 4 };
 const STATES = {
@@ -809,6 +810,7 @@ let isPhoneNavOpening = false;
 let isPhoneNavOpen = false;
 let closeOnBlurTimer = 0;
 let phoneMenuReadyTimer = 0;
+let menuClosingTimer = 0;
 let resetTimer = 0;
 let sectionFrame = 0;
 let navGeometryFrame = 0;
@@ -1171,14 +1173,14 @@ return maskParts;
 }
 function playSpokeDraw(options) {
 const staged = Boolean(options && options.staged);
-const duration = reducedMotion.matches ? 1 : staged ? PHONE_MENU_SPOKE_DURATION : 560;
+const duration = reducedMotion.matches ? 1 : staged ? PHONE_MENU_SPOKE_DURATION : 460;
 ["about", "work", "archive", "contact"].forEach(function (label, index) {
 const maskParts = spokeMasks[label];
 if (!maskParts) {
 return;
 }
 maskParts.drawLine.style.transition = "stroke-dashoffset " + duration + "ms " + (staged ? PHONE_MENU_SPOKE_EASE : "cubic-bezier(0.22, 1, 0.36, 1)");
-maskParts.drawLine.style.transitionDelay = reducedMotion.matches ? "0ms" : staged ? index * PHONE_MENU_SPOKE_STAGGER + "ms" : 520 + index * 38 + "ms";
+maskParts.drawLine.style.transitionDelay = reducedMotion.matches ? "0ms" : staged ? index * PHONE_MENU_SPOKE_STAGGER + "ms" : 380 + index * 38 + "ms";
 maskParts.drawLine.style.strokeDashoffset = "0";
 });
 }
@@ -1196,18 +1198,28 @@ measuredSpokeOriginY: coreRect.top
 function updateSpokeGeometry(options) {
 const resetDraw = Boolean(options && options.resetDraw);
 const plus = readPlusGeometry();
-const originX = plus.measuredSpokeOriginX;
-const originY = plus.measuredSpokeOriginY;
+const plusRadius = core.offsetWidth / 2;
 spokes.setAttribute("viewBox", "0 0 " + window.innerWidth + " " + window.innerHeight);
 spokes.setAttribute("width", String(window.innerWidth));
 spokes.setAttribute("height", String(window.innerHeight));
 items.forEach(function (button) {
 const label = originalTarget(button);
 const line = lines[label];
-const point = centerOf(button);
+const centre = centerOf(button);
 if (!line) {
 return;
 }
+const dx = centre.x - plus.measuredPlusCentreX;
+const dy = centre.y - plus.measuredPlusCentreY;
+const distance = Math.max(1, Math.hypot(dx, dy));
+const startOffset = Math.min(distance / 2, plusRadius + SPOKE_GAP);
+const endOffset = Math.min(distance / 2, button.offsetWidth / 2 + SPOKE_GAP);
+const originX = plus.measuredPlusCentreX + (dx / distance) * startOffset;
+const originY = plus.measuredPlusCentreY + (dy / distance) * startOffset;
+const point = {
+x: centre.x - (dx / distance) * endOffset,
+y: centre.y - (dy / distance) * endOffset
+};
 const length = Math.max(1, Math.hypot(point.x - originX, point.y - originY));
 const maskParts = ensureSpokeMask(label);
 maskParts.length = length;
@@ -1260,6 +1272,14 @@ return;
 }
 const staged = Boolean(options && options.staged);
 window.clearTimeout(closeOnBlurTimer);
+window.clearTimeout(menuClosingTimer);
+nav.classList.remove("is-menu-closing");
+if (!open && isOpen && !reducedMotion.matches && parseFloat(window.getComputedStyle(items[0].parentElement).opacity) > 0.5) {
+nav.classList.add("is-menu-closing");
+menuClosingTimer = window.setTimeout(function () {
+nav.classList.remove("is-menu-closing");
+}, 260);
+}
 if (!open) {
 clearPhoneMenuState();
 }
@@ -2001,7 +2021,8 @@ chooseDestination(item);
 });
 });
 document.addEventListener("click", function (event) {
-if (!nav.contains(event.target) && isOpen && !isTravelling) {
+const outside = !nav.contains(event.target) || event.target === nav || event.target === menu;
+if (outside && isOpen && !isTravelling) {
 setOpen(false);
 }
 });

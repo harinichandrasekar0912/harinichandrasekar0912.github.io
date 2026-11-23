@@ -86,7 +86,7 @@ html.is-ball-animating {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   transition:
-    stroke-dashoffset var(--nav-draw) linear,
+    stroke-dashoffset var(--nav-draw) var(--ease-quiet),
     opacity var(--nav-blink) linear;
 }
 
@@ -178,24 +178,21 @@ html.is-ball-animating {
     transform var(--duration-medium) var(--ease-standard);
 }
 
+/* the keyboard's mark: the page's focus ring (one ink hairline, 4px clear of the circle), drawn as a ring so it scales with the circle.
+   A mouse gets no ring: the circle turning to ink is its whole answer (the old faint grey halo around it read as a smudge). */
 .radial-item button::after {
   content: "";
   position: absolute;
-  inset: -5px;
-  border: var(--hairline) solid var(--color-line-strong);
+  inset: calc(-1 * (var(--focus-offset) + var(--hairline)));
+  border: var(--hairline) solid var(--color-ink);
   border-radius: var(--radius-circle);
   opacity: 0;
-  transform: scale(0.88); /* its timing is set with the other parts of the plus, below */
+  transform: scale(0.94); /* its timing is set with the other parts of the plus, below */
 }
 
 /* a circle answers a mouse or the keyboard by turning to ink; on a touch screen the tap itself starts the trip, so there is no hover
    look to get stuck on */
 @media (hover: hover) {
-  .radial-item button:hover::after {
-    opacity: 0.16;
-    transform: scale(1);
-  }
-
   .radial-item button:hover {
     background: var(--color-ink);
     border-color: var(--color-ink);
@@ -205,7 +202,7 @@ html.is-ball-animating {
 }
 
 .radial-item button:focus-visible::after {
-  opacity: 0.16;
+  opacity: 1;
   transform: scale(1);
 }
 
@@ -288,6 +285,25 @@ html.is-ball-animating {
   pointer-events: auto;
 }
 
+/* With a mouse the open menu only holds the fan around the plus (the circles and the paper between them and the plus), not the whole
+   window: moving the pointer away closes it (scripts/navigation-ball.js pointerleave) and a click elsewhere on the page reaches the page.
+   It used to cover the whole window while open, so the menu stayed open until Escape or a choice, and nothing under it could be clicked.
+   Touch screens keep the whole-window layer: a tap outside the menu closes it without also pressing whatever lies under it.
+   No transform here: the circles are position: fixed and must stay placed against the window. */
+@media (hover: hover) and (pointer: fine) and (min-width: 768px) {
+  .nav-object.is-open {
+    pointer-events: none;
+  }
+
+  .radial-menu {
+    inset: auto;
+    left: calc(50% - 11.5rem);
+    bottom: 0;
+    width: 23rem;
+    height: calc(var(--nav-bottom-buffer) + var(--plus-circle-size) / 2 + 234px);
+  }
+}
+
 .nav-object.is-open .radial-item,
 .nav-object.is-choosing .radial-item {
   opacity: 1;
@@ -300,6 +316,23 @@ html.is-ball-animating {
 
 .nav-object.is-choosing .radial-item {
   animation: none;
+}
+
+/* closing (scripts/navigation-ball.js adds .is-menu-closing for a moment): the circles fade and settle a little where they are, quicker
+   than they came; the black disc goes first and the plus draws back in just behind it, so the two never sit on top of each other as a
+   grey blot */
+.nav-object.is-menu-closing:not(.is-open) .radial-item {
+  animation: radialOut 200ms var(--ease-standard) both;
+}
+
+.nav-object:not(.is-open):not(.is-project-close) .nav-core::after,
+.nav-object:not(.is-open):not(.is-project-close) .nav-ring {
+  transition-duration: var(--duration-fast);
+}
+
+.nav-object:not(.is-open):not(.is-choosing):not(.is-project-close) .plus-stem,
+.nav-object:not(.is-open):not(.is-choosing):not(.is-project-close) .plus-arm {
+  transition-delay: 90ms;
 }
 
 .nav-object.is-open .nav-core::after {
@@ -905,6 +938,18 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   100% {
     opacity: 1;
     transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(1);
+  }
+}
+
+@keyframes radialOut {
+  0% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--item-x)), var(--item-y)) scale(0.94);
   }
 }
 
