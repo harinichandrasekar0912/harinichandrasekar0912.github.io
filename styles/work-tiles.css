@@ -293,6 +293,15 @@
   transform-origin: right center;
 }
 
+/* without the leader line the caption is tied to its picture by position alone: it stands closer to the slab's tip (the line's old
+   length is no longer kept as empty space; 39 px at 1486, was 63) and the baseline of its last line sits on the slab's bottom edge,
+   like a label under a drawing */
+[data-tiles="cantilever"] .work-caption {
+  --lead-gap: 0px;
+  --lead: clamp(1.75rem, 2.6vw, 3rem);
+  bottom: calc(var(--text-xs) * -0.45);
+}
+
 [data-tiles="cantilever"] .work-title {
   margin: var(--space-2) 0 0;
   font-size: clamp(1.25rem, 0.8rem + 1.2vw, 2.1rem);
