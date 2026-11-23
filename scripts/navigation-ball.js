@@ -70,7 +70,7 @@
   const UP_POST_PX_PER_SECOND = 300;
   const UP_POST_MIN_SECONDS = 0.5;
   const UP_POST_MAX_SECONDS = 2;
-  const POST_APEX_ARC_SECONDS = 0.6; // time allowed for the arc's way down from the top to the drop, on top of the drop's own time ...
+  const POST_APEX_ARC_SECONDS = 0.4; // time allowed for the arc's way down from the top to the drop, on top of the drop's own time ...
   const POST_APEX_MAX_SECONDS = 2.4; // ... with everything after the top capped at this
   const RISE_EASE_SHARE = 0.35; // the climb keeps MAIN_PATH_SPEED and slows down only over its last 35 % (60 - 220 px) towards the top
   const RISE_EASE_MIN = 60;
@@ -564,10 +564,12 @@
   }
 
   /* ---- phone main path: one big vertical bounce -------------------------------------------------------------------------------------
-   *   A -> apex (ease-out cubic: fast start, visibly slowing to ~0) -> a short hang (PHONE_APEX_HANG) -> B (ease-in cubic: starts slowly,
+   *   A -> apex (constant deceleration, like gravity: fast start, slowing to 0) -> a short hang (PHONE_APEX_HANG) -> B (constant
+   *   acceleration, like gravity: starts slowly,
    *   speeds up and hits B with momentum, then the first landing bounce takes over). x never changes (B.x = A.x).
    *   The two legs get their own durations (the climb and the drop differ whenever A and B are at different heights).
-   * Scroll: none during the climb and the hang; the page scrolls (smootherstep) only while the ball falls, and arrives exactly as it lands. */
+   * Scroll (smootherstep): downward trips scroll only while the ball falls (arriving exactly as it lands); upward trips scroll only while it
+   * rises, then the hang and the fall happen with the page still. */
   function planPhoneBounce(A, B, phoneZ, safeTop, upward) {
     const topY = Math.min(A.y, B.y);
     const wantedLift = clamp(phoneZ * PHONE_MAIN_LIFT_FACTOR, PHONE_MAIN_LIFT_MIN, PHONE_MAIN_LIFT_MAX);
@@ -587,7 +589,9 @@
       }
 
       if (ms < upMs) {
-        return { x: A.x, y: mix(A.y, apex.y, easeOutCubic(ms / upMs)) };
+        const u = ms / upMs;
+
+        return { x: A.x, y: mix(A.y, apex.y, u * (2 - u)) };
       }
 
       if (ms < upMs + hangMs) {
@@ -597,7 +601,7 @@
       if (ms < totalMs) {
         const t = (ms - upMs - hangMs) / downMs;
 
-        return { x: A.x, y: mix(apex.y, B.y, t * t * t) };
+        return { x: A.x, y: mix(apex.y, B.y, t * t) };
       }
 
       return { x: A.x, y: B.y };
