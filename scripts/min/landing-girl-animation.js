@@ -1,4 +1,4 @@
-/* scripts/landing-girl-animation.js (source 75dd74db2a0041a1), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/landing-girl-animation.js (source dcea09000a91a2ff), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 var GA = (window.__landingGirl = window.__landingGirl || {});
@@ -1481,6 +1481,7 @@ waistH: 292, shoulderH: 350, neckBaseH: 372, neckTopH: 402,
 shoulderC: 44,
 armU: 68, armF: 58,
 foreBeta: 0.55,
+spreadBend: 12, spreadHand: [0.25, 0.7, -0.65, 0.6],
 handOut: -0.22,
 ele: 0.15,
 headPivot: [-7, 0, -41.5],
@@ -1504,7 +1505,7 @@ runRho: 0.36, runQ1: 0.05, runQ2: 0.2, runLift: 52, runLean: 17, runPelvis: 233,
 runArmFwd: 52, runArmBack: -40, runGammaFwd: 95, runGammaBack: 72,
 runKick: [-222, 105, -55], runKickU: 0.375, runFwd: [60, 70, 6], runXoff: 0, runPelvisF: 0, runHead: 11, runBendH: 30, runLeanDeg: 18, runLean0: 0.4, idleChest: 5.2, idleSway: 10, idleSwayF: 8, idleRoll: 0.22, idleNod: 0.08, shrugAmp: 4.5, idleBeat: 1, idleScript: 1, ideaT: [6.95, 7.95, 2.4, 10.9], dizzyC: 12, dizzyF: 9, hopAbsorb: 14,
 thinkHand: [30, -44, -58], thinkPole: [0.1, -1, -0.9],
-mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], clutchAt: [6, 46, 24], reachAt: [70, 14, -110], reachPole: [0.9, 0.3, -0.2], scratchHz: 6.5, scratchAmp: [8, 11], scratchAt: [0, -18, 51], paw: [18, 135, 16], pelvisSmooth: 20, liftPow: 1.6, swingTan: 1, swingTan1: 1, liftSkew: 0.35, walkDrop: 0, bobH2: 0, bobH2ph: 0, bobPh: 0.27, hipSway: 2.2, shoulderCounter: 1.9, handLag: 0, headNod: 2, headTilt: 0, hemBounce: 0, headMorph: 0, headMorph0: 1, headW: 0.88, freezeBack: 6, bowDeg: 35, twistDeg: 52, chestHand: [18, -9, -20], chestPole: [-0.25, -1, -0.45], stepLift: 11, firstLift: 16, firstHeel: 16, turnLift: 8, armIdleM: 0.25, armIdleGP: 0.5, sleeveR: [11.4, 10], sleeveRS: [13.5, 12], sleeveL: 26, neckShort: 0.88, shDrop: -3, armOut: 6, kneeSoft: 0.008, hemTiltA: 7.5, walkChest: 2.4, headBob: 2.6, pelvTilt: 3, hemFlutter: 1.8, shLag: 0.07, armLag: 0.035, foreLag: 0.11, headLag: 0.15, spineAmp: 3.4, spineLag: 0.1, asym: 1,
+mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], clutchAt: [6, 46, 24], reachAt: [70, 14, -110], reachPole: [0.9, 0.3, -0.2], scratchHz: 6.5, scratchAmp: [8, 11], scratchAt: [0, -18, 51], scratchVia: [5, -135, 25], paw: [18, 135, 16], pelvisSmooth: 20, liftPow: 1.6, swingTan: 1, swingTan1: 1, liftSkew: 0.35, walkDrop: 0, bobH2: 0, bobH2ph: 0, bobPh: 0.27, hipSway: 2.2, shoulderCounter: 1.9, handLag: 0, headNod: 2, headTilt: 0, hemBounce: 0, headMorph: 0, headMorph0: 1, headW: 0.88, freezeBack: 6, bowDeg: 35, twistDeg: 52, chestHand: [18, -9, -20], chestPole: [-0.25, -1, -0.45], stepLift: 11, firstLift: 16, firstHeel: 16, turnLift: 8, armIdleM: 0.25, armIdleGP: 0.5, sleeveR: [11.4, 10], sleeveRS: [13.5, 12], sleeveL: 26, neckShort: 0.88, shDrop: -3, armOut: 6, kneeSoft: 0.008, hemTiltA: 7.5, walkChest: 2.4, headBob: 2.6, pelvTilt: 3, hemFlutter: 1.8, shLag: 0.07, armLag: 0.035, foreLag: 0.11, headLag: 0.15, spineAmp: 3.4, spineLag: 0.1, asym: 1,
 femWeight: 1, femPeriod: 14, femShift: 10, femRoll: 8, femCounter: 11, femHead: 0.5, femChest: 4, femFoot: [13, 9, 14], femHand: [3, 60, -25], femHandPole: [-0.1, 1, -0.1], peekSpread: 0.75, peekNeck: 12, peekLean: 58, peekHead: 72, peekYaw: 0.2, peekHand: [20, -22, -60], peekPelvisF: 52, peekLegBack: 140, peekHemF: 140, peekHemTilt: 18, peekPole: [0.8, -0.3, -0.5], runBobK: [[0, 0.3], [0.2, -0.536], [0.35, -0.7], [0.5, 0.1], [0.62, 0.85], [0.78, 1.1], [0.9, 0.75]], runLeanK: 0.06, runHemF: 16, runHemTilt: 5, runHemLift: 0.6, runSpread: 0.06, runTilt: [0, 0, 0, 0], runShift: [0, 0, 0],
 runKeyed: false, runLegK: 0, runArmK: 0, runShoulderBack: 0, runShoulderFwd: 0, runPelvisPitch: -6, runCrownK: 0, runWaistK: 0, runNeckK: 0,
 runArmA: [52, 95], runArmB: [-40, 72],
@@ -1953,6 +1954,8 @@ gamma += rad(24) * min(1, max(sq, 0)) * (1 - air) * (1 - run);
 alpha -= rad(36) * min(1, max(sq, 0)) * (1 - air) * (1 - 0.7 * run);
 if (sq < 0) { var sqn2 = -sq; alpha += sqn2 * sstep(0, 0.12, sqn2) * rad(70); }
 if (S.e3 > 0) { alpha += rad(11) * S.e3; beta += rad(9) * S.e3; }
+var spA = S.spread * (1 - sstep(0, 0.5, S.burst)) * (1 - run);
+gamma += rad(C.spreadBend) * spA;
 if (S.dzy > 0) { var dzw = 0.8 * S.dzy; alpha = lerp(alpha, rad(34) + rad(14) * side * S.dS1, dzw); beta = lerp(beta, rad(34), dzw); gamma = lerp(gamma, rad(22), 0.6 * S.dzy); }
 if (hunch > 0) {
 alpha = lerp(alpha, rad(C.paw[0]), hunch * 0.9); gamma = lerp(gamma, rad(C.paw[1]), hunch * 0.9); beta = lerp(beta, rad(C.paw[2]), hunch * 0.8);
@@ -2010,6 +2013,7 @@ var arm = { side: side, S: Ssh, E: E, W: W, fw: fw, hd: v3norm(v3add(d2, K.mVec(
 arm.fist = max(hunch * 0.7, 0.5 * air, C.jHand * jr); arm.scrW = 0; arm.scrPh = 0;
 if (jr > 0) arm.hd = v3norm(v3lerp(arm.hd, v3mad(d2, K.mVec(Rarm, 0, 0, 1), C.jWristUp), jr));
 if (hdW) { arm.hd = v3norm(v3lerp(arm.hd, hdW, wvF)); arm.fist *= 1 - wvF; }
+if (spA > 0) arm.hd = v3norm(v3lerp(arm.hd, K.mVec(Rarm, C.spreadHand[0], side * C.spreadHand[1], C.spreadHand[2]), C.spreadHand[3] * spA));
 arm.openW = max(max(S.spread, 0.85 * sstep(0, 1, S.shrugX), side === 1 ? sstep(0.1, 0.7, S.wave) : 0) * (1 - 0.8 * run), C.jOpen * jr);
 if (side === -1 && (scr > 1e-3 || P.think > 1e-3 || S.pk > 1e-3 || P.chestHand > 1e-3 || P.poke > 1e-3 || P.clutch > 1e-3)) applyArmTargets(S, arm, P, scr);
 if (side === 1 && S.femK * S.yawS > 1e-3) applyFemArm(S, arm, S.femK * S.yawS);
@@ -2105,11 +2109,11 @@ if (scr > 1e-3) {
 var T = P.scratchT, w2 = sstep(0, 1, min(1, scr)), rw = sstep(0.25, 0.7, scr), pr = TAU * C.scratchHz * T, pe = pr * 0.5;
 var palm = K.fApply(Fh, C.scratchAt[0] + sin(pr) * C.scratchAmp[0] * rw, C.scratchAt[1] + cos(pr) * C.scratchAmp[1] * rw, C.scratchAt[2] + 2.5 * sin(pr + 1) * rw);
 var dirH = v3norm(v3add(K.mVec(Fh.R, 0.1, 0.5, 0.86), K.mVec(Fh.R, 0, 0.28 * cos(pr + 0.6) * rw, 0.1 * sin(pr) * rw)));
-Wt = v3lerp(Wt, v3mad(palm, dirH, -13), w2);
-Wt = v3add(Wt, [0, -20 * sin(PI * w2), 0]);
+var scM = K.fApply(S.torsoF[SH_IDX], C.scratchVia[0], C.scratchVia[1], C.scratchVia[2]), scT = v3mad(palm, dirH, -13);
+Wt = v3lerp(v3lerp(Wt, scM, w2), v3lerp(scM, scT, w2), w2);
 pole = v3lerp(pole, [-0.25 + 0.45 * sin(pe), -1.0, 0.15 + 0.6 * cos(pe)], w2);
 hd = v3norm(v3lerp(hd, dirH, w2));
-fist = max(fist, w2); arm.scrW = sstep(0.2, 0.85, scr); arm.scrPh = pr;
+fist = max(fist, w2); arm.scrW = sstep(0.55, 0.9, scr); arm.scrPh = pr;
 }
 if (S.pk > 1e-3) {
 var wk = S.pk, tap = Math.pow(max(0, sin(TAU * P.t / 2.7)), 3) * sin(TAU * 5.5 * P.t);
@@ -3566,7 +3570,7 @@ var ahaDip = bump(k, 2.39, 2.48, 2.5, 2.62), ahaPop = bump(k, 2.5, 2.74, 2.9, 3.
 var ahaGive = bump(k, 3.02, 3.12, 3.14, 3.3), ahaReb = bump(k, 3.24, 3.34, 3.36, 3.56);
 sq += 0.11 * ahaDip - 0.1 * ahaPop - 0.035 * ahaOver + 0.06 * ahaGive - 0.025 * ahaReb;
 hp += -0.12 * ahaDip + 0.1 * ahaPop + 0.04 * ahaOver; hr += 0.17 * ahaPop - 0.1 * bump(k, 3.0, 3.22, 3.36, 3.75);
-p.spread = Math.max(p.spread, 0.85 * ahaPop);
+p.spread = Math.max(p.spread, 0.85 * bump(k, 2.48, 2.74, 2.9, 3.3));
 p.poke = bump(k, 3.0, 3.6, 4.3, 5.0);
 hy += 0.3 * p.poke; hp += 0.25 * p.poke;
 hr -= 0.22 * bump(k, 4.9, 5.3, 5.7, 6.3);
@@ -3587,7 +3591,7 @@ hr -= 0.24 * p.clasp;
 sq += 0.07 * bump(k, 12.36, 12.45, 12.47, 12.56);
 var burst = U.smoothstep(12.44, 12.78, k) * (1 - 0.55 * U.smoothstep(12.95, 13.3, k)) + 0.5 * bump(k, 13.35, 13.55, 13.7, 14.0);
 burst *= 1 - U.smoothstep(14.4, 15.0, k);
-p.burst = Math.max(p.burst, burst); p.spread = Math.max(p.spread, U.smoothstep(12.42, 12.62, k) * (1 - U.smoothstep(14.55, 15.0, k)));
+p.burst = Math.max(p.burst, burst); p.spread = Math.max(p.spread, U.smoothstep(12.42, 12.62, k) * (1 - U.smoothstep(14.35, 14.7, k)));
 p.flutter = Math.max(p.flutter, U.smoothstep(12.75, 13.0, k) * (1 - U.smoothstep(14.3, 14.8, k)));
 var joy = U.smoothstep(12.45, 12.75, k) * (1 - U.smoothstep(14.6, 15.4, k));
 hp += 0.32 * U.smoothstep(12.46, 12.66, k) * (1 - U.smoothstep(12.9, 13.4, k)) + 0.12 * joy;
@@ -3600,7 +3604,7 @@ hr += 0.18 * U.smoothstep(17.9, 18.4, k) * (1 - U.smoothstep(K_BALL + 0.1, K_BAL
 var spot = U.smoothstep(K_BALL + 0.1, K_BALL + 0.3, k) * (1 - U.smoothstep(K_HIT - 0.18, K_HIT - 0.04, k));
 hy = U.lerp(hy, -0.6, spot); hp = U.lerp(hp, 0.6 + 0.35 * U.smoothstep(K_BALL + 0.3, K_HIT - 0.3, k), spot); hr = U.lerp(hr, -0.15, spot);
 sq -= 0.1 * bump(k, K_BALL + 0.45, K_BALL + 0.6, K_BALL + 0.75, K_BALL + 1.05);
-p.handsFree = U.smoothstep(K_BALL + 0.3, K_BALL + 0.85, k) * (1 - U.smoothstep(K_HIT + 0.9, K_HIT + 1.7, k));
+p.handsFree = Math.max(bump(k, 14.2, 14.35, 15.1, 15.5), U.smoothstep(K_BALL + 0.3, K_BALL + 0.85, k) * (1 - U.smoothstep(K_HIT + 0.9, K_HIT + 1.7, k)));
 p.headYaw = U.clamp(hy, -1, 1); p.headPitch = U.clamp(hp, -1, 1); p.headRoll = U.clamp(hr, -1, 1);
 p.squash += sq; p.air = air; p.y = G + y; p.flinch = Math.max(p.flinch, fl); p.dizzy = Math.max(p.dizzy, dz); p.chestHand = Math.max(p.chestHand, ch);
 }
@@ -3673,7 +3677,7 @@ p.headYaw = U.lerp(p.headYaw, 0.95 * env * Math.sin(sK * Math.PI * 4.0), kS);
 p.headRoll = U.lerp(p.headRoll, 0.15 * env * Math.sin(sK * Math.PI * 4.0 + 1.4), kS);
 p.headPitch = U.lerp(p.headPitch, -0.1 * env, kS);
 }
-var shr = bump(t, SH1 - 0.1, SH1 + 0.22, c.turnLeft0 + 0.15, c.turnLeft0 + 0.55);
+var shr = bump(t, SH1 - 0.1, SH1 + 0.22, c.turnLeft0 + 0.02, c.turnLeft0 + 0.4);
 p.shrug = Math.max(p.shrug, shr); p.headRoll = U.lerp(p.headRoll, 0.3, shr); p.headPitch = U.lerp(p.headPitch, -0.12, shr); p.headYaw = U.lerp(p.headYaw, 0.15, 0.8 * shr);
 if (t >= c.turnLeft0) {
 var tl = turnLeftAt(t, p.headYaw), tb = U.smoothstep(c.turnLeft0, c.turnLeft0 + 0.3, t);
