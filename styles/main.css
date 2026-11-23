@@ -136,6 +136,10 @@ html {
   background: var(--color-paper);
   color: var(--color-ink);
   scroll-behavior: smooth;
+  /* whatever the browser scrolls into view by itself (the next field or link reached with Tab, the skip link's jump) stops clear of the
+     paper fades at the top and bottom of the screen and of the navigation plus: Tab used to leave the contact links half faded, just
+     under the plus. The navigation's own trips set the scroll themselves and are not affected. */
+  scroll-padding-block: clamp(72px, 12vh, 150px) clamp(84px, 14vh, 170px);
   text-size-adjust: 100%;
   /* No classic scrollbar: it used to vanish whenever a project opened (and come back when it closed), which shifted the whole
      page and the navigation ball sideways by half a scrollbar. Scrolling itself (wheel, touch, keys, the nav) is unchanged. */
