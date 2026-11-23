@@ -622,7 +622,10 @@
       // screen camera. downward: the page stays still during the arc and scrolls only during the straight drop. upward: it scrolls only
       // during the straight rise (done just before the arc begins), then stays still for the arc and the short fall
       if (upward) {
-        return riseSeconds > 0 ? smootherstep(seconds / (riseSeconds * UP_SCROLL_END_SHARE)) : 1;
+        // (done at 92 % of the rise, and at least 60 ms before the arc, so a late frame never mixes the scroll with sideways movement)
+        const scrollEnd = Math.max(Math.min(riseSeconds * UP_SCROLL_END_SHARE, riseSeconds - 0.06), riseSeconds * 0.6);
+
+        return riseSeconds > 0 ? smootherstep(seconds / scrollEnd) : 1;
       }
 
       return seconds <= arcSeconds ? 0 : smootherstep((seconds - arcSeconds) / Math.max(duration - arcSeconds, 1e-6));
