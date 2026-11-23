@@ -1,4 +1,4 @@
-/* scripts/main.js (source c3a030ca866e8238), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/main.js (source 9d8b5ea7f8b205cf), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 var SCRIPT_DIR = (document.currentScript && document.currentScript.src ? document.currentScript.src.replace(/[^\/]*$/, "") : "") || "scripts/";
 const CONTACT_FORM_ENDPOINT = "https://formspree.io/f/mwlpdepp";
@@ -621,6 +621,52 @@ whenIdle();
 window.addEventListener("load", whenIdle, { once: true });
 }
 }
+function initWarmImages() {
+var started = false;
+function warm() {
+if (started) {
+return;
+}
+started = true;
+var queue = Array.prototype.slice.call(document.querySelectorAll("#about img, #work img, #archive img")).filter(function (img) {
+return img.getAttribute("loading") === "lazy";
+});
+function next() {
+var img = queue.shift();
+if (!img) {
+return;
+}
+img.setAttribute("loading", "eager");
+var done = function () {
+var later = window.requestIdleCallback || function (cb) { return window.setTimeout(cb, 120); };
+later(next);
+};
+if (img.complete && img.naturalWidth) {
+(img.decode ? img.decode() : Promise.resolve()).then(done, done);
+} else {
+img.addEventListener("load", function () {
+(img.decode ? img.decode() : Promise.resolve()).then(done, done);
+}, { once: true });
+img.addEventListener("error", done, { once: true });
+}
+}
+next();
+}
+function afterLoad() {
+window.setTimeout(function () {
+if (window.requestIdleCallback) {
+window.requestIdleCallback(warm, { timeout: 3000 });
+} else {
+warm();
+}
+}, 1500);
+}
+if (document.readyState === "complete") {
+afterLoad();
+} else {
+window.addEventListener("load", afterLoad, { once: true });
+}
+}
 document.addEventListener("DOMContentLoaded", function () {
 if (window.HariniNavigationBall) {
 window.HariniNavigationBall.init();
@@ -635,5 +681,6 @@ initImageVignette();
 initPlusDisc();
 initContactLinks();
 initThemeColour();
+initWarmImages();
 });
 })();

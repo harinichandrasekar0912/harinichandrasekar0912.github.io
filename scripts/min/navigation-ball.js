@@ -1,4 +1,4 @@
-/* scripts/navigation-ball.js (source 574117e4dd96f650), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/navigation-ball.js (source 2236ed8f2ecbf04e), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 const NAV_BALL_PATH_MODE = "bezier";
@@ -42,7 +42,7 @@ const UP_POST_BASE_SECONDS = 0.3;
 const UP_POST_PX_PER_SECOND = 300;
 const UP_POST_MIN_SECONDS = 0.5;
 const UP_POST_MAX_SECONDS = 2;
-const POST_APEX_ARC_SECONDS = 0.6;
+const POST_APEX_ARC_SECONDS = 0.4;
 const POST_APEX_MAX_SECONDS = 2.4;
 const RISE_EASE_SHARE = 0.35;
 const RISE_EASE_MIN = 60;
@@ -408,14 +408,15 @@ if (ms <= 0) {
 return { x: A.x, y: A.y };
 }
 if (ms < upMs) {
-return { x: A.x, y: mix(A.y, apex.y, easeOutCubic(ms / upMs)) };
+const u = ms / upMs;
+return { x: A.x, y: mix(A.y, apex.y, u * (2 - u)) };
 }
 if (ms < upMs + hangMs) {
 return { x: A.x, y: apex.y };
 }
 if (ms < totalMs) {
 const t = (ms - upMs - hangMs) / downMs;
-return { x: A.x, y: mix(apex.y, B.y, t * t * t) };
+return { x: A.x, y: mix(apex.y, B.y, t * t) };
 }
 return { x: A.x, y: B.y };
 }
