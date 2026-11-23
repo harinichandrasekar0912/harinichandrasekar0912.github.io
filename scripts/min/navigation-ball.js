@@ -1,4 +1,4 @@
-/* scripts/navigation-ball.js (source 16fa5cfa342d7753), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/navigation-ball.js (source 6cbb5e091ceeba9b), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 const NAV_BALL_PATH_MODE = "bezier";
@@ -34,6 +34,9 @@ const PHONE_MAIN_LIFT_MIN = 84;
 const PHONE_MAIN_LIFT_MAX = 150;
 const PHONE_MAIN_LIFT_FLOOR = 28;
 const PHONE_APEX_HANG = 110;
+const ARCHIVE_STEP_FACTOR = 0.055;
+const ARCHIVE_STEP_MIN = 48;
+const ARCHIVE_STEP_MAX = 110;
 const LANDING_EDGE_BUFFER = 6;
 const LANDING_SCREEN_FRACTION = 0.2;
 const LANDING_SCREEN_FRACTION_MAX = 0.34;
@@ -1559,12 +1562,27 @@ debugInfo[flagName] = true;
 scrollInstantly(y);
 }
 }
+function archiveLandingX(fallbackX) {
+const bar = endPoint && endPoint.element;
+if (!bar) {
+return fallbackX;
+}
+const rect = bar.getBoundingClientRect();
+const style = window.getComputedStyle(bar);
+const minX = rect.left + parsePixel(style.borderTopLeftRadius) + radius + LANDING_EDGE_BUFFER;
+const maxX = Math.min(rect.right, window.innerWidth) - parsePixel(style.borderTopRightRadius) - radius - LANDING_EDGE_BUFFER;
+const wanted = A0.x + clamp(window.innerWidth * ARCHIVE_STEP_FACTOR, ARCHIVE_STEP_MIN, ARCHIVE_STEP_MAX);
+const x = clamp(Math.max(wanted, minX), minX, maxX);
+return maxX >= minX && x >= A0.x ? x : fallbackX;
+}
 function buildMainPath() {
 endPoint = targetPlatformFor(targetId);
 scrollTarget = resolveScrollTarget(endPoint, targetId, bounds);
 F = resolveFinalLandingPoint(endPoint, scrollTarget, targetId, bounds);
 if (isPhone) {
 F = { x: A0.x, y: F.y };
+} else if (targetId === "archive") {
+F = { x: archiveLandingX(F.x), y: F.y };
 }
 const safeTop = Math.max(radius + FLIGHT_TOP_MARGIN, 0);
 path = isPhone ? planPhoneBounce(A0, F, z, safeTop) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED, scrollTarget - scrollStart);
