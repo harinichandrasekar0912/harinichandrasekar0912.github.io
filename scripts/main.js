@@ -600,53 +600,199 @@
   }
 
   /*
-    The plus's paper disc (styles/motion.css, .nav-core::before) keeps it readable over a picture; over text it would hide letters and over
-    paper it is not needed. So .is-over-picture is set on the navigation only while a picture is under the centre of the plus. Cost: one hit
-    test per animation frame while the page scrolls or resizes (the plus's centre is measured only on resize), nothing when idle, and the class
-    is written only when the answer changes.
+    Over a dark picture the plus turns paper-coloured, exactly where it overlaps the picture: a paper copy of the plus (.plus-light, in
+    index.html) sits on top of the ink one and is clipped to the picture's edges, so a plus half over a picture is half paper, half ink.
+    Over a light picture (or over paper and text) the plus stays ink. Lightness is read once per picture from a 40 x 40 copy of it and
+    averaged under the plus. Cost: a few hit tests per animation frame while the page scrolls or resizes, nothing when idle, and the clip is
+    written only when it changes.
   */
   function initPlusDisc() {
     var nav = document.querySelector(".nav-object");
     var core = nav && nav.querySelector(".nav-core");
+    var light = core && core.querySelector(".plus-light");
     var PICTURE = "img, picture, video, canvas, .work-tile-media, .archive-bar, .about-portrait";
+    var GRID = 40;
+    var REACH = 11; /* half the plus's 22 px bars */
     var frame = 0;
-    var centre = null;
-    var over = false;
+    var box = null;
+    var clip = "";
+    var wasLight = new WeakMap();
+    var grids = {};
 
-    if (!core || !document.elementsFromPoint) {
+    if (!light || !document.elementsFromPoint) {
       return;
     }
 
     function measure() {
       var rect = core.getBoundingClientRect();
 
-      centre = rect.width ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null;
+      box = rect.width ? { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom,
+        x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null;
     }
 
-    function update() {
-      var hits;
-      var next = false;
+    function pictureAt(x, y) {
+      var hits = document.elementsFromPoint(x, y);
       var i;
-
-      frame = 0;
-
-      if (!centre) {
-        return;
-      }
-
-      /* the first thing under the plus that is not the navigation or the travelling ball decides */
-      hits = document.elementsFromPoint(centre.x, centre.y);
 
       for (i = 0; i < hits.length; i += 1) {
         if (!hits[i].closest(".nav-object, [data-travel-ball]")) {
-          next = Boolean(hits[i].closest(PICTURE));
-          break;
+          return hits[i].closest(PICTURE);
         }
       }
 
-      if (next !== over) {
-        over = next;
-        nav.classList.toggle("is-over-picture", over);
+      return null;
+    }
+
+    /* the picture's lightness, 0 to 1, as a 40 x 40 grid (null until the picture has arrived, or if it cannot be read) */
+    function gridOf(img) {
+      var src = img.currentSrc || img.src;
+      var canvas;
+      var context;
+      var data;
+      var values;
+      var i;
+
+      if (!src || !img.complete || !img.naturalWidth) {
+        return null;
+      }
+
+      if (grids[src] === undefined) {
+        grids[src] = null;
+
+        try {
+          canvas = document.createElement("canvas");
+          canvas.width = GRID;
+          canvas.height = GRID;
+          context = canvas.getContext("2d", { willReadFrequently: true });
+          context.drawImage(img, 0, 0, GRID, GRID);
+          data = context.getImageData(0, 0, GRID, GRID).data;
+          values = new Float32Array(GRID * GRID);
+
+          for (i = 0; i < values.length; i += 1) {
+            values[i] = (0.2126 * data[i * 4] + 0.7152 * data[i * 4 + 1] + 0.0722 * data[i * 4 + 2]) / 255;
+          }
+
+          grids[src] = values;
+        } catch (error) {
+          grids[src] = null;
+        }
+      }
+
+      return grids[src];
+    }
+
+    /* is the picture light under the plus? (with a little hysteresis so the plus does not flicker on mid-grey) */
+    function isLight(picture) {
+      var img = picture.tagName === "IMG" ? picture : picture.querySelector("img");
+      var grid;
+      var rect;
+      var fit;
+      var scale;
+      var width;
+      var height;
+      var left;
+      var top;
+      var u0;
+      var u1;
+      var v0;
+      var v1;
+      var sum = 0;
+      var count = 0;
+      var u;
+      var v;
+      var mean;
+      var before;
+
+      if (!img) {
+        return false;
+      }
+
+      grid = gridOf(img);
+
+      if (!grid) {
+        if (!img.complete) {
+          img.addEventListener("load", queueUpdate, { once: true });
+        }
+        return false;
+      }
+
+      rect = img.getBoundingClientRect();
+      fit = window.getComputedStyle(img).objectFit;
+      scale = fit === "cover" ? Math.max(rect.width / img.naturalWidth, rect.height / img.naturalHeight)
+        : fit === "contain" ? Math.min(rect.width / img.naturalWidth, rect.height / img.naturalHeight) : 0;
+      width = scale ? img.naturalWidth * scale : rect.width;
+      height = scale ? img.naturalHeight * scale : rect.height;
+      left = rect.left + (rect.width - width) / 2;
+      top = rect.top + (rect.height - height) / 2;
+      u0 = Math.max(0, Math.floor((box.x - REACH - left) / width * GRID));
+      u1 = Math.min(GRID - 1, Math.floor((box.x + REACH - left) / width * GRID));
+      v0 = Math.max(0, Math.floor((box.y - REACH - top) / height * GRID));
+      v1 = Math.min(GRID - 1, Math.floor((box.y + REACH - top) / height * GRID));
+
+      for (v = v0; v <= v1; v += 1) {
+        for (u = u0; u <= u1; u += 1) {
+          sum += grid[v * GRID + u];
+          count += 1;
+        }
+      }
+
+      if (!count) {
+        return false;
+      }
+
+      mean = sum / count;
+      before = wasLight.get(picture);
+      before = mean > (before ? 0.5 : 0.58);
+      wasLight.set(picture, before);
+      return before;
+    }
+
+    function update() {
+      var points;
+      var picture = null;
+      var best = 0;
+      var next = "inset(50%)";
+      var i;
+      var found;
+      var rect;
+      var area;
+
+      frame = 0;
+
+      if (!box) {
+        return;
+      }
+
+      /* the centre and the four tips of the plus: a picture under any of them counts */
+      points = [[box.x, box.y], [box.x - REACH, box.y], [box.x + REACH, box.y], [box.x, box.y - REACH], [box.x, box.y + REACH]];
+
+      for (i = 0; i < points.length; i += 1) {
+        found = pictureAt(points[i][0], points[i][1]);
+
+        if (found && found !== picture) {
+          rect = found.getBoundingClientRect();
+          area = Math.max(0, Math.min(rect.right, box.right) - Math.max(rect.left, box.left)) *
+            Math.max(0, Math.min(rect.bottom, box.bottom) - Math.max(rect.top, box.top));
+
+          if (area > best) {
+            best = area;
+            picture = found;
+          }
+        }
+      }
+
+      if (picture && !isLight(picture)) {
+        rect = picture.getBoundingClientRect();
+        next = "inset(" +
+          Math.max(0, rect.top - box.top).toFixed(1) + "px " +
+          Math.max(0, box.right - rect.right).toFixed(1) + "px " +
+          Math.max(0, box.bottom - rect.bottom).toFixed(1) + "px " +
+          Math.max(0, rect.left - box.left).toFixed(1) + "px)";
+      }
+
+      if (next !== clip) {
+        clip = next;
+        light.style.clipPath = clip;
       }
     }
 

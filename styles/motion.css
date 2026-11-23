@@ -28,26 +28,23 @@ html.is-ball-animating {
   transform: translateX(-50%);
 }
 
-/* a disc of paper behind the plus that keeps it readable over a picture (or the dark edge of one). It shows only while a picture is under
-   the plus (.is-over-picture, set by scripts/main.js initPlusDisc): over text it would hide letters, over paper it is not needed */
-.nav-core::before {
-  content: "";
+/* Over a dark picture the plus is paper-coloured exactly where it overlaps the picture: .plus-light is a paper copy of the plus on top of
+   the ink one, clipped to the picture's edges by scripts/main.js (initPlusDisc). Hidden (clipped away) everywhere else. No disc. */
+.plus-light {
   position: absolute;
   inset: 0;
-  border-radius: var(--radius-circle);
-  background: var(--color-paper);
-  opacity: 0;
+  z-index: 3;
   pointer-events: none;
-  transition: opacity var(--duration-fast) linear;
+  clip-path: inset(50%);
 }
 
-.nav-object.is-over-picture .nav-core::before {
-  opacity: 1;
+.nav-object .nav-core .plus-light .plus-stem,
+.nav-object .nav-core .plus-light .plus-arm {
+  background: var(--color-paper);
 }
 
-/* the project viewer's close button sits on the dark stage: no disc */
-.nav-object.is-project-close .nav-core::before {
-  opacity: 0;
+.nav-object.is-project-close .plus-light {
+  display: none;
 }
 
 .nav-core::after {
