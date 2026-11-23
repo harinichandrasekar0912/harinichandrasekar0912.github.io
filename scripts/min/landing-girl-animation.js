@@ -1,4 +1,4 @@
-/* scripts/landing-girl-animation.js (source fb881450e856a8e7), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/landing-girl-animation.js (source 75dd74db2a0041a1), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 var GA = (window.__landingGirl = window.__landingGirl || {});
@@ -1508,8 +1508,9 @@ mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], 
 femWeight: 1, femPeriod: 14, femShift: 10, femRoll: 8, femCounter: 11, femHead: 0.5, femChest: 4, femFoot: [13, 9, 14], femHand: [3, 60, -25], femHandPole: [-0.1, 1, -0.1], peekSpread: 0.75, peekNeck: 12, peekLean: 58, peekHead: 72, peekYaw: 0.2, peekHand: [20, -22, -60], peekPelvisF: 52, peekLegBack: 140, peekHemF: 140, peekHemTilt: 18, peekPole: [0.8, -0.3, -0.5], runBobK: [[0, 0.3], [0.2, -0.536], [0.35, -0.7], [0.5, 0.1], [0.62, 0.85], [0.78, 1.1], [0.9, 0.75]], runLeanK: 0.06, runHemF: 16, runHemTilt: 5, runHemLift: 0.6, runSpread: 0.06, runTilt: [0, 0, 0, 0], runShift: [0, 0, 0],
 runKeyed: false, runLegK: 0, runArmK: 0, runShoulderBack: 0, runShoulderFwd: 0, runPelvisPitch: -6, runCrownK: 0, runWaistK: 0, runNeckK: 0,
 runArmA: [52, 95], runArmB: [-40, 72],
+runStance: -2, runKneeOut: 0,
 runBk: 1.25,
-jRun: 1, jUp: [0, 35, 10, 0.1], jFore: [88, 0, 0, 0.1], jHand: 0, jShLift: 1,
+jRun: 1, jUp: [0, 35, 10, 0.1], jFore: [88, 10, 20, 0.1], jWristUp: 0.3, jHand: 0, jShLift: 1,
 jTwist: [0.5, 0.12, 0.05], jRock: [2.5, 0.1], jRoll: [4, 0.05], jHead: [-0.25, 0.35, 0.12, 0.12], jHem: 4, jLoft: 0, jPelvYaw: 0, jOpen: 0,
 headRowStep: 2, skirtRowStep: 2, shoeRowStep: 2, handRowStep: 2, limbStep: 2, ringHead: 52, ringTrunk: 40, ringShoe: 24, ringHand: 24,
 fair: { head: 0.9, trunk: 1.4, shoe: 1.0, hand: 0.7 },
@@ -1751,7 +1752,7 @@ var f = lerp(a * wf[0], rf[0], rL), z = lerp(lerp(C.ankleZ, wf[1], aL), rf[1], r
 var wmx = max(a, rL);
 if (wmx > 0 && wmx < 1 && P.settle < 1) { var trv = min(1, lerp(abs(wf[0]), abs(rf[0]), rL) / 36) * 4 * wmx * (1 - wmx); z += C.stepLift * trv; beta -= rad(14) * trv; }
 if (wmx > 0 && wmx < 1 && q > 0.45 && rL < 0.5 && P.settle < 1) { var rem = abs(f) * (1 - sstep(0.18, 0.4, wmx)); z += min(16, 0.55 * rem); beta -= rad(0.25) * min(16, 0.55 * rem); }
-var c = side * lerp(lerp(C.idleStance + (side < 0 ? C.stanceL : C.stanceR), C.walkStance, a), C.walkStance - 2, rL);
+var c = side * lerp(lerp(C.idleStance + (side < 0 ? C.stanceL : C.stanceR), C.walkStance, a), C.walkStance + C.runStance, rL);
 var toe = lerp(lerp(rad(C.toeIdle + (side < 0 ? C.toeL : C.toeR)), rad(C.toeWalk), a), rad(4), rL);
 var unw = idleA > 0 ? sstep(0.15, 0.75, -side * (wsh + 0.7 * b2 * s2)) * idleA * (1 - e1s) : 0, unwD = dzy > 0 ? sstep(0.15, 0.9, -side * dS1) * dzy : 0;
 var ballPivot = function (b1, psi) { var b0 = beta, dS = (C.ballS * cos(b1) + C.ankleZ * sin(b1)) - (C.ballS * cos(b0) + C.ankleZ * sin(b0)); if (psi === undefined) f -= dS; else { f -= dS * cos(psi); c -= dS * sin(psi); } z -= (C.ballS * sin(b1) - C.ankleZ * cos(b1)) - (C.ballS * sin(b0) - C.ankleZ * cos(b0)); beta = b1; };
@@ -1835,7 +1836,7 @@ var ank = [L.f, L.c, L.z];
 var uswS = (S.legQ[lj] - GW.rho) / (1 - GW.rho), softK = C.legSoft * aw * (uswS > 0 ? sstep(0, 0.25, uswS) * (1 - sstep(0.75, 1, uswS)) : 0), dd = v3sub(ank, hip), dl = v3len(dd), reach = (L1 + L2) * 0.9995, dS = reach - softK;
 if (dl > dS) { var dl2 = softK > 1e-3 ? dS + softK * (1 - Math.exp(-(dl - dS) / softK)) : reach; ank = v3mad(hip, dd, dl2 / dl); }
 var knock = fz * (1 - aw) * rad(7);
-var poleA = L.side * rad(7) + yawP * 0.5 - L.side * knock * 1.0 + (L.side < 0 ? rad(24) * S.e1k : 0);
+var poleA = L.side * rad(7 + C.runKneeOut * S.run) + (yawP + S.jr * rad(C.jPelvYaw)) * 0.5 - L.side * knock * 1.0 + (L.side < 0 ? rad(24) * S.e1k : 0);
 var knee = ik2(hip, ank, [cos(poleA), sin(poleA), 0], L1, L2);
 var Rf = K.mMul(K.mRz(L.side * L.toe - (L.tYaw || 0)), K.mRy(L.beta));
 var ofoot = v3sub(ank, K.mVec(Rf, 0, 0, C.ankleZ));
@@ -1978,16 +1979,19 @@ var Ssh = K.fApply(Fsh, -1.0, side * C.shoulderC, 0);
 if (jr > 0) Ssh[2] += jr * C.jShLift * (0.5 + 0.5 * side * cos(TAU * (ph - C.jUp[3])));
 if (side === -1) Ssh[2] += 21 * sstep(0, 1, min(1, P.scratch));
 Ssh[2] += C.shDrop * S.yawS + 7 * S.hunchS + 5 * max(sq, 0) + 4 * P.scratch + C.shrugAmp * S.b3 * (side === S.s3 ? 1 : 0.15) + 2 * S.b1 + 2.5 * S.e1 * (side === 1 ? 1 : 0.3) + 3 * S.e3 + 3 * S.shrugX + 2 * S.startle + (side === 1 ? 4 * wvU : 0) + 5 * bsU + 3 * S.clasp;
+var jIn = 0;
 if (jr > 0) {
 var jU = C.jUp, jF = C.jFore, fwJ = side * cos(TAU * (ph - jU[3])), fwE = side * cos(TAU * (ph - jF[3]));
 var kA = lerp(0.5, 1, sstep(0.2, 0.6, P.strideK));
 alpha = lerp(alpha, rad(jU[0] + jU[1] * kA * fwJ), jr);
 beta = lerp(beta, rad(jU[2]), jr);
-gamma = lerp(gamma, rad(jF[0] + jF[1] * sstep(-0.5, 1, fwE)), jr);
+var fwF2 = sstep(-0.5, 1, fwE);
+gamma = lerp(gamma, rad(jF[0] + jF[1] * fwF2), jr);
+jIn = rad(jF[2]) * jr * fwF2;
 }
 var ca = cos(alpha), sa = sin(alpha), cb = cos(beta), sb = sin(beta);
 var d1 = K.mVec(Rarm, sa * cb, side * sb, -ca * cb);
-var a2 = alpha + gamma, b2 = beta * C.foreBeta;
+var a2 = alpha + gamma, b2 = beta * C.foreBeta - jIn;
 var d2 = K.mVec(Rarm, sin(a2) * cos(b2), side * sin(b2), -cos(a2) * cos(b2)), hdW = null;
 if (wvU > 0) {
 var thF = lerp(rad(25), rad(C.waveUp) - rad(C.waveAmp) * S.waveSw, wvF), thH = thF + rad(C.waveFlop) * S.waveFl * wvF, wvP = sstep(0.55, 1, wvF);
@@ -2004,7 +2008,7 @@ hdW = K.mVec(Rarm, 0.12, side * sin(thB + rad(10) + fl8), -cos(thB + rad(10) + f
 var E = v3mad(Ssh, d1, C.armU * S.ak), W = v3mad(E, d2, C.armF * S.ak);
 var arm = { side: side, S: Ssh, E: E, W: W, fw: fw, hd: v3norm(v3add(d2, K.mVec(Rarm, 0.16 + C.handLag * a * (1 - run) * side * sin(TAU * ph), side * C.handOut, 0))), curl: K.mVec(Rarm, 0, -side, 0), thumbDir: K.mVec(Rarm, 1, 0, 0) };
 arm.fist = max(hunch * 0.7, 0.5 * air, C.jHand * jr); arm.scrW = 0; arm.scrPh = 0;
-if (jr > 0) arm.hd = v3norm(v3lerp(arm.hd, d2, jr));
+if (jr > 0) arm.hd = v3norm(v3lerp(arm.hd, v3mad(d2, K.mVec(Rarm, 0, 0, 1), C.jWristUp), jr));
 if (hdW) { arm.hd = v3norm(v3lerp(arm.hd, hdW, wvF)); arm.fist *= 1 - wvF; }
 arm.openW = max(max(S.spread, 0.85 * sstep(0, 1, S.shrugX), side === 1 ? sstep(0.1, 0.7, S.wave) : 0) * (1 - 0.8 * run), C.jOpen * jr);
 if (side === -1 && (scr > 1e-3 || P.think > 1e-3 || S.pk > 1e-3 || P.chestHand > 1e-3 || P.poke > 1e-3 || P.clutch > 1e-3)) applyArmTargets(S, arm, P, scr);
@@ -2512,14 +2516,14 @@ var walkGrace = {"stride":380,"walkXoff":0,"hsF":73,"rho":0.6,"q1":0.11,"q2":0.3
 "hipSway":4.6,"walkYaw":11,"shoulderCounter":1.8,"swingFwd":24,"swingBack":26,"gammaWalk0":9,"gammaWalk1":9,"handLag":0.25,"kneeSoft":0,"pelvisSmooth":20,"legReach":1.0};
 for (k in walkGrace) A.cfg[k] = walkGrace[k];
 var runJack = {"strideRun":480,"runRho":0.36,"runQ1":0.1,"runQ2":0.16,"runXoff":0,"runHsF":40,"runBk":0.9,"runBhs":-16,
-"runE":[[0,0],[0.14,0.04],[0.32,0.2],[0.52,0.52],[0.72,0.8],[0.88,0.95],[1,1]],"runR":0.1,
-"runZ":[[0.14,52],[0.32,50],[0.52,46],[0.72,42],[0.88,36]],"runZ1":-25,"runB":[[0.14,-40],[0.32,-46],[0.52,-40],[0.72,-32],[0.88,-24]],
+"runE":[[0,0],[0.14,0.04],[0.32,0.21],[0.52,0.55],[0.72,0.84],[0.88,0.96],[1,1]],"runR":0.1,
+"runZ":[[0.14,52],[0.32,60],[0.52,52],[0.72,42],[0.88,38]],"runStance":1,"runKneeOut":0,"runZ1":-25,"runB":[[0.14,-40],[0.32,-46],[0.52,-40],[0.72,-32],[0.88,-24]],
 "runPelvis":242,"runBob":6,"runBobK":[[0,0.2],[0.14,-0.6],[0.28,-1],[0.42,-0.5],[0.56,0.3],[0.72,0.9],[0.86,0.8]],
 "runLean":-1,"runLeanDeg":8,"runLean0":0,"runBendH":60,"runHead":6,"runHeadLevel":1,"runPelvisPitch":0,"runPelvisF":0,
 "runCrownK":0,"runWaistK":0,"runNeckK":0,"runLegK":0,"runArmK":0,"runShoulderBack":0,"runShoulderFwd":0,
 "runHemLift":1.2,"runHemF":8,"runHemTilt":3,"runSpread":0.1,"runTilt":[0,2,4,7],"runShift":[0,0,0],
 "jRun":1,"jLoft":0,"jOpen":0,"jPelvYaw":17,"jTwist":[-0.25,0.04,0.05],"jHead":[-0.1,0.1,0.04,0.12],
-"jUp":[0,35,10,0.1],"jFore":[88,0,0,0.1],"jHand":0,"jShLift":1,"jRock":[1,0.1],"jRoll":[1.5,0.05],"jHem":2.5};
+"jUp":[0,35,10,0.1],"jFore":[88,10,20,0.1],"jWristUp":0.3,"jHand":0,"jShLift":1,"jRock":[1,0.1],"jRoll":[1.5,0.05],"jHem":2.5};
 for (k in runJack) A.cfg[k] = runJack[k];
 var WP_BASE = {"walkDrop":0,"bob":5.5,"bobH2":0.05,"bobH2ph":0.7,"bobPh":0.27,"hipSway":4,"walkYaw":10,"shoulderCounter":1.9,"swingFwd":29,"swingBack":29,"gammaWalk0":8,"gammaWalk1":28,"handLag":0.42,"headNod":3.4,"headTilt":0.14,"lift":17,"bhs":15,"bto":38,"q1":0.19,"q2":0.31,"walkLean":-2.2,"hemBounce":3.4,"liftSkew":0.35,
 "kneeSoft":0.008,"walkChest":2.4,"headBob":2.6,"pelvTilt":3,"hemFlutter":1.8,"hemTiltA":7.5,"shLag":0.07,"armLag":0.035,"foreLag":0.11,"headLag":0.15,"spineAmp":3.4,"spineLag":0.1,"asym":1};
