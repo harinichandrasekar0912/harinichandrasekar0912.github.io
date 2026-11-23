@@ -14,7 +14,6 @@
   --color-paper: #faf8f3;
   --color-paper-shade: #f6f3ec; /* an empty picture frame, before its picture arrives */
   --color-paper-warm: var(--color-paper-shade); /* older name, same value */
-  --color-paper-soft: #f1eee7; /* about portrait frame only: to become --color-paper-shade (About owner) */
   --color-ink: #151412;
   --color-ink-soft: #625d54; /* secondary text */
   --color-ink-faint: rgb(var(--color-ink-rgb) / 0.42); /* placeholders, the dotted spokes of the menu */
@@ -505,7 +504,7 @@ body.is-project-open .viewport-edge-blur {
   object-position: 50% 40%;
   border: var(--hairline) solid var(--color-line);
   border-radius: inherit;
-  background: var(--color-paper-soft);
+  background: var(--color-paper-shade);
 }
 
 .about-copy {
@@ -513,7 +512,7 @@ body.is-project-open .viewport-edge-blur {
   max-width: 33rem;
   color: var(--color-ink-soft);
   font-size: var(--text-md);
-  font-weight: 340;
+  font-weight: var(--weight-regular);
   line-height: 1.68;
   text-align: left;
   text-wrap: pretty;
