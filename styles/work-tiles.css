@@ -243,6 +243,12 @@
   border-radius: var(--tip-r) 0 0 var(--tip-r);
 }
 
+/* no leader line between the slab and its caption (her call, 23 Nov): the pseudo-elements below stay defined but are never drawn */
+[data-tiles="cantilever"] .work-caption::before,
+[data-tiles="cantilever"] .work-caption::after {
+  display: none !important;
+}
+
 /* the caption fills the empty half beside the slab, its last line (kind · year) level with the slab's underside; the hairline is a leader
    from the slab's tip straight into that line, stopping just short of the text */
 [data-tiles="cantilever"] .work-caption {
@@ -289,9 +295,9 @@
 
 [data-tiles="cantilever"] .work-title {
   margin: var(--space-2) 0 0;
-  font-size: clamp(1.6rem, 0.9rem + 2.4vw, 3.4rem);
+  font-size: clamp(1.25rem, 0.8rem + 1.2vw, 2.1rem);
   font-weight: var(--weight-regular);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 
@@ -393,7 +399,7 @@
   [data-tiles="cantilever"] .work-title {
     display: inline;
     margin: 0;
-    font-size: clamp(1.35rem, 6.2vw, 1.75rem);
+    font-size: clamp(1.15rem, 5vw, 1.4rem);
   }
 
   [data-tiles="cantilever"] .work-line {
@@ -461,9 +467,9 @@
 [data-tiles="index"] .work-title {
   grid-area: title;
   padding-top: var(--row-top);
-  font-size: clamp(1.6rem, 0.9rem + 2.4vw, 3.4rem);
+  font-size: clamp(1.25rem, 0.8rem + 1.2vw, 2.1rem);
   font-weight: var(--weight-regular);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.02em;
   line-height: 1;
   transition: transform var(--duration-slow) var(--ease-standard);
 }
@@ -549,7 +555,7 @@
   }
 
   [data-tiles="index"] .work-title {
-    font-size: clamp(1.35rem, 6.2vw, 1.75rem);
+    font-size: clamp(1.15rem, 5vw, 1.4rem);
   }
 
   [data-tiles="index"] .work-line,
