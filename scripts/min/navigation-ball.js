@@ -1,4 +1,4 @@
-/* scripts/navigation-ball.js (source 93d3db3c1b5ef42b), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/navigation-ball.js (source 574117e4dd96f650), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 const NAV_BALL_PATH_MODE = "bezier";
@@ -26,6 +26,22 @@ const DROP_SECONDS_MIN = 0.75;
 const DROP_SECONDS_MAX = 1.38;
 const TOP_SPEED_SHARE = 0.8;
 const TOP_SPEED_MIN = 40;
+const SHORT_FALL_FACTOR = 0.55;
+const SHORT_FALL_MIN = 36;
+const SHORT_FALL_MAX = 64;
+const SHORT_FALL_FLOOR = 20;
+const UP_ARC_RISE_FACTOR = 0.9;
+const UP_ARC_RISE_MIN = 56;
+const UP_ARC_RISE_MAX = 100;
+const UP_RISE_MIN = 80;
+const UP_ARC_ROOM = 40;
+const UP_RISE_SPEED_MIN = 90;
+const UP_RISE_TARGET_SPEED = 300;
+const UP_SCROLL_END_SHARE = 0.92;
+const UP_POST_BASE_SECONDS = 0.3;
+const UP_POST_PX_PER_SECOND = 300;
+const UP_POST_MIN_SECONDS = 0.5;
+const UP_POST_MAX_SECONDS = 2;
 const POST_APEX_ARC_SECONDS = 0.6;
 const POST_APEX_MAX_SECONDS = 2.4;
 const RISE_EASE_SHARE = 0.35;
@@ -194,16 +210,22 @@ points[count].x = B.x;
 points[count].y = B.y;
 return { points: points, length: length, minY: minY, apexIndex: apexIndex };
 }
-function planBezierPath(A, B, z, safeTop, speed, scrollDistance) {
+function planBezierPath(A, B, z, safeTop, speed, scrollDistance, upward) {
 const room = Math.max(B.y - safeTop, 0);
-const drop = Math.max(Math.min(clamp(z * DROP_FACTOR, DROP_MIN, DROP_MAX), room * DROP_ROOM_SHARE), DROP_FLOOR);
+const drop = upward ?
+Math.max(Math.min(clamp(z * SHORT_FALL_FACTOR, SHORT_FALL_MIN, SHORT_FALL_MAX), room * 0.5), SHORT_FALL_FLOOR) :
+Math.max(Math.min(clamp(z * DROP_FACTOR, DROP_MIN, DROP_MAX), room * DROP_ROOM_SHARE), DROP_FLOOR);
 const E = { x: B.x, y: B.y - drop };
-const topY = Math.min(A.y, E.y);
-const dx = E.x - A.x;
+const scrollSeconds = clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
+const S = upward ?
+{ x: A.x, y: Math.min(clamp(Math.min(A.y - Math.max(UP_RISE_MIN, UP_RISE_TARGET_SPEED * scrollSeconds), B.y), safeTop + UP_ARC_ROOM, A.y), A.y) } :
+{ x: A.x, y: A.y };
+const topY = Math.min(S.y, E.y);
+const dx = E.x - S.x;
 const riseFor = function (lift) {
-return topY - sampleBezier(A, { x: A.x, y: topY - lift }, { x: E.x, y: topY - lift }, E, 96).minY;
+return topY - sampleBezier(S, { x: S.x, y: topY - lift }, { x: E.x, y: topY - lift }, E, 96).minY;
 };
-const wantedRise = clamp(z * FLIGHT_TOP_RISE_FACTOR, FLIGHT_TOP_RISE_MIN, FLIGHT_TOP_RISE_MAX);
+const wantedRise = upward ? clamp(z * UP_ARC_RISE_FACTOR, UP_ARC_RISE_MIN, UP_ARC_RISE_MAX) : clamp(z * FLIGHT_TOP_RISE_FACTOR, FLIGHT_TOP_RISE_MIN, FLIGHT_TOP_RISE_MAX);
 let riseLift = wantedRise;
 if (riseFor(riseLift) < wantedRise) {
 let low = riseLift;
@@ -224,9 +246,9 @@ riseLift = high;
 const wantedLift = Math.max(BEZIER_LIFT_MIN, Math.abs(dx) * BEZIER_LIFT_SPAN, z * BEZIER_LIFT_Z, riseLift);
 const build = function (lift) {
 const controlY = topY - lift;
-const P1 = { x: A.x, y: controlY };
+const P1 = { x: S.x, y: controlY };
 const P2 = { x: E.x, y: controlY };
-return { lift: lift, P1: P1, P2: P2, sampled: sampleBezier(A, P1, P2, E, BEZIER_SAMPLES) };
+return { lift: lift, P1: P1, P2: P2, sampled: sampleBezier(S, P1, P2, E, BEZIER_SAMPLES) };
 };
 let plan = build(wantedLift);
 if (plan.sampled.minY < safeTop) {
@@ -234,7 +256,7 @@ let low = 0;
 let high = wantedLift;
 for (let step = 0; step < 28; step += 1) {
 const middle = (low + high) / 2;
-if (sampleBezier(A, { x: A.x, y: topY - middle }, { x: E.x, y: topY - middle }, E, 96).minY >= safeTop) {
+if (sampleBezier(S, { x: S.x, y: topY - middle }, { x: E.x, y: topY - middle }, E, 96).minY >= safeTop) {
 low = middle;
 } else {
 high = middle;
@@ -244,12 +266,22 @@ plan = build(Math.max(low, BEZIER_MIN_LIFT));
 }
 const dropSeconds = clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
 const arcPoints = plan.sampled.points;
-const apexIndex = plan.sampled.apexIndex;
-const apexY = arcPoints[apexIndex].y;
-const points = arcPoints.map(function (point) {
-return { x: point.x, y: point.y };
+const points = [];
+if (S.y < A.y - 0.5) {
+const riseSteps = Math.max(2, Math.ceil((A.y - S.y) / 2));
+for (let step = 0; step < riseSteps; step += 1) {
+points.push({ x: A.x, y: A.y + ((S.y - A.y) * step) / riseSteps });
+}
+}
+const sIndex = points.length;
+arcPoints.forEach(function (point) {
+points.push({ x: point.x, y: point.y });
 });
+const apexIndex = sIndex + plan.sampled.apexIndex;
+const apexY = points[apexIndex].y;
 const eIndex = points.length - 1;
+const riseLength = A.y - S.y;
+const riseSpeed = upward && riseLength > 1 ? clamp(riseLength / dropSeconds, UP_RISE_SPEED_MIN, speed * 1.2) : speed;
 const dropSteps = Math.max(2, Math.ceil(drop / 2));
 for (let step = 1; step <= dropSteps; step += 1) {
 points.push({ x: B.x, y: E.y + (drop * step) / dropSteps });
@@ -258,15 +290,17 @@ let postLength = 0;
 for (let index = apexIndex + 1; index < points.length; index += 1) {
 postLength += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
 }
-const postSeconds = Math.min(dropSeconds + POST_APEX_ARC_SECONDS, POST_APEX_MAX_SECONDS);
-const vTop = clamp((TOP_SPEED_SHARE * postLength) / postSeconds, TOP_SPEED_MIN, speed * 0.6);
-const climb = Math.max(A.y - apexY, 1);
+const postSeconds = upward ?
+clamp(UP_POST_BASE_SECONDS + postLength / UP_POST_PX_PER_SECOND, UP_POST_MIN_SECONDS, UP_POST_MAX_SECONDS) :
+Math.min(dropSeconds + POST_APEX_ARC_SECONDS, POST_APEX_MAX_SECONDS);
+const vTop = clamp((TOP_SPEED_SHARE * postLength) / postSeconds, TOP_SPEED_MIN, Math.max(riseSpeed * 0.6, TOP_SPEED_MIN));
+const climb = Math.max(S.y - apexY, 1);
 const easeDepth = clamp(climb * RISE_EASE_SHARE, RISE_EASE_MIN, RISE_EASE_MAX);
 function speedAt(index, gDown) {
 const depth = Math.max(points[index].y - apexY, 0);
 if (index <= apexIndex) {
 const u = clamp(depth / easeDepth, 0, 1);
-return vTop + (speed - vTop) * (1 - (1 - u) * (1 - u));
+return vTop + (riseSpeed - vTop) * (1 - (1 - u) * (1 - u));
 }
 return Math.sqrt(vTop * vTop + 2 * gDown * depth);
 }
@@ -302,6 +336,7 @@ for (let index = 1; index < points.length; index += 1) {
 times.push(times[index - 1] + segmentTime(index, gDown));
 }
 const arcSeconds = Math.max(times[eIndex], 0.05);
+const riseSeconds = times[sIndex];
 const duration = Math.max(times[times.length - 1], arcSeconds + 0.05);
 let pathLength = 0;
 for (let index = 1; index < points.length; index += 1) {
@@ -332,7 +367,7 @@ const samples = points.map(function (point) {
 return { x: point.x, y: point.y };
 });
 return {
-mode: "bezier-then-drop",
+mode: upward ? "rise-then-bezier" : "bezier-then-drop",
 duration: duration,
 length: pathLength,
 speed: pathLength / duration,
@@ -341,6 +376,9 @@ progressAt: function (seconds) {
 return clamp(seconds / duration, 0, 1);
 },
 scrollProgressAt: function (seconds) {
+if (upward) {
+return riseSeconds > 0 ? smootherstep(seconds / (riseSeconds * UP_SCROLL_END_SHARE)) : 1;
+}
 return seconds <= arcSeconds ? 0 : smootherstep((seconds - arcSeconds) / (duration - arcSeconds));
 },
 samples: samples,
@@ -348,12 +386,12 @@ apex: copyPoint(arcPoints[apexIndex]),
 guides: [
 { name: "P1", point: copyPoint(plan.P1), colour: "#1fa34a" },
 { name: "P2", point: copyPoint(plan.P2), colour: "#11a5b8" },
-{ name: "E (scroll starts)", point: copyPoint(E), colour: "#8a2be2" }
+upward ? { name: "S (scroll ends)", point: copyPoint(S), colour: "#8a2be2" } : { name: "E (scroll starts)", point: copyPoint(E), colour: "#8a2be2" }
 ],
 geometry: { A: copyPoint(A), E: copyPoint(E), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, drop: drop, arcSeconds: arcSeconds, dropSeconds: duration - arcSeconds, launchSpeed: speed, topSpeed: vTop, entrySpeed: speedAt(eIndex, gDown), landingSpeed: speedAt(points.length - 1, gDown), gDown: gDown, safeTop: safeTop }
 };
 }
-function planPhoneBounce(A, B, phoneZ, safeTop) {
+function planPhoneBounce(A, B, phoneZ, safeTop, upward) {
 const topY = Math.min(A.y, B.y);
 const wantedLift = clamp(phoneZ * PHONE_MAIN_LIFT_FACTOR, PHONE_MAIN_LIFT_MIN, PHONE_MAIN_LIFT_MAX);
 const lift = Math.max(Math.min(wantedLift, topY - safeTop), PHONE_MAIN_LIFT_FLOOR);
@@ -398,6 +436,9 @@ return clamp((seconds * 1000) / totalMs, 0, 1);
 },
 scrollProgressAt: function (seconds) {
 const ms = seconds * 1000;
+if (upward) {
+return smootherstep(ms / upMs);
+}
 if (ms <= upMs + hangMs) {
 return 0;
 }
@@ -1630,7 +1671,8 @@ F = { x: A0.x, y: F.y };
 F = { x: archiveLandingX(F.x), y: F.y };
 }
 const safeTop = radius + flightTopClearance(isPhone);
-path = isPhone ? planPhoneBounce(A0, F, z, safeTop) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED, scrollTarget - scrollStart);
+const upward = scrollTarget < scrollStart - 1;
+path = isPhone ? planPhoneBounce(A0, F, z, safeTop, upward) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED, scrollTarget - scrollStart, upward);
 mainMs = Math.max(1, path.duration * 1000);
 rollDirection = endPoint.side === "right" ? 1 : endPoint.side === "left" ? -1 : rollDirectionFor(targetId);
 if (activeTrip) {
