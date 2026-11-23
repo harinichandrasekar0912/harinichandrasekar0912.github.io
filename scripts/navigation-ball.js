@@ -64,6 +64,9 @@
   const PHONE_MAIN_LIFT_FLOOR = 28; // on a very short screen the apex may come lower than 84 px, never lower than this
   const PHONE_APEX_HANG = 110; // ms of near-weightlessness at the top
 
+  const ARCHIVE_STEP_FACTOR = 0.055; // archive: the ball lands this share of the screen width to the RIGHT of where it took off ...
+  const ARCHIVE_STEP_MIN = 48; // ... at least this many px ...
+  const ARCHIVE_STEP_MAX = 110; // ... at most this many: a short hop to the right, then the straight drop (never a swing to the left)
   const LANDING_EDGE_BUFFER = 6; // px: extra room between the ball and the rounded image corner it lands near
   // Where the ball comes to rest, as a fraction of the screen height measured from the top (the page is scrolled so that the platform it lands on
   // is there). Small = the section title sits near the top and the first tile is whole with a good part of the second below it; it is never
@@ -1962,6 +1965,26 @@
         }
       }
 
+      /* archive (laptop / tablet): not out on the bar's free left end, but a short hop to the right of the take-off point, still on the first
+       * bar's top edge and well clear of its rounded corner, so the flight only ever moves right before its straight drop. If the bar
+       * cannot be reached that way, the usual landing point stays. */
+      function archiveLandingX(fallbackX) {
+        const bar = endPoint && endPoint.element;
+
+        if (!bar) {
+          return fallbackX;
+        }
+
+        const rect = bar.getBoundingClientRect();
+        const style = window.getComputedStyle(bar);
+        const minX = rect.left + parsePixel(style.borderTopLeftRadius) + radius + LANDING_EDGE_BUFFER;
+        const maxX = Math.min(rect.right, window.innerWidth) - parsePixel(style.borderTopRightRadius) - radius - LANDING_EDGE_BUFFER;
+        const wanted = A0.x + clamp(window.innerWidth * ARCHIVE_STEP_FACTOR, ARCHIVE_STEP_MIN, ARCHIVE_STEP_MAX);
+        const x = clamp(Math.max(wanted, minX), minX, maxX);
+
+        return maxX >= minX && x >= A0.x ? x : fallbackX;
+      }
+
       /* after prep bounce 3: compute the final scroll target, the final visible landing point F and the one continuous path */
       function buildMainPath() {
         endPoint = targetPlatformFor(targetId);
@@ -1970,6 +1993,8 @@
 
         if (isPhone) {
           F = { x: A0.x, y: F.y }; // phone: the ball never moves sideways before the roll-away
+        } else if (targetId === "archive") {
+          F = { x: archiveLandingX(F.x), y: F.y };
         }
 
         const safeTop = Math.max(radius + FLIGHT_TOP_MARGIN, 0); // the flight may go higher than the landing rules allow (resolveScrollTarget)
