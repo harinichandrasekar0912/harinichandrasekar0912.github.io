@@ -1,4 +1,4 @@
-/* scripts/landing-girl-animation.js (source 3608af9debdf3f12), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/landing-girl-animation.js (source fb881450e856a8e7), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 var GA = (window.__landingGirl = window.__landingGirl || {});
@@ -1508,7 +1508,8 @@ mouthHand: [74, -8, -52], pokeAt: [50, -132, -24], pokePole: [0.25, -1, -0.15], 
 femWeight: 1, femPeriod: 14, femShift: 10, femRoll: 8, femCounter: 11, femHead: 0.5, femChest: 4, femFoot: [13, 9, 14], femHand: [3, 60, -25], femHandPole: [-0.1, 1, -0.1], peekSpread: 0.75, peekNeck: 12, peekLean: 58, peekHead: 72, peekYaw: 0.2, peekHand: [20, -22, -60], peekPelvisF: 52, peekLegBack: 140, peekHemF: 140, peekHemTilt: 18, peekPole: [0.8, -0.3, -0.5], runBobK: [[0, 0.3], [0.2, -0.536], [0.35, -0.7], [0.5, 0.1], [0.62, 0.85], [0.78, 1.1], [0.9, 0.75]], runLeanK: 0.06, runHemF: 16, runHemTilt: 5, runHemLift: 0.6, runSpread: 0.06, runTilt: [0, 0, 0, 0], runShift: [0, 0, 0],
 runKeyed: false, runLegK: 0, runArmK: 0, runShoulderBack: 0, runShoulderFwd: 0, runPelvisPitch: -6, runCrownK: 0, runWaistK: 0, runNeckK: 0,
 runArmA: [52, 95], runArmB: [-40, 72],
-jRun: 1, jUp: [-4, 18, 10, 0.15], jFore: [82, 4, 0, 0.25], jHand: 0, jShLift: 1,
+runBk: 1.25,
+jRun: 1, jUp: [0, 35, 10, 0.1], jFore: [88, 0, 0, 0.1], jHand: 0, jShLift: 1,
 jTwist: [0.5, 0.12, 0.05], jRock: [2.5, 0.1], jRoll: [4, 0.05], jHead: [-0.25, 0.35, 0.12, 0.12], jHem: 4, jLoft: 0, jPelvYaw: 0, jOpen: 0,
 headRowStep: 2, skirtRowStep: 2, shoeRowStep: 2, handRowStep: 2, limbStep: 2, ringHead: 52, ringTrunk: 40, ringShoe: 24, ringHand: 24,
 fair: { head: 0.9, trunk: 1.4, shoe: 1.0, hand: 0.7 },
@@ -1616,7 +1617,7 @@ return (2 * t3 - 3 * t2 + 1) * ks[i][1] + (t3 - 2 * t2 + t) * h * d0 + (-2 * t3 
 }
 var FEM_E0 = 0.2, FEM_E1 = 0.6;
 var GW = { S: 0, rho: 0, q1: 0, q2: 0, bk: 1, ball: false, bhsBall: 0 }, GR = { S: 0, rho: 0, q1: 0, q2: 0, bk: 1.25, ball: true, bhsBall: 0 };
-function gaitSets(k) { GW.k = GR.k = k; GW.bk = lerp(0.06, 1, sstep(0.08, 0.85, k)); GW.S = C.stride * k; GW.rho = C.rho; GW.q1 = C.q1; GW.q2 = C.q2; GR.S = C.strideRun * k; GR.rho = C.runRho; GR.q1 = C.runQ1; GR.q2 = C.runQ2; GR.bhsBall = rad(C.runBhs); }
+function gaitSets(k) { GW.k = GR.k = k; GW.bk = lerp(0.06, 1, sstep(0.08, 0.85, k)); GW.S = C.stride * k; GW.rho = C.rho; GW.q1 = C.q1; GW.q2 = C.q2; GR.S = C.strideRun * k; GR.bk = C.runBk; GR.rho = C.runRho; GR.q1 = C.runQ1; GR.q2 = C.runQ2; GR.bhsBall = rad(C.runBhs); }
 function legFoot(q, g, lift, xoff) {
 var S = g.S, rho = g.rho;
 var Xhs = (g === GR ? C.runHsF : C.hsF) * g.k + xoff;
@@ -1979,7 +1980,8 @@ if (side === -1) Ssh[2] += 21 * sstep(0, 1, min(1, P.scratch));
 Ssh[2] += C.shDrop * S.yawS + 7 * S.hunchS + 5 * max(sq, 0) + 4 * P.scratch + C.shrugAmp * S.b3 * (side === S.s3 ? 1 : 0.15) + 2 * S.b1 + 2.5 * S.e1 * (side === 1 ? 1 : 0.3) + 3 * S.e3 + 3 * S.shrugX + 2 * S.startle + (side === 1 ? 4 * wvU : 0) + 5 * bsU + 3 * S.clasp;
 if (jr > 0) {
 var jU = C.jUp, jF = C.jFore, fwJ = side * cos(TAU * (ph - jU[3])), fwE = side * cos(TAU * (ph - jF[3]));
-alpha = lerp(alpha, rad(jU[0] + jU[1] * fwJ), jr);
+var kA = lerp(0.5, 1, sstep(0.2, 0.6, P.strideK));
+alpha = lerp(alpha, rad(jU[0] + jU[1] * kA * fwJ), jr);
 beta = lerp(beta, rad(jU[2]), jr);
 gamma = lerp(gamma, rad(jF[0] + jF[1] * sstep(-0.5, 1, fwE)), jr);
 }
@@ -2509,15 +2511,15 @@ for (k in walkStyle) A.cfg[k] = walkStyle[k];
 var walkGrace = {"stride":380,"walkXoff":0,"hsF":73,"rho":0.6,"q1":0.11,"q2":0.36,"bhs":18,"bto":46,"lift":31,"walkLean":0,"walkStance":17,"toeWalk":6,"toeIdle":10,"toeL":-1,"toeR":-1,
 "hipSway":4.6,"walkYaw":11,"shoulderCounter":1.8,"swingFwd":24,"swingBack":26,"gammaWalk0":9,"gammaWalk1":9,"handLag":0.25,"kneeSoft":0,"pelvisSmooth":20,"legReach":1.0};
 for (k in walkGrace) A.cfg[k] = walkGrace[k];
-var runJack = {"strideRun":480,"runRho":0.34,"runQ1":0.06,"runQ2":0.16,"runXoff":0,"runHsF":58,"runBhs":-16,
+var runJack = {"strideRun":480,"runRho":0.36,"runQ1":0.1,"runQ2":0.16,"runXoff":0,"runHsF":40,"runBk":0.9,"runBhs":-16,
 "runE":[[0,0],[0.14,0.04],[0.32,0.2],[0.52,0.52],[0.72,0.8],[0.88,0.95],[1,1]],"runR":0.1,
-"runZ":[[0.14,56],[0.32,78],[0.52,88],[0.72,76],[0.88,48]],"runZ1":-25,"runB":[[0.14,-58],[0.32,-80],[0.52,-68],[0.72,-50],[0.88,-32]],
-"runPelvis":236,"runBob":12,"runBobK":[[0,0.43],[0.16,-0.54],[0.32,-1],[0.48,-0.54],[0.64,0.43],[0.82,1]],
+"runZ":[[0.14,52],[0.32,50],[0.52,46],[0.72,42],[0.88,36]],"runZ1":-25,"runB":[[0.14,-40],[0.32,-46],[0.52,-40],[0.72,-32],[0.88,-24]],
+"runPelvis":242,"runBob":6,"runBobK":[[0,0.2],[0.14,-0.6],[0.28,-1],[0.42,-0.5],[0.56,0.3],[0.72,0.9],[0.86,0.8]],
 "runLean":-1,"runLeanDeg":8,"runLean0":0,"runBendH":60,"runHead":6,"runHeadLevel":1,"runPelvisPitch":0,"runPelvisF":0,
 "runCrownK":0,"runWaistK":0,"runNeckK":0,"runLegK":0,"runArmK":0,"runShoulderBack":0,"runShoulderFwd":0,
 "runHemLift":1.2,"runHemF":8,"runHemTilt":3,"runSpread":0.1,"runTilt":[0,2,4,7],"runShift":[0,0,0],
 "jRun":1,"jLoft":0,"jOpen":0,"jPelvYaw":17,"jTwist":[-0.25,0.04,0.05],"jHead":[-0.1,0.1,0.04,0.12],
-"jUp":[-4,18,10,0.15],"jFore":[82,4,0,0.25],"jHand":0,"jShLift":1,"jRock":[1,0.1],"jRoll":[1.5,0.05],"jHem":2.5};
+"jUp":[0,35,10,0.1],"jFore":[88,0,0,0.1],"jHand":0,"jShLift":1,"jRock":[1,0.1],"jRoll":[1.5,0.05],"jHem":2.5};
 for (k in runJack) A.cfg[k] = runJack[k];
 var WP_BASE = {"walkDrop":0,"bob":5.5,"bobH2":0.05,"bobH2ph":0.7,"bobPh":0.27,"hipSway":4,"walkYaw":10,"shoulderCounter":1.9,"swingFwd":29,"swingBack":29,"gammaWalk0":8,"gammaWalk1":28,"handLag":0.42,"headNod":3.4,"headTilt":0.14,"lift":17,"bhs":15,"bto":38,"q1":0.19,"q2":0.31,"walkLean":-2.2,"hemBounce":3.4,"liftSkew":0.35,
 "kneeSoft":0.008,"walkChest":2.4,"headBob":2.6,"pelvTilt":3,"hemFlutter":1.8,"hemTiltA":7.5,"shLag":0.07,"armLag":0.035,"foreLag":0.11,"headLag":0.15,"spineAmp":3.4,"spineLag":0.1,"asym":1};
@@ -3743,8 +3745,9 @@ if (kind === 'duck') {
 var startVis = U.clamp((cap.x - (W + M_PARK)) / (cap.xPeek - (W + M_PARK)), 0, 1.2);
 var back = U.easeInOutCubic(U.clamp((rt - 0.12) / 0.38));
 var vis = startVis * (1 - back);
-P.x = U.lerp(W + M_PARK, cap.xPeek, vis);
 P.yaw = 0; P.peek = U.smoothstep(0, 1, vis);
+var Cpk = GA.girlA && GA.girlA.cfg, legB = Cpk ? Cpk.peekLegBack * STRIDE / Cpk.stride : 0;
+P.x = Cpk ? cap.x + legB * (U.smoothstep(0, 1, U.smoothstep(0, 1, startVis)) - U.smoothstep(0, 1, P.peek)) : U.lerp(W + M_PARK, cap.xPeek, vis);
 P.flinch = Math.sin(Math.PI * U.clamp(rt / 0.5)) * 0.95;
 P.headPitch = lerpc(p0.headPitch, -0.4, 0, 0.14);
 P.headYaw = lerpc(p0.headYaw, 0.3, 0, 0.14);
@@ -4146,20 +4149,27 @@ sc.pose = p;
 if (o.done) { sc.mode = 'away'; sc.awayAt = sc.tl; sc.resumeTl = c.peekOut1 + 0.05; sc.pose.x = S.W + T.M_PARK; }
 } else {
 var stride = U.lerp(T.STRIDE, T.STRIDE_RUN, o.run);
-var kRun = U.lerp(0.38, 1, U.smoothstep(0.1, 1, o.speed / T.V_RUN));
+var kRun = U.lerp(0.85, 1, U.smoothstep(0.1, 1, o.speed / T.V_RUN));
 var kw = R.kw === undefined ? (R.kw = (R.cap.pose0.gait && R.cap.pose0.gait.stride > 0 ? R.cap.pose0.gait.stride / T.STRIDE : 1)) : R.kw;
 stride *= U.lerp(kw, 1, U.smoothstep(0, 0.5, R.rt)) * (R.kind === 'stand' ? kRun : U.lerp(1, kRun, o.run));
 if (o.run > 0.5 && R.sHeld !== undefined && R.rl) {
-var wAir = 1;
+var Cg = GA.girlA.cfg, wAir = 1, wSt = 1, nDown = 0;
 for (var lj = 0; lj < 2; lj++) {
 var qJ = (R.phase + 0.1 + 0.5 * lj) % 1; if (qJ < 0) qJ += 1;
-var r0J = U.lerp(0.6, 0.34, U.smoothstep(0, 1, R.rl[lj])) + 0.03;
-wAir *= qJ > r0J && qJ < 0.97 ? Math.sin(Math.PI * (qJ - r0J) / (0.97 - r0J)) : 0;
+var rlJ = U.smoothstep(0, 1, R.rl[lj]), r0J = U.lerp(Cg.rho, Cg.runRho, rlJ) + 0.03;
+var inAir = qJ > r0J && qJ < 0.97;
+wAir *= inAir ? Math.sin(Math.PI * (qJ - r0J) / (0.97 - r0J)) : 0;
+if (!inAir) { nDown++; var dq = qJ - Cg.runHsF / Cg.strideRun; dq -= Math.round(dq); wSt *= rlJ > 0.99 && qJ < Cg.runRho && Math.abs(dq) < 0.05 ? Math.pow(Math.cos(Math.PI * dq / 0.1), 2) : 0; }
 }
-R.sHeld += (stride - R.sHeld) * Math.min(1, 60 * wAir * h);
+R.sHeld += (stride - R.sHeld) * Math.min(1, 25 * Math.max(wAir, nDown ? wSt : 0) * h);
 } else if (R.sHeld === undefined) R.sHeld = stride;
 else {
-var sw = 2 * R.phase + 0.46, sd = sw - Math.round(sw), wS = Math.abs(sd) < 0.08 ? Math.cos(Math.PI * sd / 0.16) : 0;
+var Cw = GA.girlA.cfg, wS = 1, nDw = 0;
+for (var lw = 0; lw < 2; lw++) {
+var qW = (R.phase + 0.1 + 0.5 * lw) % 1; if (qW < 0) qW += 1;
+if (qW < Cw.rho) { nDw++; var dW = qW - Cw.hsF / Cw.stride; dW -= Math.round(dW); wS *= Math.abs(dW) < 0.08 ? Math.cos(Math.PI * dW / 0.16) : 0; }
+}
+if (!nDw) wS = 0;
 R.sHeld += (stride - R.sHeld) * Math.min(1, 70 * wS * wS * h);
 }
 R.phPrev = R.phase;
