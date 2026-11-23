@@ -4287,7 +4287,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       sq += 0.07 * bump(k, 12.36, 12.45, 12.47, 12.56);                                   // the tiny dip before the fling
       var burst = U.smoothstep(12.44, 12.78, k) * (1 - 0.55 * U.smoothstep(12.95, 13.3, k)) + 0.5 * bump(k, 13.35, 13.55, 13.7, 14.0);
       burst *= 1 - U.smoothstep(14.4, 15.0, k);
-      p.burst = Math.max(p.burst, burst); p.spread = Math.max(p.spread, U.smoothstep(12.42, 12.62, k) * (1 - U.smoothstep(14.55, 15.0, k)));
+      p.burst = Math.max(p.burst, burst); p.spread = Math.max(p.spread, U.smoothstep(12.42, 12.62, k) * (1 - U.smoothstep(14.35, 14.7, k)));
       p.flutter = Math.max(p.flutter, U.smoothstep(12.75, 13.0, k) * (1 - U.smoothstep(14.3, 14.8, k)));
       var joy = U.smoothstep(12.45, 12.75, k) * (1 - U.smoothstep(14.6, 15.4, k));
       hp += 0.32 * U.smoothstep(12.46, 12.66, k) * (1 - U.smoothstep(12.9, 13.4, k)) + 0.12 * joy;            // chin up with the fling, then bright
@@ -4301,7 +4301,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       var spot = U.smoothstep(K_BALL + 0.1, K_BALL + 0.3, k) * (1 - U.smoothstep(K_HIT - 0.18, K_HIT - 0.04, k));   // she spots the ball coming from the top-left: the head snaps to it and follows it up
       hy = U.lerp(hy, -0.6, spot); hp = U.lerp(hp, 0.6 + 0.35 * U.smoothstep(K_BALL + 0.3, K_HIT - 0.3, k), spot); hr = U.lerp(hr, -0.15, spot);
       sq -= 0.1 * bump(k, K_BALL + 0.45, K_BALL + 0.6, K_BALL + 0.75, K_BALL + 1.05);                                   // 'ooh, what is that?': up on to her toes to see it better
-      p.handsFree = U.smoothstep(K_BALL + 0.3, K_BALL + 0.85, k) * (1 - U.smoothstep(K_HIT + 0.9, K_HIT + 1.7, k));   // her hand lets go of the skirt as she watches the ball come (the bonk's squash used to tear it off in two frames: a ~30 u jump), and finds it again once the knock has passed
+      p.handsFree = Math.max(bump(k, 14.2, 14.35, 15.1, 15.5), U.smoothstep(K_BALL + 0.3, K_BALL + 0.85, k) * (1 - U.smoothstep(K_HIT + 0.9, K_HIT + 1.7, k)));   // her hand lets go of the skirt as she watches the ball come (the bonk's squash used to tear it off in two frames: a ~30 u jump), and finds it again once the knock has passed
       p.headYaw = U.clamp(hy, -1, 1); p.headPitch = U.clamp(hp, -1, 1); p.headRoll = U.clamp(hr, -1, 1);
       p.squash += sq; p.air = air; p.y = G + y; p.flinch = Math.max(p.flinch, fl); p.dizzy = Math.max(p.dizzy, dz); p.chestHand = Math.max(p.chestHand, ch);
     }
