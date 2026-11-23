@@ -581,6 +581,13 @@ html .nav-object.is-open.is-phone-nav-opening.is-phone-nav-ready .radial-item {
   border-color: var(--color-stage-line-strong);
 }
 
+/* with a mouse, the x answers the pointer with its faint ring (it had no hover look at all); the ring turns bright as the close starts */
+@media (hover: hover) and (pointer: fine) {
+  .nav-object.is-project-close:not(.is-project-closing) .nav-core:hover::after {
+    opacity: 1;
+  }
+}
+
 html:not([data-debug-nav-geometry="true"]) [data-nav-debug-overlay],
 html:not([data-debug-nav-geometry="true"]) .nav-debug-layer,
 html:not([data-debug-nav-geometry="true"]) .trajectory-debug,
