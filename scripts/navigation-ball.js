@@ -60,16 +60,22 @@
   const SHORT_FALL_FLOOR = 20;
   const UP_ARC_RISE_FACTOR = 0.9; // the arc on top of the rise: clamp(z * 0.9, 56, 100) px above the higher of S and E
   const UP_ARC_RISE_MIN = 56;
+  const UP_BEZIER_LIFT_SPAN = 0.3; // upward trips: the control points sit 0.3 x the sideways distance above the higher end (0.55 downward)
   const UP_ARC_RISE_MAX = 100;
   const UP_RISE_MIN = 80; // the straight rise is at least this long, even when B sits low on the screen
   const UP_ARC_ROOM = 40; // the arc starts at least this far below the top of the flight
   const UP_RISE_SPEED_MIN = 90; // px/s
   const UP_RISE_TARGET_SPEED = 300; // px/s: the straight rise is made long enough for about this speed
   const UP_SCROLL_END_SHARE = 0.92; // the page has finished scrolling at 92 % of the rise, so not a pixel of it overlaps the arc (even with a dropped frame)
-  const UP_POST_BASE_SECONDS = 0.3; // after the top: 0.3 s + length / 300 px/s, between 0.5 and 2 s (the short fall stays light)
-  const UP_POST_PX_PER_SECOND = 300;
+  const UP_POST_BASE_SECONDS = 0.3; // after the top: 0.3 s + length / 450 px/s, between 0.5 and 1.4 s (the short fall stays light)
+  const UP_POST_PX_PER_SECOND = 450;
   const UP_POST_MIN_SECONDS = 0.5;
-  const UP_POST_MAX_SECONDS = 2;
+  const UP_POST_MAX_SECONDS = 1.4;
+  const UP_LOW_ARC_DROP = 170; // the straight rise ends at most this far above a low landing point (the landing floor)
+  const UP_SCROLL_SECONDS_BASE = 0.5; // upward trips: the rise (and the scroll) lasts 0.5 s + scroll distance / 6000 px/s, 0.6 - 0.95 s
+  const UP_SCROLL_PX_PER_SECOND = 6000;
+  const UP_SCROLL_SECONDS_MIN = 0.6;
+  const UP_SCROLL_SECONDS_MAX = 0.95;
   const POST_APEX_ARC_SECONDS = 0.4; // time allowed for the arc's way down from the top to the drop, on top of the drop's own time ...
   const POST_APEX_MAX_SECONDS = 2.4; // ... with everything after the top capped at this
   const RISE_EASE_SHARE = 0.35; // the climb keeps MAIN_PATH_SPEED and slows down only over its last 35 % (60 - 220 px) towards the top
@@ -322,9 +328,12 @@
     // or a little higher, so the arc is the same small rise-and-over as everywhere else and ends just above the target
     // (long enough to run at about UP_RISE_TARGET_SPEED while the page scrolls: a landing point low on the screen, like the landing floor,
     // would otherwise leave only a short, slow crawl)
-    const scrollSeconds = clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
+    // (and, for a landing point low on the screen, no more than UP_LOW_ARC_DROP above it, so the arc down to it stays a short one)
+    const scrollSeconds = upward ?
+      clamp(UP_SCROLL_SECONDS_BASE + Math.abs(scrollDistance || 0) / UP_SCROLL_PX_PER_SECOND, UP_SCROLL_SECONDS_MIN, UP_SCROLL_SECONDS_MAX) :
+      clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
     const S = upward ?
-      { x: A.x, y: Math.min(clamp(Math.min(A.y - Math.max(UP_RISE_MIN, UP_RISE_TARGET_SPEED * scrollSeconds), B.y), safeTop + UP_ARC_ROOM, A.y), A.y) } :
+      { x: A.x, y: Math.min(clamp(Math.max(Math.min(A.y - Math.max(UP_RISE_MIN, UP_RISE_TARGET_SPEED * scrollSeconds), B.y), B.y - UP_LOW_ARC_DROP), safeTop + UP_ARC_ROOM, A.y - UP_RISE_MIN), A.y) } :
       { x: A.x, y: A.y };
     const topY = Math.min(S.y, E.y);
     const dx = E.x - S.x;
@@ -357,7 +366,8 @@
       riseLift = high;
     }
 
-    const wantedLift = Math.max(BEZIER_LIFT_MIN, Math.abs(dx) * BEZIER_LIFT_SPAN, z * BEZIER_LIFT_Z, riseLift);
+    // upward trips: a flatter arc (it only has to carry the ball across and down a little, the climb was the straight rise)
+    const wantedLift = Math.max(BEZIER_LIFT_MIN, Math.abs(dx) * (upward ? UP_BEZIER_LIFT_SPAN : BEZIER_LIFT_SPAN), z * BEZIER_LIFT_Z, riseLift);
     const build = function (lift) {
       const controlY = topY - lift;
       const P1 = { x: S.x, y: controlY };
@@ -416,7 +426,7 @@
     // the straight rise (upward trips) runs at one steady speed, chosen so that it lasts as long as the page scroll needs (same rule as the
     // downward drop): the arc then picks up from that speed
     const riseLength = A.y - S.y;
-    const riseSpeed = upward && riseLength > 1 ? clamp(riseLength / dropSeconds, UP_RISE_SPEED_MIN, speed * 1.2) : speed;
+    const riseSpeed = upward && riseLength > 1 ? clamp(riseLength / scrollSeconds, UP_RISE_SPEED_MIN, speed * 1.2) : speed;
     const dropSteps = Math.max(2, Math.ceil(drop / 2));
 
     for (let step = 1; step <= dropSteps; step += 1) {
@@ -434,7 +444,7 @@
     const postSeconds = upward ?
       clamp(UP_POST_BASE_SECONDS + postLength / UP_POST_PX_PER_SECOND, UP_POST_MIN_SECONDS, UP_POST_MAX_SECONDS) :
       Math.min(dropSeconds + POST_APEX_ARC_SECONDS, POST_APEX_MAX_SECONDS);
-    const vTop = clamp((TOP_SPEED_SHARE * postLength) / postSeconds, TOP_SPEED_MIN, Math.max(riseSpeed * 0.6, TOP_SPEED_MIN));
+    const vTop = clamp((TOP_SPEED_SHARE * postLength) / postSeconds, TOP_SPEED_MIN, Math.max(riseSpeed * (upward ? 0.8 : 0.6), TOP_SPEED_MIN));
     const climb = Math.max(S.y - apexY, 1);
     const easeDepth = clamp(climb * RISE_EASE_SHARE, RISE_EASE_MIN, RISE_EASE_MAX); // the rise slows down only over its last stretch
 
@@ -1868,7 +1878,7 @@
     }
 
     /* "home": the ball comes down onto the floor line the girl walks on (the landing scene's ground, world y = stage.groundY),
-     * about a quarter of the way across, with the page at the very top; it then rolls away to the left along that floor. Falls back to the band's ground proportion (700 / 780). */
+     * about a third of the way across, with the page at the very top; it then rolls away to the left along that floor. Falls back to the band's ground proportion (700 / 780). */
     function landingFloor() {
       const media = document.querySelector(".landing-media") || document.getElementById("landing") || document.body;
       const scrollY = currentScrollY();
@@ -1892,7 +1902,7 @@
         section: "landing",
         side: "center",
         kind: "landing-floor",
-        x: window.innerWidth * 0.26,
+        x: window.innerWidth * 0.38,
         y: groundY + scrollY,
         width: window.innerWidth,
         height: 1
