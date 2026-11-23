@@ -3,12 +3,13 @@
  * Trip sequence (every trip, in this exact order):
  *   selected nav circle morphs into the ball at A (no movement) -> capture A once -> freeze scroll -> three prep bounces at A (z/4, z/2, 3z/4)
  *   -> compute scrollTarget and the final visible landing point B -> the main path, with the page scrolling in the same requestAnimationFrame:
- *        desktop / tablet: ONE cubic Bezier from A to B whose control points sit straight above A and straight above B, so the ball leaves A
- *          going straight up, bends over one rounded top and comes down into B going straight down (no straight pieces, no joints), at a
- *          constant speed along the curve (arc-length sampling)
- *        phone (max-width: 767px): a vertical bounce, B.x = A.x: the rise slows (ease-out) to a brief hang at the apex, then the fall speeds up
- *          (ease-in) into B
- *   -> exact landing at B -> three landing bounces at B (3z/4, z/2, z/4), page still -> roll out of the screen -> travelling ball hidden
+ *        desktop / tablet: a cubic Bezier arc whose ends are vertical, plus a straight vertical part (the drop into B, or on upward trips
+ *          the rise out of A) during which - and only then - the page scrolls
+ *        phone (max-width: 767px): a vertical bounce, B.x = A.x
+ *      timed by real physics at cartoon strength (one gravity for the flight, the bounces and the roll-off; squash on impact, stretch
+ *      when fast, an anticipation squash before every launch)
+ *   -> exact landing at B -> three landing bounces at B (each ~0.3 x the height of the one before), page still -> roll out of the screen
+ *   (or off the end of the picture) -> travelling ball hidden
  *   -> plus fades in IN PLACE (nothing travels back to the plus).
  * B is on the top edge of the target image, near the end that is furthest from the screen edge the image is attached to (small buffer).
  *
@@ -27,9 +28,25 @@
   const DEBUG_PHONE_NAV_BALL = false;
 
   // desktop / tablet main path
-  const MAIN_PATH_SPEED = 430; // px/s along the curve, the same all the way (no easing restarts, no pause at the top)
-  const MAIN_PATH_MIN_DURATION = 0.6; // s - only for very short trips
-  const MAIN_PATH_MAX_DURATION = 6; // s - safety net only
+  /* physics: one cartoon gravity for the flight, the bounces and the roll-off (phones: divided by MOBILE_BALL_TIME_SCALE, so their
+   * bounces stay a little calmer). About 2.5 x what the old flight implied: rises slow down, falls snap. */
+  const FLIGHT_GRAVITY = 2400; // px/s^2
+  const NAV_BALL_CAMERA = "page"; // "page": the scroll follows the ball's throw / fall through the page; "screen": physics on screen only
+  const CAMERA_LEG_MAX_SECONDS = 1.2; // a long trip through the page gets stronger gravity, so its scrolling part never takes longer than this
+  const APEX_SPEED_MIN = 40; // px/s: the slowest the ball crosses the top of an arc (narrow arcs: a short natural hang)
+  const APEX_SPEED_MAX = 900;
+  const RESTITUTION = 0.55; // each landing bounce rises to 0.55^2 ~ 0.3 of the one before, and is over sooner
+  const LAND_FIRST_MIN = 0.6; // the first landing bounce: what the impact gives (0.3 x the fall), kept between 0.6 z and 0.85 z
+  const LAND_FIRST_MAX = 0.85;
+  const CONTACT_MS = 60; // the ball sits squashed on the surface this long at every bounce
+  const LAUNCH_CONTACT_MS = 95; // ... and this long before the big launch (anticipation)
+  const SQUASH_MAX = 0.3; // the hardest squash: 30 % shorter
+  const SQUASH_SPEED_FULL = 2600; // px/s impact for the hardest squash (squash grows with the impact speed)
+  const SQUASH_WIDEN = 0.8; // how much wider it gets for each bit shorter
+  const ANTICIPATION_SHARE = 0.45; // before a launch the ball squashes as if hit at this share of the launch speed
+  const STRETCH_FROM = 350; // px/s: no stretch below this speed (round near the top) ...
+  const STRETCH_FULL = 2400; // ... full stretch at this speed ...
+  const STRETCH_MAX = 0.22; // ... 22 % longer along the direction of travel
   // height of the two control points above the higher of A and B: max(MIN, |dx| * SPAN, z * Z). The real top of the curve is about 3/4 of this
   // for level ends (less when one end is much lower). Lowered only when the sampled curve would leave the screen.
   const BEZIER_LIFT_MIN = 40;
@@ -47,12 +64,6 @@
   const DROP_MAX = 220;
   const DROP_ROOM_SHARE = 0.75;
   const DROP_FLOOR = 40;
-  const DROP_SECONDS_BASE = 0.62; // drop time = 0.62 s + scroll distance / 4800 px/s, between 0.75 and 1.38 s (about 25 % slower than the first version)
-  const DROP_SCROLL_PX_PER_SECOND = 4800;
-  const DROP_SECONDS_MIN = 0.75;
-  const DROP_SECONDS_MAX = 1.38;
-  const TOP_SPEED_SHARE = 0.8; // speed at the top of the arc = 0.8 x the average speed after the top (so the fall keeps speeding up and stays calm)
-  const TOP_SPEED_MIN = 40; // px/s
   // upward trips (the destination is above): straight rise with the page scrolling, then the arc, then a short fall onto B
   const SHORT_FALL_FACTOR = 0.55; // the short fall = clamp(z * 0.55, 36, 64) px (at most half the room above B)
   const SHORT_FALL_MIN = 36;
@@ -64,23 +75,13 @@
   const UP_ARC_RISE_MAX = 100;
   const UP_RISE_MIN = 80; // the straight rise is at least this long, even when B sits low on the screen
   const UP_ARC_ROOM = 40; // the arc starts at least this far below the top of the flight
-  const UP_RISE_SPEED_MIN = 90; // px/s
   const UP_RISE_TARGET_SPEED = 300; // px/s: the straight rise is made long enough for about this speed
   const UP_SCROLL_END_SHARE = 0.92; // the page has finished scrolling at 92 % of the rise, so not a pixel of it overlaps the arc (even with a dropped frame)
-  const UP_POST_BASE_SECONDS = 0.3; // after the top: 0.3 s + length / 450 px/s, between 0.5 and 1.4 s (the short fall stays light)
-  const UP_POST_PX_PER_SECOND = 450;
-  const UP_POST_MIN_SECONDS = 0.5;
-  const UP_POST_MAX_SECONDS = 1.4;
   const UP_LOW_ARC_DROP = 170; // the straight rise ends at most this far above a low landing point (the landing floor)
   const UP_SCROLL_SECONDS_BASE = 0.5; // upward trips: the rise (and the scroll) lasts 0.5 s + scroll distance / 6000 px/s, 0.6 - 0.95 s
   const UP_SCROLL_PX_PER_SECOND = 6000;
   const UP_SCROLL_SECONDS_MIN = 0.6;
   const UP_SCROLL_SECONDS_MAX = 0.95;
-  const POST_APEX_ARC_SECONDS = 0.4; // time allowed for the arc's way down from the top to the drop, on top of the drop's own time ...
-  const POST_APEX_MAX_SECONDS = 2.4; // ... with everything after the top capped at this
-  const RISE_EASE_SHARE = 0.35; // the climb keeps MAIN_PATH_SPEED and slows down only over its last 35 % (60 - 220 px) towards the top
-  const RISE_EASE_MIN = 60;
-  const RISE_EASE_MAX = 220;
   // the top of the flight keeps the ball's top edge this far below the top of the screen (clear of the top fade band and the name):
   // 12 % of the screen height, at least 72 px (56 px on phones), at most 150 px, and never less than the fade band's own height
   const FLIGHT_TOP_CLEAR_SHARE = 0.12;
@@ -96,7 +97,7 @@
   const PHONE_MAIN_LIFT_MIN = 84;
   const PHONE_MAIN_LIFT_MAX = 150;
   const PHONE_MAIN_LIFT_FLOOR = 28; // on a very short screen the apex may come lower than 84 px, never lower than this
-  const PHONE_APEX_HANG = 110; // ms of near-weightlessness at the top
+  const PHONE_APEX_HANG = 0; // ms of extra hold at the top: none - the real slow-down over the top already reads as a ~0.1 s hang
 
   const ARCHIVE_STEP_FACTOR = 0.055; // archive: the ball lands this share of the screen width to the RIGHT of where it took off ...
   const ARCHIVE_STEP_MIN = 48; // ... at least this many px ...
@@ -110,11 +111,8 @@
   const SCROLL_PROGRESS_MODE = "smootherstep"; // easing of the page scroll over the flight time ("linear" = scroll progress equals flight progress)
 
   const BALL_MORPH_DURATION = 1300;
-  const NAV_BALL_PREP_DURATIONS = [360, 430, 500];
-  const NAV_BALL_LANDING_DURATIONS = [480, 360, 260];
   const NAV_BALL_ROLL_DURATION = 2180;
   // rolling off the end of a picture that stops short of the screen edge (see planRollAway)
-  const ROLL_GRAVITY = 2600; // px/s^2 on a laptop (phones: divided by MOBILE_BALL_TIME_SCALE^2, like their calmer bounces)
   const ROLL_FADE_MS = 450; // the ball fades out over this long once it has left the corner
   const ROLL_TIP_MIN_ANGLE = 0.6; // rad (~34 deg): the ball follows the rounded corner at least this far before it leaves it ...
   const ROLL_TIP_MAX_ANGLE = 1.25; // ... and at most this far (~72 deg)
@@ -178,10 +176,6 @@
 
   function easeOutCubic(t) {
     return 1 - Math.pow(1 - clamp(t, 0, 1), 3);
-  }
-
-  function easeRollOut(t) {
-    return 1 - Math.pow(1 - clamp(t, 0, 1), 2.2);
   }
 
   function round(value) {
@@ -273,8 +267,7 @@
    *   P'(0) = 3 (P1 - A) points straight up, P'(1) = 3 (B - P2) points straight down: the ball leaves A vertically and lands on B vertically,
    *   with one rounded top in between (the curve bends from the very first pixel, so nothing reads as a straight line joined to a cap).
    *   A and B keep their real heights: when B is higher than A the climb is long and the drop short, and the other way round.
-   * The curve is sampled densely once per trip; the ball moves along it by distance (cumulative arc length) at MAIN_PATH_SPEED, so the speed
-   * is the same everywhere: near the top only the vertical part of the motion goes to zero, the ball keeps travelling sideways.
+   * The curve is sampled densely once per trip; the timing along it is physics (see planBezierPath).
    * Screen edge: the lowest y of the SAMPLED curve (not the control points) must stay at or below safeTop; if not, the lift is reduced
    * (bisection) - A and B never move. */
   function sampleBezier(A, P1, P2, B, count) {
@@ -311,12 +304,12 @@
   /* Two parts, one motion (laptop / tablet):
    *   1) the ARC, page standing still: a cubic Bezier from A to E, where E sits straight above B; both control points are straight above their
    *      ends, so the ball leaves A going straight up, crosses one rounded top and arrives at E going straight down. All sideways movement
-   *      happens here, while nothing scrolls. Constant speed (arc length), easing down a little over the last stretch into E.
-   *   2) the DROP, page scrolling: a straight vertical fall from E to B. Only now does the page scroll (smootherstep), so the scroll never mixes
-   *      with any left / right movement of the ball. The fall starts at the arc's final speed and speeds up into B, and the scroll arrives
-   *      exactly as the ball lands.
+   *      happens here, while nothing scrolls. It slows all the way up, is slowest at the top and speeds up all the way down.
+   *   2) the DROP, page scrolling: a straight vertical fall from E to B. Only now does the page scroll, so the scroll never mixes with any
+   *      left / right movement of the ball. The scroll arrives exactly as the ball lands.
+   *   (upward trips are the mirror: a straight rise with the page scrolling, then the arc, then a short fall onto B)
    * The speed and the direction never jump at E (the arc ends vertical, at the speed the drop starts with). */
-  function planBezierPath(A, B, z, safeTop, speed, scrollDistance, upward) {
+  function planBezierPath(A, B, z, safeTop, scrollDistance, upward, gravity, camera) {
     const room = Math.max(B.y - safeTop, 0); // screen space above B
     // downward trips: a long straight drop (the page scrolls during it); upward trips: only a short fall onto B at the end (the page has
     // already scrolled, during the straight rise)
@@ -329,9 +322,8 @@
     // (long enough to run at about UP_RISE_TARGET_SPEED while the page scrolls: a landing point low on the screen, like the landing floor,
     // would otherwise leave only a short, slow crawl)
     // (and, for a landing point low on the screen, no more than UP_LOW_ARC_DROP above it, so the arc down to it stays a short one)
-    const scrollSeconds = upward ?
-      clamp(UP_SCROLL_SECONDS_BASE + Math.abs(scrollDistance || 0) / UP_SCROLL_PX_PER_SECOND, UP_SCROLL_SECONDS_MIN, UP_SCROLL_SECONDS_MAX) :
-      clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
+    // (geometry only: the timing is physics, below)
+    const scrollSeconds = clamp(UP_SCROLL_SECONDS_BASE + Math.abs(scrollDistance || 0) / UP_SCROLL_PX_PER_SECOND, UP_SCROLL_SECONDS_MIN, UP_SCROLL_SECONDS_MAX);
     const S = upward ?
       { x: A.x, y: Math.min(clamp(Math.max(Math.min(A.y - Math.max(UP_RISE_MIN, UP_RISE_TARGET_SPEED * scrollSeconds), B.y), B.y - UP_LOW_ARC_DROP), safeTop + UP_ARC_ROOM, A.y - UP_RISE_MIN), A.y) } :
       { x: A.x, y: A.y };
@@ -395,13 +387,18 @@
       plan = build(Math.max(low, BEZIER_MIN_LIFT));
     }
 
-    /* timing: like a tossed ball. The speed follows the height (energy): fast at launch, slowing as it climbs, slowest at the top, then
-     * picking up speed all the way down - through the rest of the arc, into the straight drop and on to touchdown. It never slows down after
-     * the top, so there is no dip where the arc meets the drop.
-     *   rising:  MAIN_PATH_SPEED, easing down to vTop over the last stretch of the climb (RISE_EASE_*: fast up, slowing near the top)
-     *   falling: v^2 = vTop^2 + 2 gDown (y - topY)   gDown set so that everything after the top lasts postSeconds (see below) At the top the
-     * speed's rate of change is 0 on both sides, so the change from rising to falling is seamless. */
-    const dropSeconds = clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
+    /* timing: real physics along this fixed path, at cartoon strength. One gravity g for the whole trip (and the bounces and the roll):
+     *   on the path the ball behaves like a bead on a wire: speed^2 = vTop^2 + 2 g (y - apexY). So it leaves fast, slows all the way up,
+     *   is slowest at the top, then speeds up all the way down - it can never slow down after the top.
+     *   vTop is the horizontal speed a real throw would carry over the top: it is set so that the arc takes exactly as long as a real
+     *   projectile with the same rise and fall (narrow arcs: a short natural hang at the top; wide arcs: the ball sweeps across).
+     * The page scroll:
+     *   "page" camera (default): the physics is in PAGE space and the scroll is a camera following the ball. Downward trips: from E the
+     *   ball falls freely through the page (screen drop + scroll distance), the camera picks it up and the page accelerates like the falling
+     *   ball until the impact stops it. Upward trips: the ball is thrown up through the page; the camera whips up with it and slows with it,
+     *   standing still by the time the arc begins. On screen the straight part only ever moves one way and joins the arc at the same speed.
+     *   "screen" camera: the physics is on screen and the page scrolls (smootherstep) during the straight part only. */
+    let g = Math.max(gravity || FLIGHT_GRAVITY, 1);
     const arcPoints = plan.sampled.points;
     const points = [];
 
@@ -423,93 +420,164 @@
     const apexIndex = sIndex + plan.sampled.apexIndex;
     const apexY = points[apexIndex].y;
     const eIndex = points.length - 1;
-    // the straight rise (upward trips) runs at one steady speed, chosen so that it lasts as long as the page scroll needs (same rule as the
-    // downward drop): the arc then picks up from that speed
-    const riseLength = A.y - S.y;
-    const riseSpeed = upward && riseLength > 1 ? clamp(riseLength / scrollSeconds, UP_RISE_SPEED_MIN, speed * 1.2) : speed;
     const dropSteps = Math.max(2, Math.ceil(drop / 2));
 
     for (let step = 1; step <= dropSteps; step += 1) {
       points.push({ x: B.x, y: E.y + (drop * step) / dropSteps });
     }
 
-    /* everything after the top (the rest of the arc and the drop) gets one time budget: the calm drop plus a little for the arc's way down,
-     * at most POST_APEX_MAX_SECONDS (a wide arc would otherwise drift down for seconds). vTop = 0.8 x the average speed over that part. */
-    let postLength = 0;
+    const lastIndex = points.length - 1;
+    const scrollSigned = scrollDistance || 0;
+    const scrollAbs = Math.abs(scrollSigned);
+    const pageCamera = camera !== "screen" && scrollAbs > 1;
 
-    for (let index = apexIndex + 1; index < points.length; index += 1) {
-      postLength += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+    // the bigger the trip through the page, the stronger the cartoon gravity: the scrolling part stays under CAMERA_LEG_MAX_SECONDS
+    if (pageCamera) {
+      const legWorld = upward ? A.y - apexY + scrollAbs : B.y - apexY + scrollAbs;
+
+      g = Math.max(g, (2 * legWorld) / (CAMERA_LEG_MAX_SECONDS * CAMERA_LEG_MAX_SECONDS));
     }
 
-    const postSeconds = upward ?
-      clamp(UP_POST_BASE_SECONDS + postLength / UP_POST_PX_PER_SECOND, UP_POST_MIN_SECONDS, UP_POST_MAX_SECONDS) :
-      Math.min(dropSeconds + POST_APEX_ARC_SECONDS, POST_APEX_MAX_SECONDS);
-    const vTop = clamp((TOP_SPEED_SHARE * postLength) / postSeconds, TOP_SPEED_MIN, Math.max(riseSpeed * (upward ? 0.8 : 0.6), TOP_SPEED_MIN));
-    const climb = Math.max(S.y - apexY, 1);
-    const easeDepth = clamp(climb * RISE_EASE_SHARE, RISE_EASE_MIN, RISE_EASE_MAX); // the rise slows down only over its last stretch
-
-    function speedAt(index, gDown) {
-      const depth = Math.max(points[index].y - apexY, 0);
-
-      if (index <= apexIndex) {
-        const u = clamp(depth / easeDepth, 0, 1);
-
-        return vTop + (riseSpeed - vTop) * (1 - (1 - u) * (1 - u));
-      }
-
-      return Math.sqrt(vTop * vTop + 2 * gDown * depth);
+    function speedAt(index, vTop) {
+      return Math.sqrt(vTop * vTop + 2 * g * Math.max(points[index].y - apexY, 0));
     }
 
-    function segmentTime(index, gDown) {
+    function segmentSeconds(index, vTop) {
       const a = points[index - 1];
       const b = points[index];
       const length = Math.hypot(b.x - a.x, b.y - a.y);
 
-      return length > 0 ? (2 * length) / Math.max(speedAt(index - 1, gDown) + speedAt(index, gDown), 1e-6) : 0;
+      return length > 0 ? (2 * length) / Math.max(speedAt(index - 1, vTop) + speedAt(index, vTop), 1e-6) : 0;
     }
 
-    function postTime(gDown) {
+    function spanSeconds(from, to, vTop) {
       let total = 0;
 
-      for (let index = apexIndex + 1; index < points.length; index += 1) {
-        total += segmentTime(index, gDown);
+      for (let index = from + 1; index <= to; index += 1) {
+        total += segmentSeconds(index, vTop);
       }
 
       return total;
     }
 
-    // postTime falls as gDown grows (and is >= postSeconds / 0.8 at gDown = 0): bisect for the time budget
-    let gLow = 0;
-    let gHigh = 200;
+    // the speed over the top: the arc S -> E takes as long as a real throw that rises (S - apex) and falls (E - apex)
+    const throwSeconds = Math.sqrt((2 * Math.max(S.y - apexY, 0)) / g) + Math.sqrt((2 * Math.max(E.y - apexY, 0)) / g);
+    let vTop = APEX_SPEED_MIN;
 
-    while (postTime(gHigh) > postSeconds && gHigh < 1e7) {
-      gHigh *= 2;
-    }
+    if (spanSeconds(sIndex, eIndex, vTop) > throwSeconds) {
+      let low = APEX_SPEED_MIN;
+      let high = APEX_SPEED_MAX;
 
-    for (let step = 0; step < 40; step += 1) {
-      const middle = (gLow + gHigh) / 2;
-
-      if (postTime(middle) > postSeconds) {
-        gLow = middle;
+      if (spanSeconds(sIndex, eIndex, high) > throwSeconds) {
+        vTop = high;
       } else {
-        gHigh = middle;
+        for (let step = 0; step < 32; step += 1) {
+          const middle = (low + high) / 2;
+
+          if (spanSeconds(sIndex, eIndex, middle) > throwSeconds) {
+            low = middle;
+          } else {
+            high = middle;
+          }
+        }
+
+        vTop = high;
       }
     }
 
-    const gDown = gHigh;
     const times = [0];
 
     for (let index = 1; index < points.length; index += 1) {
-      times.push(times[index - 1] + segmentTime(index, gDown));
+      times.push(times[index - 1] + segmentSeconds(index, vTop));
     }
 
-    const arcSeconds = Math.max(times[eIndex], 0.05);
-    const riseSeconds = times[sIndex]; // upward trips: the page scrolls during [0, riseSeconds]
-    const duration = Math.max(times[times.length - 1], arcSeconds + 0.05);
+    /* the page camera's straight part (u = share of its time T, w = how far the ball has travelled through the page):
+     *   downward, from E:  w = vE t + g t^2 / 2 over drop + scroll;  on screen drop (1 - (1 - u)^q), q = vE T / drop (leaves E at vE)
+     *   upward, from A:    w = vA t - g t^2 / 2 over rise + scroll;  on screen rise u^q, q = vS T / rise (reaches S at vS)
+     *   the camera (scroll) = w minus the on-screen part: it never runs backwards. When the scroll is tiny (q < 1) screen and page share the
+     *   motion in proportion instead. */
+    const cam = { active: false, start: 0, T: 0, q: 1, proportional: false, v0: 0, sign: 1, length: 0, total: 0 };
+
+    if (pageCamera && !upward) {
+      const vE = speedAt(eIndex, vTop);
+      const total = drop + scrollAbs;
+      const vB = Math.sqrt(vE * vE + 2 * g * total);
+
+      cam.active = true;
+      cam.start = times[eIndex];
+      cam.T = Math.max((vB - vE) / g, 0.05);
+      cam.v0 = vE;
+      cam.sign = 1;
+      cam.length = drop;
+      cam.total = total;
+      cam.q = (vE * cam.T) / Math.max(drop, 1e-6);
+      cam.proportional = cam.q < 1;
+      cam.landing = vB;
+    } else if (pageCamera && upward) {
+      const rise = Math.max(A.y - S.y, 0);
+      const vS = speedAt(sIndex, vTop);
+      const total = rise + scrollAbs;
+      const vA = Math.sqrt(vS * vS + 2 * g * total);
+
+      cam.active = true;
+      cam.start = 0;
+      cam.T = Math.max((vA - vS) / g, 0.05);
+      cam.v0 = vA;
+      cam.sign = -1;
+      cam.length = rise;
+      cam.total = total;
+      cam.q = (vS * cam.T) / Math.max(rise, 1e-6);
+      cam.proportional = cam.q < 1 || rise < 1;
+      cam.launch = vA;
+    }
+
+    // how far the ball has gone through the page, and how much of that shows on screen, t seconds into the camera's straight part
+    function camWorld(t) {
+      const s = clamp(t, 0, cam.T);
+
+      return cam.sign > 0 ? cam.v0 * s + 0.5 * g * s * s : cam.v0 * s - 0.5 * g * s * s;
+    }
+
+    function camScreen(t) {
+      const u = clamp(t / cam.T, 0, 1);
+
+      if (cam.proportional) {
+        return (cam.length * camWorld(t)) / Math.max(cam.total, 1e-6);
+      }
+
+      return cam.sign > 0 ? cam.length * (1 - Math.pow(1 - u, cam.q)) : cam.length * Math.pow(u, cam.q);
+    }
+
+    // upward + page camera: the arc starts once the camera's rise is over
+    const arcOffset = cam.active && cam.sign < 0 ? cam.T - times[sIndex] : 0;
+    const duration = cam.active && cam.sign > 0 ? cam.start + cam.T : Math.max(times[lastIndex] + arcOffset, 0.05);
+    const arcSeconds = Math.max(times[eIndex] + arcOffset, 0.05); // the moment the ball reaches E
+    const riseSeconds = cam.active && cam.sign < 0 ? cam.T : times[sIndex]; // upward trips: the page scrolls during [0, riseSeconds]
     let pathLength = 0;
 
     for (let index = 1; index < points.length; index += 1) {
       pathLength += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+    }
+
+    function interpolate(seconds) {
+      const local = seconds - arcOffset;
+      let low = 1;
+      let high = times.length - 1;
+
+      while (low < high) {
+        const middle = (low + high) >> 1;
+
+        if (times[middle] < local) {
+          low = middle + 1;
+        } else {
+          high = middle;
+        }
+      }
+
+      const span = times[low] - times[low - 1];
+      const fraction = span > 1e-12 ? clamp((local - times[low - 1]) / span, 0, 1) : 0;
+
+      return { x: mix(points[low - 1].x, points[low].x, fraction), y: mix(points[low - 1].y, points[low].y, fraction) };
     }
 
     function pointAt(seconds) {
@@ -521,31 +589,54 @@
         return { x: B.x, y: B.y };
       }
 
-      let low = 1;
-      let high = times.length - 1;
-
-      while (low < high) {
-        const middle = (low + high) >> 1;
-
-        if (times[middle] < seconds) {
-          low = middle + 1;
-        } else {
-          high = middle;
-        }
+      if (cam.active && cam.sign > 0 && seconds >= cam.start) {
+        return { x: B.x, y: E.y + camScreen(seconds - cam.start) };
       }
 
-      const span = times[low] - times[low - 1];
-      const fraction = span > 1e-12 ? (seconds - times[low - 1]) / span : 0;
+      if (cam.active && cam.sign < 0 && seconds < cam.T) {
+        return { x: A.x, y: A.y - camScreen(seconds) };
+      }
 
-      return { x: mix(points[low - 1].x, points[low].x, fraction), y: mix(points[low - 1].y, points[low].y, fraction) };
+      return interpolate(seconds);
+    }
+
+    function scrollProgressAt(seconds) {
+      if (cam.active && cam.sign > 0) {
+        if (seconds <= cam.start) {
+          return 0;
+        }
+
+        const t = seconds - cam.start;
+
+        return clamp((camWorld(t) - camScreen(t)) / scrollAbs, 0, 1);
+      }
+
+      if (cam.active && cam.sign < 0) {
+        if (seconds >= cam.T) {
+          return 1;
+        }
+
+        return clamp((camWorld(seconds) - camScreen(seconds)) / scrollAbs, 0, 1);
+      }
+
+      // screen camera. downward: the page stays still during the arc and scrolls only during the straight drop. upward: it scrolls only
+      // during the straight rise (done just before the arc begins), then stays still for the arc and the short fall
+      if (upward) {
+        return riseSeconds > 0 ? smootherstep(seconds / (riseSeconds * UP_SCROLL_END_SHARE)) : 1;
+      }
+
+      return seconds <= arcSeconds ? 0 : smootherstep((seconds - arcSeconds) / Math.max(duration - arcSeconds, 1e-6));
     }
 
     const samples = points.map(function (point) {
       return { x: point.x, y: point.y };
     });
+    const launchSpeed = cam.launch || speedAt(0, vTop);
+    const impactSpeed = cam.landing || speedAt(lastIndex, vTop);
 
     return {
       mode: upward ? "rise-then-bezier" : "bezier-then-drop",
+      camera: cam.active ? "page" : "screen",
       duration: duration,
       length: pathLength,
       speed: pathLength / duration,
@@ -553,107 +644,169 @@
       progressAt: function (seconds) {
         return clamp(seconds / duration, 0, 1);
       },
-      // downward: the page stays still during the arc and scrolls only during the straight drop. upward: it scrolls only during the
-      // straight rise, then stays still for the arc and the short fall
-      scrollProgressAt: function (seconds) {
-        if (upward) {
-          return riseSeconds > 0 ? smootherstep(seconds / (riseSeconds * UP_SCROLL_END_SHARE)) : 1; // done just before the arc begins
-        }
+      scrollProgressAt: scrollProgressAt,
+      // where the ball is in the world the physics runs in (the page for the page camera, the screen otherwise): for the stretch
+      worldAt: function (seconds) {
+        const point = pointAt(seconds);
 
-        return seconds <= arcSeconds ? 0 : smootherstep((seconds - arcSeconds) / (duration - arcSeconds));
+        return cam.active ? { x: point.x, y: point.y + scrollProgressAt(seconds) * scrollSigned } : point;
       },
+      launchSpeed: launchSpeed,
+      impactSpeed: impactSpeed,
+      gravity: g,
       samples: samples,
-      apex: copyPoint(arcPoints[apexIndex]),
+      apex: copyPoint(points[apexIndex]),
       guides: [
         { name: "P1", point: copyPoint(plan.P1), colour: "#1fa34a" },
         { name: "P2", point: copyPoint(plan.P2), colour: "#11a5b8" },
         upward ? { name: "S (scroll ends)", point: copyPoint(S), colour: "#8a2be2" } : { name: "E (scroll starts)", point: copyPoint(E), colour: "#8a2be2" }
       ],
-      geometry: { A: copyPoint(A), E: copyPoint(E), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, drop: drop, arcSeconds: arcSeconds, dropSeconds: duration - arcSeconds, launchSpeed: speed, topSpeed: vTop, entrySpeed: speedAt(eIndex, gDown), landingSpeed: speedAt(points.length - 1, gDown), gDown: gDown, safeTop: safeTop }
+      geometry: { A: copyPoint(A), E: copyPoint(E), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, drop: drop, arcSeconds: arcSeconds, dropSeconds: duration - arcSeconds, riseSeconds: riseSeconds, gravity: g, topSpeed: vTop, launchSpeed: launchSpeed, impactSpeed: impactSpeed, camera: cam.active ? "page" : "screen", cameraSeconds: cam.T, cameraQ: cam.q, safeTop: safeTop }
     };
   }
 
   /* ---- phone main path: one big vertical bounce -------------------------------------------------------------------------------------
-   *   A -> apex (constant deceleration, like gravity: fast start, slowing to 0) -> a short hang (PHONE_APEX_HANG) -> B (constant
-   *   acceleration, like gravity: starts slowly,
-   *   speeds up and hits B with momentum, then the first landing bounce takes over). x never changes (B.x = A.x).
-   *   The two legs get their own durations (the climb and the drop differ whenever A and B are at different heights).
-   * Scroll (smootherstep): downward trips scroll only while the ball falls (arriving exactly as it lands); upward trips scroll only while it
-   * rises, then the hang and the fall happen with the page still. */
-  function planPhoneBounce(A, B, phoneZ, safeTop, upward) {
+   *   A -> apex (a real throw: fast start, slowing to 0) -> a short hang (PHONE_APEX_HANG) -> B (a real fall: starts slowly and speeds
+   *   up into B, then the first landing bounce takes over). One gravity for both legs. x never changes (B.x = A.x).
+   * Scroll: downward trips scroll only while the ball falls, upward trips only while it rises. With the page camera (default) the leg that
+   * scrolls is a throw / fall through the page, and the page moves with the ball's own speed; with the screen camera it is smootherstep. */
+  function planPhoneBounce(A, B, phoneZ, safeTop, upward, gravity, scrollDistance, camera) {
     const topY = Math.min(A.y, B.y);
     const wantedLift = clamp(phoneZ * PHONE_MAIN_LIFT_FACTOR, PHONE_MAIN_LIFT_MIN, PHONE_MAIN_LIFT_MAX);
     const lift = Math.max(Math.min(wantedLift, topY - safeTop), PHONE_MAIN_LIFT_FLOOR);
     const apex = { x: A.x, y: topY - lift };
     const upDistance = Math.abs(A.y - apex.y);
     const downDistance = Math.abs(B.y - apex.y);
-    const upMs = clamp(Math.sqrt(upDistance) * 48, 620, 880);
-    const hangMs = PHONE_APEX_HANG;
-    const downMs = clamp(Math.sqrt(downDistance) * 55, 775, 1150); // the fall (when the page scrolls) about 25 % slower than the spec's 44 / 620 / 920
-    const totalMs = upMs + hangMs + downMs;
-    const samples = [];
+    const scrollSigned = scrollDistance || 0;
+    const scrollAbs = Math.abs(scrollSigned);
+    const pageCamera = camera !== "screen" && scrollAbs > 1;
+    // one gravity, a real throw and a real fall: with the page camera the leg that scrolls is a throw / fall through the page (its screen
+    // distance + the scroll), and a long one gets stronger gravity (CAMERA_LEG_MAX_SECONDS)
+    const upWorld = upDistance + (pageCamera && upward ? scrollAbs : 0);
+    const downWorld = downDistance + (pageCamera && !upward ? scrollAbs : 0);
+    const g = Math.max(gravity || FLIGHT_GRAVITY, 1, pageCamera ? (2 * (upward ? upWorld : downWorld)) / (CAMERA_LEG_MAX_SECONDS * CAMERA_LEG_MAX_SECONDS) : 1);
+    const upT = Math.max(Math.sqrt((2 * upWorld) / g), 0.05);
+    const downT = Math.max(Math.sqrt((2 * downWorld) / g), 0.05);
+    const hangT = PHONE_APEX_HANG / 1000;
+    const total = upT + hangT + downT;
+    const camT = upward ? upT : downT;
+    const camScreen = upward ? upDistance : downDistance;
+    const camWorld = upward ? upWorld : downWorld;
 
-    function pointAtMs(ms) {
-      if (ms <= 0) {
-        return { x: A.x, y: A.y };
-      }
+    /* the camera leg, measured from the apex (r = time from the top): the ball moves r seconds' worth of a real fall through the page, g r^2 / 2;
+     * on screen it shows the share e^(-r / tau) of that speed, so right at the top it moves exactly like a real ball (a natural hang, no
+     * stall) and the camera then takes over smoothly; tau is set so that the screen part is exactly the leg's screen distance */
+    function screenFrom(r, tau) {
+      const e = Math.exp(-r / tau);
 
-      if (ms < upMs) {
-        const u = ms / upMs;
-
-        return { x: A.x, y: mix(A.y, apex.y, u * (2 - u)) };
-      }
-
-      if (ms < upMs + hangMs) {
-        return { x: A.x, y: apex.y };
-      }
-
-      if (ms < totalMs) {
-        const t = (ms - upMs - hangMs) / downMs;
-
-        return { x: A.x, y: mix(apex.y, B.y, t * t) };
-      }
-
-      return { x: A.x, y: B.y };
+      return g * (tau * tau * (1 - e) - tau * r * e);
     }
 
+    let tau = 1e4;
+
+    if (pageCamera && screenFrom(camT, tau) > camScreen) {
+      let low = 1e-4;
+      let high = tau;
+
+      for (let step = 0; step < 60; step += 1) {
+        const middle = Math.sqrt(low * high);
+
+        if (screenFrom(camT, middle) > camScreen) {
+          high = middle;
+        } else {
+          low = middle;
+        }
+      }
+
+      tau = (low + high) / 2;
+    }
+
+    const tauScale = pageCamera ? camScreen / Math.max(screenFrom(camT, tau), 1e-6) : 1; // exact end point despite the bisection's rounding
+
+    // seconds -> { y on screen, share of the scroll done }
+    function stateAt(seconds) {
+      const t = clamp(seconds, 0, total);
+
+      if (t < upT) {
+        const r = upT - t; // time left to the top
+        const worldLeft = 0.5 * g * r * r; // still to climb, through the page
+
+        if (pageCamera && upward) {
+          const screenLeft = screenFrom(r, tau) * tauScale;
+
+          return { y: apex.y + screenLeft, scroll: clamp((upWorld - worldLeft - (upDistance - screenLeft)) / scrollAbs, 0, 1) };
+        }
+
+        return { y: apex.y + (upDistance * worldLeft) / Math.max(upWorld, 1e-6), scroll: upward ? smootherstep(t / upT) : 0 };
+      }
+
+      if (t < upT + hangT) {
+        return { y: apex.y, scroll: upward ? 1 : 0 };
+      }
+
+      const r = t - upT - hangT; // time since the fall began
+      const worldDone = Math.min(0.5 * g * r * r, downWorld);
+
+      if (pageCamera && !upward) {
+        const screenDone = Math.min(screenFrom(r, tau) * tauScale, downDistance);
+
+        return { y: apex.y + screenDone, scroll: clamp((worldDone - screenDone) / scrollAbs, 0, 1) };
+      }
+
+      return { y: apex.y + (downDistance * worldDone) / Math.max(downWorld, 1e-6), scroll: upward ? 1 : smootherstep(r / downT) };
+    }
+
+    function pointAt(seconds) {
+      if (seconds >= total) {
+        return { x: A.x, y: B.y };
+      }
+
+      return { x: A.x, y: stateAt(seconds).y };
+    }
+
+    function scrollProgressAt(seconds) {
+      if (seconds >= total) {
+        return 1;
+      }
+
+      return seconds <= 0 ? 0 : stateAt(seconds).scroll;
+    }
+
+    const samples = [];
+
     for (let index = 0; index <= 240; index += 1) {
-      const point = pointAtMs((index / 240) * totalMs);
+      const point = pointAt((index / 240) * total);
 
       samples.push({ x: point.x, y: point.y });
     }
 
+    const launchSpeed = Math.sqrt(2 * g * upWorld);
+    const impactSpeed = Math.sqrt(2 * g * downWorld);
+
     return {
       mode: "phone-bounce",
-      duration: totalMs / 1000,
+      camera: pageCamera ? "page" : "screen",
+      duration: total,
       length: upDistance + downDistance,
-      speed: (upDistance + downDistance) / (totalMs / 1000),
-      pointAt: function (seconds) {
-        return pointAtMs(seconds * 1000);
-      },
+      speed: (upDistance + downDistance) / total,
+      pointAt: pointAt,
       progressAt: function (seconds) {
-        return clamp((seconds * 1000) / totalMs, 0, 1);
+        return clamp(seconds / total, 0, 1);
       },
-      scrollProgressAt: function (seconds) {
-        const ms = seconds * 1000;
+      scrollProgressAt: scrollProgressAt,
+      worldAt: function (seconds) {
+        const point = pointAt(seconds);
 
-        // upward trips: the page scrolls while the ball rises, then stays still for the hang and the short fall
-        if (upward) {
-          return smootherstep(ms / upMs);
-        }
-
-        // downward trips: the page waits through the rise and the hang and scrolls only while the ball falls
-        if (ms <= upMs + hangMs) {
-          return 0;
-        }
-
-        return smootherstep((ms - upMs - hangMs) / downMs);
+        return pageCamera ? { x: point.x, y: point.y + scrollProgressAt(seconds) * scrollSigned } : point;
       },
+      launchSpeed: launchSpeed,
+      impactSpeed: impactSpeed,
+      gravity: g,
       samples: samples,
       apex: copyPoint(apex),
       guides: [],
       phoneX: A.x,
-      geometry: { A: copyPoint(A), B: copyPoint(B), apex: copyPoint(apex), lift: lift, wantedLift: wantedLift, upMs: upMs, hangMs: hangMs, downMs: downMs, safeTop: safeTop }
+      geometry: { A: copyPoint(A), B: copyPoint(B), apex: copyPoint(apex), lift: lift, wantedLift: wantedLift, upMs: upT * 1000, hangMs: PHONE_APEX_HANG, downMs: downT * 1000, gravity: g, camera: pageCamera ? "page" : "screen", cameraWorld: camWorld, tau: tau, safeTop: safeTop }
     };
   }
 
@@ -665,7 +818,7 @@
   /* ---- the roll-away after the landing bounces ------------------------------------------------------------------------------------------
    * The ball may only ever roll on something. Two ways out:
    *   "edge": the surface runs on to the screen edge in the roll direction (a picture attached to that edge, the contact floor, the landing
-   *           floor): the ball rolls off the screen, exactly as before (easeRollOut over the roll duration).
+   *           floor): the ball rolls off the screen, slowing under rolling friction alone (still moving as it leaves).
    *   "fall": the surface ends before the screen edge (a free-standing picture): the ball rolls along the top edge with the same rolling
    *           motion until its contact point reaches the rounded corner, rolls over the corner (its centre follows a circle of radius
    *           corner radius + ball radius around the corner's centre, speeding up under gravity), leaves the corner where a real ball would
@@ -682,19 +835,26 @@
     const support = options.support;
     const span = endX - startX;
 
+    // rolling friction only: a constant slow-down, x = start + span (1 - (1 - u)^2); the spin matches the distance (no sliding)
+    function rollShare(ms) {
+      const u = clamp(ms / duration, 0, 1);
+
+      return 1 - (1 - u) * (1 - u);
+    }
+
     function rollX(ms) {
-      return mix(startX, endX, easeRollOut(ms / duration));
+      return mix(startX, endX, rollShare(ms));
     }
 
     function rotationFor(distance) {
       return dir * (distance / circumference) * 360;
     }
 
-    // the moment the ball's centre crosses a given x on the eased roll (inverse of easeRollOut)
+    // the moment the ball's centre crosses a given x on the roll (inverse of rollShare)
     function timeAtX(x) {
       const share = clamp((x - startX) / (Math.abs(span) > 1e-6 ? span : 1), 0, 1);
 
-      return (1 - Math.pow(1 - share, 1 / 2.2)) * duration;
+      return (1 - Math.sqrt(1 - share)) * duration;
     }
 
     if (!support) {
@@ -724,7 +884,7 @@
 
     const flatMs = timeAtX(flatEndX);
     const flatRaw = clamp(flatMs / duration, 0, 1);
-    const entrySpeed = Math.max((Math.abs(span) * 2.2 * Math.pow(1 - flatRaw, 1.2)) / (duration / 1000), 40); // px/s at the corner
+    const entrySpeed = Math.max((Math.abs(span) * 2 * (1 - flatRaw)) / (duration / 1000), 40); // px/s at the corner (it keeps it into the fall)
     const corner = { x: flatEndX, y: top + cornerR };
     const ratio = (entrySpeed * entrySpeed) / (gravity * R);
     const leaveAngle = clamp(Math.acos(clamp((ratio + 2) / 3, -1, 1)), ROLL_TIP_MIN_ANGLE, ROLL_TIP_MAX_ANGLE);
@@ -832,6 +992,20 @@
   }
 
   /* ------------------------------------------------------------------ trajectory debug overlay (off unless asked for) */
+
+  function cameraMode() {
+    try {
+      const wanted = new URLSearchParams(window.location.search).get("navcam");
+
+      if (wanted === "page" || wanted === "screen") {
+        return wanted;
+      }
+    } catch (error) {
+      // no URLSearchParams: the default
+    }
+
+    return NAV_BALL_CAMERA;
+  }
 
   function trajectoryDebugRequested() {
     if (DEBUG_NAV_TRAJECTORY_OVERLAY) {
@@ -1396,20 +1570,38 @@
       ball.style.setProperty("--ball-y", y + "px");
     }
 
-    function setBallScale(scaleX, scaleY) {
-      ball.style.setProperty("--ball-scale-x", String(scaleX));
-      ball.style.setProperty("--ball-scale-y", String(scaleY));
+    /* squash and stretch. The ball is scaled along an angle (rotate, scale, rotate back), so the highlight never turns.
+     *   on a surface: squashed in proportion to the speed it hit with (or, before a launch, a share of the launch speed), the bottom staying
+     *   on the surface; in the air: stretched along its direction of travel when it moves fast, round when slow (near the top). */
+    function setBallShape(along, across, angleDeg, liftPx) {
+      ball.style.setProperty("--ball-scale-x", along.toFixed(4));
+      ball.style.setProperty("--ball-scale-y", across.toFixed(4));
+      ball.style.setProperty("--ball-stretch-angle", angleDeg.toFixed(2) + "deg");
+      ball.style.setProperty("--ball-lift", liftPx.toFixed(2) + "px");
     }
 
-    function applyBounceScale(raw, intensity) {
-      const p = clamp(raw, 0, 1);
-      const liftRatio = 4 * p * (1 - p);
-      const safeIntensity = clamp(intensity, 0, 1);
+    function squashAmount(impactSpeed, launchSpeed) {
+      return SQUASH_MAX * clamp(Math.max(impactSpeed || 0, ANTICIPATION_SHARE * (launchSpeed || 0)) / SQUASH_SPEED_FULL, 0, 1);
+    }
 
-      setBallScale(
-        mix(1 + 0.08 * safeIntensity, 1 - 0.04 * safeIntensity, liftRatio),
-        mix(1 - 0.08 * safeIntensity, 1 + 0.06 * safeIntensity, liftRatio)
-      );
+    // share u (0 - 1) of a contact: squash in and back out
+    function applyContactShape(u, amount) {
+      const k = Math.sin(Math.PI * clamp(u, 0, 1));
+      const short = 1 - amount * k;
+
+      setBallShape(1 + SQUASH_WIDEN * amount * k, short, 0, ballRadius() * (1 - short)); // x wider, y shorter, bottom on the surface
+    }
+
+    function applyAirShape(vx, vy) {
+      const speed = Math.hypot(vx, vy);
+      const s = STRETCH_MAX * clamp((speed - STRETCH_FROM) / (STRETCH_FULL - STRETCH_FROM), 0, 1);
+
+      if (s <= 1e-4) {
+        setBallShape(1, 1, 0, 0);
+        return;
+      }
+
+      setBallShape(1 + s, 1 / Math.sqrt(1 + s), (Math.atan2(vy, vx) * 180) / Math.PI, 0); // along the velocity: longer; across it: thinner
     }
 
     function setTimelineShadow(opacity, scale) {
@@ -1459,6 +1651,7 @@
       ball.style.setProperty("--ball-lift", "0px");
       ball.style.setProperty("--ball-scale-x", "1");
       ball.style.setProperty("--ball-scale-y", "1");
+      ball.style.setProperty("--ball-stretch-angle", "0deg");
       ball.style.setProperty("--ball-rotation", "0deg");
       ball.style.removeProperty("--restore-duration");
       delete ball.dataset.ballPhase;
@@ -1475,6 +1668,7 @@
       ball.style.setProperty("--ball-lift", "0px");
       ball.style.setProperty("--ball-scale-x", "1");
       ball.style.setProperty("--ball-scale-y", "1");
+      ball.style.setProperty("--ball-stretch-angle", "0deg");
       ball.style.setProperty("--ball-rotation", "0deg");
       ball.style.removeProperty("--restore-duration");
       resetTimelineShadow();
@@ -2036,10 +2230,29 @@
       const bounds = getSafeBounds({ allowFloor: targetId === "contact" });
       const radius = ballRadius();
       const z = tripBounceHeight(isPhone);
+      // one gravity for everything in this trip (phones: calmer, like their bounces)
+      const gravity = FLIGHT_GRAVITY / motionScale();
+      const contactMs = scaleMotionDuration(CONTACT_MS);
+      const launchContactMs = scaleMotionDuration(LAUNCH_CONTACT_MS);
+      const airMsFor = function (height) {
+        return 1000 * Math.sqrt((8 * Math.max(height, 0)) / gravity); // up and down again under gravity
+      };
+      const speedFor = function (height) {
+        return Math.sqrt(2 * gravity * Math.max(height, 0)); // leaves / hits the surface with this
+      };
+      // prep bounces pump up (z/4, z/2, 3z/4); each is a contact (squash) and then a real bounce of that height
       const prepHeights = [z / 4, z / 2, (3 * z) / 4];
-      const landingHeights = [(3 * z) / 4, z / 2, z / 4];
-      const prepDurations = NAV_BALL_PREP_DURATIONS.map(scaleMotionDuration);
-      const landingDurations = NAV_BALL_LANDING_DURATIONS.map(scaleMotionDuration);
+      const prepAirMs = prepHeights.map(airMsFor);
+      const prepDurations = prepAirMs.map(function (air) {
+        return contactMs + air;
+      });
+      // landing bounces lose energy: set from the impact once the path is known (buildMainPath)
+      let landingHeights = [(3 * z) / 4, (3 * z) / 4 * RESTITUTION * RESTITUTION, (3 * z) / 4 * Math.pow(RESTITUTION, 4)];
+      let landingAirMs = landingHeights.map(airMsFor);
+      let landingDurations = landingAirMs.map(function (air) {
+        return contactMs + air;
+      });
+      let landingImpacts = [0, 0, 0];
       const rollDuration = scaleMotionDuration(NAV_BALL_ROLL_DURATION);
       let rollDirection = rollDirectionFor(targetId); // set from the landing element's side once it is measured (buildMainPath)
       const target = document.getElementById(targetId);
@@ -2144,8 +2357,21 @@
 
         const upward = scrollTarget < scrollStart - 1; // the destination is above: scroll during the rise, not the fall
 
-        path = isPhone ? planPhoneBounce(A0, F, z, safeTop, upward) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED, scrollTarget - scrollStart, upward);
-        mainMs = Math.max(1, path.duration * 1000);
+        path = isPhone ?
+          planPhoneBounce(A0, F, z, safeTop, upward, gravity, scrollTarget - scrollStart, cameraMode()) :
+          planBezierPath(A0, F, z, safeTop, scrollTarget - scrollStart, upward, gravity, cameraMode());
+        mainMs = Math.max(1, launchContactMs + path.duration * 1000); // the anticipation squash at A, then the flight
+
+        // the landing bounces: the first rises to what the impact gives back (restitution^2 x the fall), within LAND_FIRST_* x z; each next
+        // one to restitution^2 (~0.3) of the one before
+        const firstHeight = clamp((RESTITUTION * RESTITUTION * path.impactSpeed * path.impactSpeed) / (2 * gravity), LAND_FIRST_MIN * z, LAND_FIRST_MAX * z);
+
+        landingHeights = [firstHeight, firstHeight * RESTITUTION * RESTITUTION, firstHeight * Math.pow(RESTITUTION, 4)];
+        landingAirMs = landingHeights.map(airMsFor);
+        landingDurations = landingAirMs.map(function (air) {
+          return contactMs + air;
+        });
+        landingImpacts = [path.impactSpeed, speedFor(landingHeights[0]), speedFor(landingHeights[1])];
         rollDirection = endPoint.side === "right" ? 1 : endPoint.side === "left" ? -1 : rollDirectionFor(targetId);
         if (activeTrip) {
           activeTrip.scrollTarget = scrollTarget;
@@ -2309,7 +2535,7 @@
             screenW: window.innerWidth,
             screenH: window.innerHeight,
             support: rollSupport(),
-            gravity: ROLL_GRAVITY / (motionScale() * motionScale()),
+            gravity: gravity, // the same gravity as the flight and the bounces
             fadeMs: scaleMotionDuration(ROLL_FADE_MS)
           });
           rollMs = Math.max(1, roll.totalMs);
@@ -2365,6 +2591,22 @@
         }
       }
 
+      /* one bounce at base: a contact (squashed by the speed it hit with, or before a launch by a share of the launch speed), then a real
+       * bounce of the given height under gravity, stretched by its own vertical speed */
+      function renderBounce(base, elapsed, height, airMs, impactSpeed, launchSpeed) {
+        if (elapsed < contactMs) {
+          setBallPosition(base.x, base.y);
+          applyContactShape(elapsed / contactMs, squashAmount(impactSpeed, launchSpeed));
+          return;
+        }
+
+        const p = clamp((elapsed - contactMs) / Math.max(airMs, 1), 0, 1);
+        const point = bouncePoint(base, height, p);
+
+        setBallPosition(point.x, point.y);
+        applyAirShape(0, -launchSpeed * (1 - 2 * p));
+      }
+
       function renderPhase(name, elapsed, now) {
         let raw;
         let point;
@@ -2375,17 +2617,22 @@
           case PHASE.PREP3: {
             const index = name === PHASE.PREP1 ? 0 : name === PHASE.PREP2 ? 1 : 2;
 
-            raw = elapsed / prepDurations[index];
             freezeScrollAt(scrollStart, "scrollMovedDuringPrep");
-            point = bouncePoint(A0, prepHeights[index], raw);
-            setBallPosition(point.x, point.y);
-            applyBounceScale(raw, [0.68, 0.78, 0.9][index]);
+            renderBounce(A0, elapsed, prepHeights[index], prepAirMs[index], index > 0 ? speedFor(prepHeights[index - 1]) : 0, speedFor(prepHeights[index]));
             setTimelineShadow(0, 0.72);
             break;
           }
 
           case PHASE.MAIN: {
-            const flightSeconds = Math.min(elapsed / 1000, path.duration);
+            if (elapsed < launchContactMs) {
+              // anticipation: the ball sits on A and squashes before the big launch (the page has not moved yet)
+              setBallPosition(A0.x, A0.y);
+              applyContactShape(elapsed / launchContactMs, squashAmount(speedFor(prepHeights[2]), path.launchSpeed));
+              setTimelineShadow(0, 0.72);
+              break;
+            }
+
+            const flightSeconds = Math.min((elapsed - launchContactMs) / 1000, path.duration);
             const progress = path.progressAt(flightSeconds);
             const scrollProgress = path.scrollProgressAt(flightSeconds);
 
@@ -2395,13 +2642,13 @@
             scrollInstantly(mix(scrollStart, scrollTarget, scrollProgress));
             setBallPosition(point.x, point.y);
 
-            // a slight vertical stretch only while the ball is really dropping into B (never sideways, never on the way up)
-            const ahead = path.pointAt(Math.min(flightSeconds + 0.02, path.duration));
-            const step = Math.hypot(ahead.x - point.x, ahead.y - point.y);
-            const falling = step > 1e-6 ? Math.max(0, (ahead.y - point.y) / step) : 1;
-            const stretch = smootherstep((progress - 0.6) / 0.3) * falling * falling;
+            // stretched along its real direction of travel (in the page, for the page camera) when it moves fast, round when slow
+            const dt = 1 / 240;
+            const t0 = Math.max(0, Math.min(flightSeconds - dt, path.duration - 2 * dt));
+            const before = path.worldAt(t0);
+            const after = path.worldAt(t0 + 2 * dt);
 
-            setBallScale(1 - 0.015 * stretch, 1 + 0.025 * stretch);
+            applyAirShape((after.x - before.x) / (2 * dt), (after.y - before.y) / (2 * dt));
             setTimelineShadow(0, 0.72); // no shadow travels with the ball through the air
 
             if (previousSample && elapsed > previousSample.elapsed) {
@@ -2423,17 +2670,14 @@
           case PHASE.LAND3: {
             const index = name === PHASE.LAND1 ? 0 : name === PHASE.LAND2 ? 1 : 2;
 
-            raw = elapsed / landingDurations[index];
             freezeScrollAt(scrollTarget, "scrollMovedDuringLanding");
-            point = bouncePoint(F, landingHeights[index], raw);
-            setBallPosition(point.x, point.y);
-            applyBounceScale(raw, [1, 0.72, 0.48][index]);
+            renderBounce(F, elapsed, landingHeights[index], landingAirMs[index], landingImpacts[index], speedFor(landingHeights[index]));
 
             if (endPoint.kind === "floor") {
               setTimelineShadow(0, 0.72);
             } else {
               // the shadow hangs under the ball, so it only shows while the ball touches the platform (it would float in the air otherwise)
-              const q = clamp(raw, 0, 1);
+              const q = elapsed < contactMs ? 0 : clamp((elapsed - contactMs) / landingAirMs[index], 0, 1);
               const contact = Math.pow(1 - 4 * q * (1 - q), 6);
               const compressedOpacity = [0.42, 0.32, 0.24][index];
               const compressedScale = [1.32, 1.14, 1.04][index];
@@ -2451,7 +2695,12 @@
 
             ball.style.setProperty("--ball-rotation", state.rotation + "deg");
             setBallPosition(state.x, state.y);
-            setBallScale(1, 1);
+
+            if (elapsed < contactMs && state.touching) {
+              applyContactShape(elapsed / contactMs, squashAmount(speedFor(landingHeights[2]), 0)); // the last, small touchdown
+            } else {
+              setBallShape(1, 1, 0, 0);
+            }
 
             if (roll.mode === "fall") {
               ball.style.opacity = String(state.opacity);
@@ -2562,6 +2811,7 @@
       ball.style.setProperty("--ball-lift", "0px");
       ball.style.setProperty("--ball-scale-x", "1");
       ball.style.setProperty("--ball-scale-y", "1");
+      ball.style.setProperty("--ball-stretch-angle", "0deg");
       ball.style.setProperty("--ball-rotation", "0deg");
       ball.style.setProperty("--nav-ball-form-duration", morphDuration + "ms");
       ballLabel.textContent = "";
