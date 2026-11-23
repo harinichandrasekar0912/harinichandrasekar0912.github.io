@@ -648,6 +648,15 @@ html[data-about="d"] .about-copy {
   margin-top: -0.42em;
 }
 
+/* big screens (1700 px and wider): at 395 px the photo became a small stamp at the edge with ~650 px of empty paper before the text
+   (2560 px wide). It grows with the screen to 560 px (sharp at 1x; index.html asks for the larger file here) and the gap before the
+   text takes a smaller share of the room, so the text column sits near the middle of the page, under the title. Laptops are unchanged. */
+@media (min-width: 1700px) {
+  html[data-about="d"] .about-layout {
+    grid-template-columns: min(max(395px, 22vw), 560px) minmax(6rem, 0.55fr) minmax(0, 33rem) minmax(var(--page-x), 1fr);
+  }
+}
+
 /*
   The photo's colour, any layout: &photo=reveal | colour | bw (reveal is the default). bw: grey with a very slight lift in contrast.
   reveal: grey at rest, like the work tiles. scripts/about-photo.js adds .is-colour - just after the navigation ball first touches the photo,
