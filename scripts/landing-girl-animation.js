@@ -1835,7 +1835,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
     //   jFore [elbow bend at the back of the swing, extra bend toward the front (deg), (unused), lag (cycles)]; jHand: how far the relaxed hands close further (fist loft weight; 0 = her own relaxed walking hand, already a soft closed mitt, and no extra loft blending per frame);
     //   jTwist [mean, amplitude, lag]: the chest opens toward the viewer (twist units, 52 deg each) and sways with the arms; jRock [deg, lag] torso rock per step; jRoll [deg, lag] side sway per cycle;
     //   jHead [yaw, roll amplitude, nod amplitude, lag]; jHem: the hem bounces with every step; jLoft: weight of the traced scurry lofts (0 = her own walking shapes)
-    jRun: 1, jUp: [-4, 18, 10, 0.15], jFore: [82, 4, 0, 0.25], jHand: 0, jShLift: 1,
+    runBk: 1.25,          // run: the heel rise at the push-off, in units of the walk's (bto)
+    jRun: 1, jUp: [0, 35, 10, 0.1], jFore: [88, 0, 0, 0.1], jHand: 0, jShLift: 1,
     jTwist: [0.5, 0.12, 0.05], jRock: [2.5, 0.1], jRoll: [4, 0.05], jHead: [-0.25, 0.35, 0.12, 0.12], jHem: 4, jLoft: 0, jPelvYaw: 0, jOpen: 0,
     headRowStep: 2, skirtRowStep: 2, shoeRowStep: 2, handRowStep: 2, limbStep: 2, ringHead: 52, ringTrunk: 40, ringShoe: 24, ringHand: 24,   // ring resolution of the lofts (silhouettes are faired, so this only needs to beat the fairing radius)
     fair: { head: 0.9, trunk: 1.4, shoe: 1.0, hand: 0.7 },     // outline fairing radius (screen units) per component
@@ -1959,7 +1960,7 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   var GW = { S: 0, rho: 0, q1: 0, q2: 0, bk: 1, ball: false, bhsBall: 0 }, GR = { S: 0, rho: 0, q1: 0, q2: 0, bk: 1.25, ball: true, bhsBall: 0 };
   /** k = stride scale: when the scene integrates the phase with a shorter stride than the rig's (pose.gait.stride, e.g. the quick small first steps of a dash), the foot travel
       and the contact points shrink by the same factor, so the planted foot still does not slide */
-  function gaitSets(k) { GW.k = GR.k = k; GW.bk = lerp(0.06, 1, sstep(0.08, 0.85, k)); GW.S = C.stride * k; GW.rho = C.rho; GW.q1 = C.q1; GW.q2 = C.q2; GR.S = C.strideRun * k; GR.rho = C.runRho; GR.q1 = C.runQ1; GR.q2 = C.runQ2; GR.bhsBall = rad(C.runBhs); }
+  function gaitSets(k) { GW.k = GR.k = k; GW.bk = lerp(0.06, 1, sstep(0.08, 0.85, k)); GW.S = C.stride * k; GW.rho = C.rho; GW.q1 = C.q1; GW.q2 = C.q2; GR.S = C.strideRun * k; GR.bk = C.runBk; GR.rho = C.runRho; GR.q1 = C.runQ1; GR.q2 = C.runQ2; GR.bhsBall = rad(C.runBhs); }
   function legFoot(q, g, lift, xoff) {
     var S = g.S, rho = g.rho;
     var Xhs = (g === GR ? C.runHsF : C.hsF) * g.k + xoff;          // heel-strike contact point ahead of the pelvis axis (walk: the trailing ball is then hsF + 50 - S/2 behind; run: the ball lands at runHsF + 50)
@@ -2400,7 +2401,8 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
       if (jr > 0) {          // '+' RUN arms: normal arms - close to the body, swinging in opposition to the legs, the elbows softly bent at ~80-90 deg (a touch more on
                              // the forward swing, the forearm following the upper arm a moment later)
         var jU = C.jUp, jF = C.jFore, fwJ = side * cos(TAU * (ph - jU[3])), fwE = side * cos(TAU * (ph - jF[3]));
-        alpha = lerp(alpha, rad(jU[0] + jU[1] * fwJ), jr);
+        var kA = lerp(0.5, 1, sstep(0.2, 0.6, P.strideK));          // (short quick steps as she speeds up: a smaller swing, as a real runner's)
+        alpha = lerp(alpha, rad(jU[0] + jU[1] * kA * fwJ), jr);
         beta = lerp(beta, rad(jU[2]), jr);
         gamma = lerp(gamma, rad(jF[0] + jF[1] * sstep(-0.5, 1, fwE)), jr);
       }
@@ -2990,15 +2992,15 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
   //      Upright with her walk's willowy carriage, the chest barely turned toward us; the arms soft and close to the body, swinging in opposition to the legs with the elbows
   //      gently bent and the hands relaxed, loosely closed (normal arms: no Sparrow arm motion); a slight sway of the shoulders is the only hint of Sparrow;
   //      the head steady with a small bob; quick light steps on the balls of the feet with a modest knee lift, a small springy flight, the hem bouncing.  Happy, not frightened.
-  var runJack = {"strideRun":480,"runRho":0.34,"runQ1":0.06,"runQ2":0.16,"runXoff":0,"runHsF":58,"runBhs":-16,
+  var runJack = {"strideRun":480,"runRho":0.36,"runQ1":0.1,"runQ2":0.16,"runXoff":0,"runHsF":40,"runBk":0.9,"runBhs":-16,
     "runE":[[0,0],[0.14,0.04],[0.32,0.2],[0.52,0.52],[0.72,0.8],[0.88,0.95],[1,1]],"runR":0.1,
-    "runZ":[[0.14,56],[0.32,78],[0.52,88],[0.72,76],[0.88,48]],"runZ1":-25,"runB":[[0.14,-58],[0.32,-80],[0.52,-68],[0.72,-50],[0.88,-32]],
-    "runPelvis":236,"runBob":12,"runBobK":[[0,0.43],[0.16,-0.54],[0.32,-1],[0.48,-0.54],[0.64,0.43],[0.82,1]],
+    "runZ":[[0.14,52],[0.32,50],[0.52,46],[0.72,42],[0.88,36]],"runZ1":-25,"runB":[[0.14,-40],[0.32,-46],[0.52,-40],[0.72,-32],[0.88,-24]],
+    "runPelvis":242,"runBob":6,"runBobK":[[0,0.2],[0.14,-0.6],[0.28,-1],[0.42,-0.5],[0.56,0.3],[0.72,0.9],[0.86,0.8]],          // (round 3: a light, low jog - not high knees, no hopping: the swing foot stays low (ankle <= ~46 u, toes only lightly pointed), the swing thigh ~38 deg forward at most (was ~65), the hips ride high and level (bob ~11 u, ~2 % of her height; was ~24), most of each step on the ground (stance 0.36 of the cycle) with a short flat flight; a smaller heel rise at the push-off (runBk) and a softer heel-down after the ball lands (runQ1))
     "runLean":-1,"runLeanDeg":8,"runLean0":0,"runBendH":60,"runHead":6,"runHeadLevel":1,"runPelvisPitch":0,"runPelvisF":0,
     "runCrownK":0,"runWaistK":0,"runNeckK":0,"runLegK":0,"runArmK":0,"runShoulderBack":0,"runShoulderFwd":0,
     "runHemLift":1.2,"runHemF":8,"runHemTilt":3,"runSpread":0.1,"runTilt":[0,2,4,7],"runShift":[0,0,0],
     "jRun":1,"jLoft":0,"jOpen":0,"jPelvYaw":17,"jTwist":[-0.25,0.04,0.05],"jHead":[-0.1,0.1,0.04,0.12],
-    "jUp":[-4,18,10,0.15],"jFore":[82,4,0,0.25],"jHand":0,"jShLift":1,"jRock":[1,0.1],"jRoll":[1.5,0.05],"jHem":2.5};          // (round 2: a cute, elegant girl's run - normal arms, upright (the hips stay a little open, as before, and the chest turns back against them: it faces us only ~4 deg), a lighter bob and a slower roll over the ball; only a little sway hints at Sparrow)
+    "jUp":[0,35,10,0.1],"jFore":[88,0,0,0.1],"jHand":0,"jShLift":1,"jRock":[1,0.1],"jRoll":[1.5,0.05],"jHem":2.5};          // (round 2: a cute, elegant girl's run - normal arms, upright (the hips stay a little open, as before, and the chest turns back against them: it faces us only ~4 deg), a lighter bob and a slower roll over the ball; only a little sway hints at Sparrow)
   for (k in runJack) A.cfg[k] = runJack[k];
 
   // ---- WALK STYLE PRESETS (runtime switch: landingGirlAnimation.scene.girl.setWalkPreset('A'|'B'|'C'|'current'); the stride (372) and the foot contact are the same in all of them)
@@ -4472,8 +4474,11 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         var startVis = U.clamp((cap.x - (W + M_PARK)) / (cap.xPeek - (W + M_PARK)), 0, 1.2);
         var back = U.easeInOutCubic(U.clamp((rt - 0.12) / 0.38));
         var vis = startVis * (1 - back);
-        P.x = U.lerp(W + M_PARK, cap.xPeek, vis);
         P.yaw = 0; P.peek = U.smoothstep(0, 1, vis);
+        // round 3: she straightens up out of the lean with her (hidden) feet held where they are - the rig braces them back by peekLegBack x its peek weight, so the body
+        // moves out by exactly that much (before: she slid out to the park spot on planted feet, ~30 u of slide on a phone); she is out of sight once upright, then parked
+        var Cpk = GA.girlA && GA.girlA.cfg, legB = Cpk ? Cpk.peekLegBack * STRIDE / Cpk.stride : 0;          // (the two feet drift apart by a few units as the view turns with the lean: both stay ~150 u past the edge of the screen)
+        P.x = Cpk ? cap.x + legB * (U.smoothstep(0, 1, U.smoothstep(0, 1, startVis)) - U.smoothstep(0, 1, P.peek)) : U.lerp(W + M_PARK, cap.xPeek, vis);
         P.flinch = Math.sin(Math.PI * U.clamp(rt / 0.5)) * 0.95;
         P.headPitch = lerpc(p0.headPitch, -0.4, 0, 0.14);
         P.headYaw = lerpc(p0.headYaw, 0.3, 0, 0.14);
@@ -4958,26 +4963,37 @@ var GA = (window.__landingGirl = window.__landingGirl || {});
         if (o.done) { sc.mode = 'away'; sc.awayAt = sc.tl; sc.resumeTl = c.peekOut1 + 0.05; sc.pose.x = S.W + T.M_PARK; }
       } else {
         var stride = U.lerp(T.STRIDE, T.STRIDE_RUN, o.run);
-        // a dash: quick small digging steps that grow with the speed (the rig scales its foot travel by p.gait.stride, so no sliding).  From standing the steps are short from the very first one;
+        // a jog: the steps grow a little with the speed (0.85 -> 1 of the full stride; round 3: was 0.38 -> 1, a run of tiny quick steps that read as hopping) (the rig scales its foot travel by p.gait.stride, so no sliding);
         // from a walk the short steps blend in with the run weight (the walking steps themselves are not touched)
-        var kRun = U.lerp(0.38, 1, U.smoothstep(0.1, 1, o.speed / T.V_RUN));
+        var kRun = U.lerp(0.85, 1, U.smoothstep(0.1, 1, o.speed / T.V_RUN));
         var kw = R.kw === undefined ? (R.kw = (R.cap.pose0.gait && R.cap.pose0.gait.stride > 0 ? R.cap.pose0.gait.stride / T.STRIDE : 1)) : R.kw;          // the walking stride factor the baseline had at the press
         stride *= U.lerp(kw, 1, U.smoothstep(0, 0.5, R.rt)) * (R.kind === 'stand' ? kRun : U.lerp(1, kRun, o.run));
         // the stride is held through a step and only changes at MID-STANCE (the planted foot right under her, the other one in the air): it never changes under a planted foot
         // (running: the stride eases toward its target only while BOTH feet are in the air - each foot by its own gait weight R.rl (stance 0.6 of the cycle walking,
-        //  0.34 running) - so no planted foot slides and the swinging feet are not jolted by a sudden change)
+        //  cfg.runRho running) - so no planted foot slides and the swinging feet are not jolted by a sudden change)
         if (o.run > 0.5 && R.sHeld !== undefined && R.rl) {
-          var wAir = 1;
+          //  ... or while the planted foot is at the one point of its stance that a change of scale does not move: its ball sits at k (hsF - S q) + const in the body
+          //  frame, so at q = hsF / S it stays put (just after the landing; the other foot is in the air) - the stride grows with the speed without a run of tiny quick steps (eased slowly: a sudden change jolts the swinging foot)
+          var Cg = GA.girlA.cfg, wAir = 1, wSt = 1, nDown = 0;
           for (var lj = 0; lj < 2; lj++) {
             var qJ = (R.phase + 0.1 + 0.5 * lj) % 1; if (qJ < 0) qJ += 1;
-            var r0J = U.lerp(0.6, 0.34, U.smoothstep(0, 1, R.rl[lj])) + 0.03;
-            wAir *= qJ > r0J && qJ < 0.97 ? Math.sin(Math.PI * (qJ - r0J) / (0.97 - r0J)) : 0;
+            var rlJ = U.smoothstep(0, 1, R.rl[lj]), r0J = U.lerp(Cg.rho, Cg.runRho, rlJ) + 0.03;
+            var inAir = qJ > r0J && qJ < 0.97;
+            wAir *= inAir ? Math.sin(Math.PI * (qJ - r0J) / (0.97 - r0J)) : 0;
+            if (!inAir) { nDown++; var dq = qJ - Cg.runHsF / Cg.strideRun; dq -= Math.round(dq); wSt *= rlJ > 0.99 && qJ < Cg.runRho && Math.abs(dq) < 0.05 ? Math.pow(Math.cos(Math.PI * dq / 0.1), 2) : 0; }          // (running feet only)
           }
-          R.sHeld += (stride - R.sHeld) * Math.min(1, 60 * wAir * h);
+          R.sHeld += (stride - R.sHeld) * Math.min(1, 25 * Math.max(wAir, nDown ? wSt : 0) * h);
         } else if (R.sHeld === undefined) R.sHeld = stride;
         else {          // (slower: eased in a short window around mid-stance, where the planted foot is right under her and a change of scale hardly moves it - the window is
                         //  centred on that point, so what it moves one way it moves back - instead of switching in one frame, which jolted the swinging foot)
-          var sw = 2 * R.phase + 0.46, sd = sw - Math.round(sw), wS = Math.abs(sd) < 0.08 ? Math.cos(Math.PI * sd / 0.16) : 0;
+          //  (round 3: the window is centred on the planted foot's fixed point q = hsF / stride - see the run branch - not on q 0.37: on a phone, a '+' in the closing
+          //   steps of the walk-in grows the stride from ~50 to ~250 here, and off that point it dragged the planted foot ~35 u)
+          var Cw = GA.girlA.cfg, wS = 1, nDw = 0;
+          for (var lw = 0; lw < 2; lw++) {
+            var qW = (R.phase + 0.1 + 0.5 * lw) % 1; if (qW < 0) qW += 1;
+            if (qW < Cw.rho) { nDw++; var dW = qW - Cw.hsF / Cw.stride; dW -= Math.round(dW); wS *= Math.abs(dW) < 0.08 ? Math.cos(Math.PI * dW / 0.16) : 0; }
+          }
+          if (!nDw) wS = 0;
           R.sHeld += (stride - R.sHeld) * Math.min(1, 70 * wS * wS * h);
         }
         R.phPrev = R.phase;
