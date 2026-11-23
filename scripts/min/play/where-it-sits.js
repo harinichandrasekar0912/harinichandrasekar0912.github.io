@@ -1,4 +1,4 @@
-/* scripts/play/where-it-sits.js (source d3222fd7c824961f), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/play/where-it-sits.js (source 7f82e63a3bd7594f), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 var NAME = "where-it-sits";
@@ -11,12 +11,12 @@ var LONGEST = 24;
 var INVITING = 1.2;
 var INTRO_DIM = 0.3;
 var FRAGMENTS = [
-{ id: "photo", label: "render of the courtyard", cap: "render", r: 0.7, k: 1, wide: [0.13, 0.2, 0.15], tall: [0.18, 0.1, 0.2] },
-{ id: "massing", label: "massing model", cap: "massing model", r: 0.475, k: 1.2, wide: [0.47, 0.1, 0.65], tall: [0.52, 0.36, 0.6] },
-{ id: "note", label: "note: very few access points to the waterfront", cap: "note", text: "Very few access points to the waterfront", r: 0.755, k: 1, wide: [0.85, 0.24, 0.35], tall: [0.7, 0.06, 0.45] },
-{ id: "sketch", label: "line drawing of the massing", cap: "drawing", r: 0.99, k: 0.85, wide: [0.25, 0.8, 0.45], tall: [0.84, 0.62, 0.4] },
-{ id: "reference", label: "reference map of the waterfront", cap: "reference", r: 0.92, k: 0.85, wide: [0.58, 0.66, 0.1], tall: [0.12, 0.56, 0.15] },
-{ id: "plan", label: "site plan", cap: "site plan", r: 0.705, k: 1, wide: [0.86, 0.82, 0.55], tall: [0.4, 0.9, 0.55] }
+{ id: "photo", label: "render of the courtyard", cap: "render", r: 0.7, k: 1, wide: [0.13, 0.2, 0.15], tall: [0.18, 0.1, 0.2], rows: [0.15, 0.2], cols: [0.25, 0.12] },
+{ id: "massing", label: "massing model", cap: "massing model", r: 0.475, k: 1.2, wide: [0.47, 0.1, 0.65], tall: [0.52, 0.36, 0.6], rows: [0.2, 0.84], cols: [0.26, 0.88] },
+{ id: "note", label: "note: very few access points to the waterfront", cap: "note", text: "Very few access points to the waterfront", r: 0.755, k: 1, kn: 1.22, wide: [0.85, 0.24, 0.35], tall: [0.7, 0.06, 0.45], rows: [0.5, 0.16], cols: [0.25, 0.5] },
+{ id: "sketch", label: "line drawing of the massing", cap: "drawing", r: 0.99, k: 0.85, wide: [0.25, 0.8, 0.45], tall: [0.84, 0.62, 0.4], rows: [0.86, 0.22], cols: [0.75, 0.14] },
+{ id: "reference", label: "reference map of the waterfront", cap: "reference", r: 0.92, k: 0.85, wide: [0.58, 0.66, 0.1], tall: [0.12, 0.56, 0.15], rows: [0.52, 0.82], cols: [0.75, 0.52] },
+{ id: "plan", label: "site plan", cap: "site plan", r: 0.705, k: 1, wide: [0.86, 0.82, 0.55], tall: [0.4, 0.9, 0.55], rows: [0.83, 0.86], cols: [0.75, 0.86] }
 ];
 var RELATIONS = [["photo", "plan"], ["sketch", "massing"], ["note", "reference"]];
 var FLOOR_Y = -1.6;
@@ -200,11 +200,24 @@ cards.push(b.wisCard);
 });
 function freeArea(w, h) {
 var a = view.stacked ? { l: w * 0.05, t: h * 0.1, r: w * 0.95, b: h - 190 } : { l: w * 0.06, t: h * 0.1, r: w * 0.94, b: h - 140 };
-var r = !view.stacked && intro ? intro.getBoundingClientRect() : null;
-if (r && r.width && r.left > w * 0.35 && r.left - 40 - a.l >= 320) {
+var r = intro ? intro.getBoundingClientRect() : null;
+var side = h > w ? 220 : 320;
+a.grid = "";
+if (!r || !r.width) {
+return a;
+}
+if (view.stacked) {
+if (a.b - (r.bottom + 30) >= 200) {
+a.t = r.bottom + 30;
+a.grid = "rows";
+}
+} else if (r.left > w * 0.35 && r.left - 40 - a.l >= side) {
 a.r = r.left - 40;
-} else if (r && r.width && r.right < w * 0.65 && a.r - r.right - 40 >= 320) {
+} else if (r.right < w * 0.65 && a.r - r.right - 40 >= side) {
 a.l = r.right + 40;
+}
+if (!view.stacked && a.r - a.l < 420 && a.b - a.t > a.r - a.l) {
+a.grid = "cols";
 }
 return a;
 }
@@ -231,14 +244,18 @@ area = freeArea(s.w, s.h);
 host.style.setProperty("--wis-line-x", view.stacked ? "50%" : Math.round((area.l + area.r) / 2) + "px");
 var base = view.stacked ? clamp(s.w * 0.23, 76, 100) : clamp(s.w * 0.088, 108, 200);
 var tall = area.b - area.t > area.r - area.l;
+var grid = area.grid;
+if (grid === "cols") {
+base = Math.min(base, (area.r - area.l) / 2.6);
+}
 cards.forEach(function (c) {
-var p = tall ? c.f.tall : c.f.wide;
-c.w0 = Math.round(base * c.f.k);
+var p = grid ? c.f[grid].concat(c.f.tall[2]) : tall ? c.f.tall : c.f.wide;
+c.w0 = Math.round(base * (grid && c.f.kn ? c.f.kn : c.f.k));
 c.h0 = Math.round(c.w0 * c.f.r);
 c.el.style.width = c.w0 + "px";
 c.el.style.height = c.h0 + "px";
 if (c.f.text) {
-c.el.querySelector(".wis-note").style.fontSize = clamp(c.w0 * 0.088, 8.5, 15).toFixed(1) + "px";
+c.el.querySelector(".wis-note").style.fontSize = clamp(c.w0 * 0.088, grid ? 11 : 10.5, 15).toFixed(1) + "px";
 }
 if (old) {
 c.tx = area.l + ((c.tx - old.l) / Math.max(1, old.r - old.l)) * (area.r - area.l);
