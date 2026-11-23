@@ -556,3 +556,10 @@
     margin-top: var(--space-3);
   }
 }
+
+/* short screens (a phone held sideways): the title-to-content gap stays at its earlier size, so the first row still fits under the title */
+@media (min-width: 768px) and (max-height: 540px) {
+  :root {
+    --title-gap: clamp(2.25rem, 4.8vh, 3.75rem);
+  }
+}

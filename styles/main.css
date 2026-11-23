@@ -58,7 +58,7 @@
   --text-sm: clamp(0.78rem, 0.75rem + 0.1vw, 0.88rem); /* form fields, project text */
   --text-md: clamp(0.94rem, 0.88rem + 0.18vw, 1.06rem); /* reading text, the name */
   --text-lg: clamp(1rem, 0.86rem + 0.48vw, 1.32rem); /* section titles */
-  --title-gap: clamp(2.25rem, 4.8vh, 3.75rem); /* from a section title to its content */
+  --title-gap: clamp(3.375rem, 7.2vh, 5.625rem); /* from a section title to its content */
 
   --line-thin: var(--hairline); /* older name */
   --radius-round: var(--radius-pill); /* older name */
@@ -867,7 +867,7 @@ html[data-pixel="1"] .about-portrait:not(.is-pixel-ready) img {
 /* the same title as every other section (size, weight, leading) and the same distance to its content (--title-gap: the form's own
    gap is part of it) */
 .contact-title {
-  margin: 0 0 max(0px, calc(var(--title-gap, clamp(2.25rem, 4.8vh, 3.75rem)) - var(--contact-gap)));
+  margin: 0 0 max(0px, calc(var(--title-gap, clamp(3.375rem, 7.2vh, 5.625rem)) - var(--contact-gap)));
   text-align: center;
   font-size: var(--text-lg, clamp(1rem, 0.86rem + 0.48vw, 1.32rem));
   font-weight: var(--weight-regular, 370);
