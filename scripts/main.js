@@ -669,9 +669,10 @@
     }, { once: true });
   }
 
-  /* A work tile whose picture has not arrived yet shows its empty frame; the picture fades in when it does (no pop-in while scrolling). */
+  /* A work tile, the portrait or an archive bar whose picture has not arrived yet shows its empty frame; the picture fades in when it
+     does (no pop-in while scrolling). */
   function initTileImageFade() {
-    Array.prototype.forEach.call(document.querySelectorAll(".work-tile img"), function (img) {
+    Array.prototype.forEach.call(document.querySelectorAll(".work-tile img, .about-portrait img, .archive-bar img"), function (img) {
       if (img.complete && img.naturalWidth > 0) {
         return;
       }

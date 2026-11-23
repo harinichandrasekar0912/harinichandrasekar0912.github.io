@@ -136,6 +136,10 @@ html {
   background: var(--color-paper);
   color: var(--color-ink);
   scroll-behavior: smooth;
+  /* whatever the browser scrolls into view by itself (the next field or link reached with Tab, the skip link's jump) stops clear of the
+     paper fades at the top and bottom of the screen and of the navigation plus: Tab used to leave the contact links half faded, just
+     under the plus. The navigation's own trips set the scroll themselves and are not affected. */
+  scroll-padding-block: clamp(72px, 12vh, 150px) clamp(84px, 14vh, 170px);
   text-size-adjust: 100%;
   /* No classic scrollbar: it used to vanish whenever a project opened (and come back when it closed), which shifted the whole
      page and the navigation ball sideways by half a scrollbar. Scrolling itself (wheel, touch, keys, the nav) is unchanged. */
@@ -650,6 +654,15 @@ html[data-about="d"] .about-copy {
   margin-top: -0.42em;
 }
 
+/* big screens (1700 px and wider): at 395 px the photo became a small stamp at the edge with ~650 px of empty paper before the text
+   (2560 px wide). It grows with the screen to 560 px (sharp at 1x; index.html asks for the larger file here) and the gap before the
+   text takes a smaller share of the room, so the text column sits near the middle of the page, under the title. Laptops are unchanged. */
+@media (min-width: 1700px) {
+  html[data-about="d"] .about-layout {
+    grid-template-columns: min(max(395px, 22vw), 560px) minmax(6rem, 0.55fr) minmax(0, 33rem) minmax(var(--page-x), 1fr);
+  }
+}
+
 /*
   The photo's colour, any layout: &photo=reveal | colour | bw (reveal is the default). bw: grey with a very slight lift in contrast.
   reveal: grey at rest, like the work tiles. scripts/about-photo.js adds .is-colour - just after the navigation ball first touches the photo,
@@ -662,8 +675,21 @@ html[data-photo="reveal"] .about-portrait img {
 }
 
 html[data-photo="reveal"] .about-portrait img {
-  transition: filter 700ms cubic-bezier(0.45, 0, 0.25, 1);
+  transition:
+    filter 700ms cubic-bezier(0.45, 0, 0.25, 1),
+    opacity 520ms var(--ease-standard);
   will-change: filter;
+}
+
+/* a picture still arriving (scripts/main.js initTileImageFade): its quiet frame shows, then the picture fades in instead of popping in */
+.about-portrait img.is-loading,
+.archive-bar img.is-loading {
+  opacity: 0;
+}
+
+.about-portrait img,
+.archive-bar img {
+  transition: opacity 520ms var(--ease-standard);
 }
 
 html[data-photo="reveal"] .about-portrait.is-colour img,
