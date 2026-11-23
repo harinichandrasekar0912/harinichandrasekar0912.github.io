@@ -53,6 +53,23 @@
   const DROP_SECONDS_MAX = 1.38;
   const TOP_SPEED_SHARE = 0.8; // speed at the top of the arc = 0.8 x the average speed after the top (so the fall keeps speeding up and stays calm)
   const TOP_SPEED_MIN = 40; // px/s
+  // upward trips (the destination is above): straight rise with the page scrolling, then the arc, then a short fall onto B
+  const SHORT_FALL_FACTOR = 0.55; // the short fall = clamp(z * 0.55, 36, 64) px (at most half the room above B)
+  const SHORT_FALL_MIN = 36;
+  const SHORT_FALL_MAX = 64;
+  const SHORT_FALL_FLOOR = 20;
+  const UP_ARC_RISE_FACTOR = 0.9; // the arc on top of the rise: clamp(z * 0.9, 56, 100) px above the higher of S and E
+  const UP_ARC_RISE_MIN = 56;
+  const UP_ARC_RISE_MAX = 100;
+  const UP_RISE_MIN = 80; // the straight rise is at least this long, even when B sits low on the screen
+  const UP_ARC_ROOM = 40; // the arc starts at least this far below the top of the flight
+  const UP_RISE_SPEED_MIN = 90; // px/s
+  const UP_RISE_TARGET_SPEED = 300; // px/s: the straight rise is made long enough for about this speed
+  const UP_SCROLL_END_SHARE = 0.92; // the page has finished scrolling at 92 % of the rise, so not a pixel of it overlaps the arc (even with a dropped frame)
+  const UP_POST_BASE_SECONDS = 0.3; // after the top: 0.3 s + length / 300 px/s, between 0.5 and 2 s (the short fall stays light)
+  const UP_POST_PX_PER_SECOND = 300;
+  const UP_POST_MIN_SECONDS = 0.5;
+  const UP_POST_MAX_SECONDS = 2;
   const POST_APEX_ARC_SECONDS = 0.6; // time allowed for the arc's way down from the top to the drop, on top of the drop's own time ...
   const POST_APEX_MAX_SECONDS = 2.4; // ... with everything after the top capped at this
   const RISE_EASE_SHARE = 0.35; // the climb keeps MAIN_PATH_SPEED and slows down only over its last 35 % (60 - 220 px) towards the top
@@ -293,16 +310,29 @@
    *      with any left / right movement of the ball. The fall starts at the arc's final speed and speeds up into B, and the scroll arrives
    *      exactly as the ball lands.
    * The speed and the direction never jump at E (the arc ends vertical, at the speed the drop starts with). */
-  function planBezierPath(A, B, z, safeTop, speed, scrollDistance) {
+  function planBezierPath(A, B, z, safeTop, speed, scrollDistance, upward) {
     const room = Math.max(B.y - safeTop, 0); // screen space above B
-    const drop = Math.max(Math.min(clamp(z * DROP_FACTOR, DROP_MIN, DROP_MAX), room * DROP_ROOM_SHARE), DROP_FLOOR);
+    // downward trips: a long straight drop (the page scrolls during it); upward trips: only a short fall onto B at the end (the page has
+    // already scrolled, during the straight rise)
+    const drop = upward ?
+      Math.max(Math.min(clamp(z * SHORT_FALL_FACTOR, SHORT_FALL_MIN, SHORT_FALL_MAX), room * 0.5), SHORT_FALL_FLOOR) :
+      Math.max(Math.min(clamp(z * DROP_FACTOR, DROP_MIN, DROP_MAX), room * DROP_ROOM_SHARE), DROP_FLOOR);
     const E = { x: B.x, y: B.y - drop };
-    const topY = Math.min(A.y, E.y);
-    const dx = E.x - A.x;
+    // the arc starts at S: A itself on downward trips; on upward trips the top of the straight rise (with the page scrolling), level with B
+    // or a little higher, so the arc is the same small rise-and-over as everywhere else and ends just above the target
+    // (long enough to run at about UP_RISE_TARGET_SPEED while the page scrolls: a landing point low on the screen, like the landing floor,
+    // would otherwise leave only a short, slow crawl)
+    const scrollSeconds = clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
+    const S = upward ?
+      { x: A.x, y: Math.min(clamp(Math.min(A.y - Math.max(UP_RISE_MIN, UP_RISE_TARGET_SPEED * scrollSeconds), B.y), safeTop + UP_ARC_ROOM, A.y), A.y) } :
+      { x: A.x, y: A.y };
+    const topY = Math.min(S.y, E.y);
+    const dx = E.x - S.x;
     const riseFor = function (lift) {
-      return topY - sampleBezier(A, { x: A.x, y: topY - lift }, { x: E.x, y: topY - lift }, E, 96).minY;
+      return topY - sampleBezier(S, { x: S.x, y: topY - lift }, { x: E.x, y: topY - lift }, E, 96).minY;
     };
-    const wantedRise = clamp(z * FLIGHT_TOP_RISE_FACTOR, FLIGHT_TOP_RISE_MIN, FLIGHT_TOP_RISE_MAX);
+    // upward trips: a smaller arc on top of the straight rise, so the way down to B stays a short fall
+    const wantedRise = upward ? clamp(z * UP_ARC_RISE_FACTOR, UP_ARC_RISE_MIN, UP_ARC_RISE_MAX) : clamp(z * FLIGHT_TOP_RISE_FACTOR, FLIGHT_TOP_RISE_MIN, FLIGHT_TOP_RISE_MAX);
     let riseLift = wantedRise;
 
     // the real top of a Bezier is lower than its control points (by how much depends on the ends): find the lift that gives the wanted rise
@@ -330,10 +360,10 @@
     const wantedLift = Math.max(BEZIER_LIFT_MIN, Math.abs(dx) * BEZIER_LIFT_SPAN, z * BEZIER_LIFT_Z, riseLift);
     const build = function (lift) {
       const controlY = topY - lift;
-      const P1 = { x: A.x, y: controlY };
+      const P1 = { x: S.x, y: controlY };
       const P2 = { x: E.x, y: controlY };
 
-      return { lift: lift, P1: P1, P2: P2, sampled: sampleBezier(A, P1, P2, E, BEZIER_SAMPLES) };
+      return { lift: lift, P1: P1, P2: P2, sampled: sampleBezier(S, P1, P2, E, BEZIER_SAMPLES) };
     };
     let plan = build(wantedLift);
 
@@ -345,7 +375,7 @@
       for (let step = 0; step < 28; step += 1) {
         const middle = (low + high) / 2;
 
-        if (sampleBezier(A, { x: A.x, y: topY - middle }, { x: E.x, y: topY - middle }, E, 96).minY >= safeTop) {
+        if (sampleBezier(S, { x: S.x, y: topY - middle }, { x: E.x, y: topY - middle }, E, 96).minY >= safeTop) {
           low = middle;
         } else {
           high = middle;
@@ -363,12 +393,30 @@
      * speed's rate of change is 0 on both sides, so the change from rising to falling is seamless. */
     const dropSeconds = clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
     const arcPoints = plan.sampled.points;
-    const apexIndex = plan.sampled.apexIndex;
-    const apexY = arcPoints[apexIndex].y;
-    const points = arcPoints.map(function (point) {
-      return { x: point.x, y: point.y };
+    const points = [];
+
+    // upward trips: the straight rise A -> S first (2 px steps)
+    if (S.y < A.y - 0.5) {
+      const riseSteps = Math.max(2, Math.ceil((A.y - S.y) / 2));
+
+      for (let step = 0; step < riseSteps; step += 1) {
+        points.push({ x: A.x, y: A.y + ((S.y - A.y) * step) / riseSteps });
+      }
+    }
+
+    const sIndex = points.length; // the arc's first point (the end of the straight rise)
+
+    arcPoints.forEach(function (point) {
+      points.push({ x: point.x, y: point.y });
     });
+
+    const apexIndex = sIndex + plan.sampled.apexIndex;
+    const apexY = points[apexIndex].y;
     const eIndex = points.length - 1;
+    // the straight rise (upward trips) runs at one steady speed, chosen so that it lasts as long as the page scroll needs (same rule as the
+    // downward drop): the arc then picks up from that speed
+    const riseLength = A.y - S.y;
+    const riseSpeed = upward && riseLength > 1 ? clamp(riseLength / dropSeconds, UP_RISE_SPEED_MIN, speed * 1.2) : speed;
     const dropSteps = Math.max(2, Math.ceil(drop / 2));
 
     for (let step = 1; step <= dropSteps; step += 1) {
@@ -383,9 +431,11 @@
       postLength += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
     }
 
-    const postSeconds = Math.min(dropSeconds + POST_APEX_ARC_SECONDS, POST_APEX_MAX_SECONDS);
-    const vTop = clamp((TOP_SPEED_SHARE * postLength) / postSeconds, TOP_SPEED_MIN, speed * 0.6);
-    const climb = Math.max(A.y - apexY, 1);
+    const postSeconds = upward ?
+      clamp(UP_POST_BASE_SECONDS + postLength / UP_POST_PX_PER_SECOND, UP_POST_MIN_SECONDS, UP_POST_MAX_SECONDS) :
+      Math.min(dropSeconds + POST_APEX_ARC_SECONDS, POST_APEX_MAX_SECONDS);
+    const vTop = clamp((TOP_SPEED_SHARE * postLength) / postSeconds, TOP_SPEED_MIN, Math.max(riseSpeed * 0.6, TOP_SPEED_MIN));
+    const climb = Math.max(S.y - apexY, 1);
     const easeDepth = clamp(climb * RISE_EASE_SHARE, RISE_EASE_MIN, RISE_EASE_MAX); // the rise slows down only over its last stretch
 
     function speedAt(index, gDown) {
@@ -394,7 +444,7 @@
       if (index <= apexIndex) {
         const u = clamp(depth / easeDepth, 0, 1);
 
-        return vTop + (speed - vTop) * (1 - (1 - u) * (1 - u));
+        return vTop + (riseSpeed - vTop) * (1 - (1 - u) * (1 - u));
       }
 
       return Math.sqrt(vTop * vTop + 2 * gDown * depth);
@@ -444,6 +494,7 @@
     }
 
     const arcSeconds = Math.max(times[eIndex], 0.05);
+    const riseSeconds = times[sIndex]; // upward trips: the page scrolls during [0, riseSeconds]
     const duration = Math.max(times[times.length - 1], arcSeconds + 0.05);
     let pathLength = 0;
 
@@ -484,7 +535,7 @@
     });
 
     return {
-      mode: "bezier-then-drop",
+      mode: upward ? "rise-then-bezier" : "bezier-then-drop",
       duration: duration,
       length: pathLength,
       speed: pathLength / duration,
@@ -492,8 +543,13 @@
       progressAt: function (seconds) {
         return clamp(seconds / duration, 0, 1);
       },
-      // the page stays still during the arc and scrolls only during the straight drop
+      // downward: the page stays still during the arc and scrolls only during the straight drop. upward: it scrolls only during the
+      // straight rise, then stays still for the arc and the short fall
       scrollProgressAt: function (seconds) {
+        if (upward) {
+          return riseSeconds > 0 ? smootherstep(seconds / (riseSeconds * UP_SCROLL_END_SHARE)) : 1; // done just before the arc begins
+        }
+
         return seconds <= arcSeconds ? 0 : smootherstep((seconds - arcSeconds) / (duration - arcSeconds));
       },
       samples: samples,
@@ -501,7 +557,7 @@
       guides: [
         { name: "P1", point: copyPoint(plan.P1), colour: "#1fa34a" },
         { name: "P2", point: copyPoint(plan.P2), colour: "#11a5b8" },
-        { name: "E (scroll starts)", point: copyPoint(E), colour: "#8a2be2" }
+        upward ? { name: "S (scroll ends)", point: copyPoint(S), colour: "#8a2be2" } : { name: "E (scroll starts)", point: copyPoint(E), colour: "#8a2be2" }
       ],
       geometry: { A: copyPoint(A), E: copyPoint(E), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, drop: drop, arcSeconds: arcSeconds, dropSeconds: duration - arcSeconds, launchSpeed: speed, topSpeed: vTop, entrySpeed: speedAt(eIndex, gDown), landingSpeed: speedAt(points.length - 1, gDown), gDown: gDown, safeTop: safeTop }
     };
@@ -512,7 +568,7 @@
    *   speeds up and hits B with momentum, then the first landing bounce takes over). x never changes (B.x = A.x).
    *   The two legs get their own durations (the climb and the drop differ whenever A and B are at different heights).
    * Scroll: none during the climb and the hang; the page scrolls (smootherstep) only while the ball falls, and arrives exactly as it lands. */
-  function planPhoneBounce(A, B, phoneZ, safeTop) {
+  function planPhoneBounce(A, B, phoneZ, safeTop, upward) {
     const topY = Math.min(A.y, B.y);
     const wantedLift = clamp(phoneZ * PHONE_MAIN_LIFT_FACTOR, PHONE_MAIN_LIFT_MIN, PHONE_MAIN_LIFT_MAX);
     const lift = Math.max(Math.min(wantedLift, topY - safeTop), PHONE_MAIN_LIFT_FLOOR);
@@ -567,7 +623,12 @@
       scrollProgressAt: function (seconds) {
         const ms = seconds * 1000;
 
-        // the page waits through the rise and the hang and scrolls only while the ball falls
+        // upward trips: the page scrolls while the ball rises, then stays still for the hang and the short fall
+        if (upward) {
+          return smootherstep(ms / upMs);
+        }
+
+        // downward trips: the page waits through the rise and the hang and scrolls only while the ball falls
         if (ms <= upMs + hangMs) {
           return 0;
         }
@@ -2122,7 +2183,9 @@
 
         const safeTop = radius + flightTopClearance(isPhone); // the ball's centre never goes above this
 
-        path = isPhone ? planPhoneBounce(A0, F, z, safeTop) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED, scrollTarget - scrollStart);
+        const upward = scrollTarget < scrollStart - 1; // the destination is above: scroll during the rise, not the fall
+
+        path = isPhone ? planPhoneBounce(A0, F, z, safeTop, upward) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED, scrollTarget - scrollStart, upward);
         mainMs = Math.max(1, path.duration * 1000);
         rollDirection = endPoint.side === "right" ? 1 : endPoint.side === "left" ? -1 : rollDirectionFor(targetId);
         if (activeTrip) {
