@@ -1,4 +1,4 @@
-/* scripts/navigation-ball.js (source 2236ed8f2ecbf04e), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/navigation-ball.js (source 5e1b9ec0a9f2d88b), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 const NAV_BALL_PATH_MODE = "bezier";
@@ -32,6 +32,7 @@ const SHORT_FALL_MAX = 64;
 const SHORT_FALL_FLOOR = 20;
 const UP_ARC_RISE_FACTOR = 0.9;
 const UP_ARC_RISE_MIN = 56;
+const UP_BEZIER_LIFT_SPAN = 0.3;
 const UP_ARC_RISE_MAX = 100;
 const UP_RISE_MIN = 80;
 const UP_ARC_ROOM = 40;
@@ -39,9 +40,14 @@ const UP_RISE_SPEED_MIN = 90;
 const UP_RISE_TARGET_SPEED = 300;
 const UP_SCROLL_END_SHARE = 0.92;
 const UP_POST_BASE_SECONDS = 0.3;
-const UP_POST_PX_PER_SECOND = 300;
+const UP_POST_PX_PER_SECOND = 450;
 const UP_POST_MIN_SECONDS = 0.5;
-const UP_POST_MAX_SECONDS = 2;
+const UP_POST_MAX_SECONDS = 1.4;
+const UP_LOW_ARC_DROP = 170;
+const UP_SCROLL_SECONDS_BASE = 0.5;
+const UP_SCROLL_PX_PER_SECOND = 6000;
+const UP_SCROLL_SECONDS_MIN = 0.6;
+const UP_SCROLL_SECONDS_MAX = 0.95;
 const POST_APEX_ARC_SECONDS = 0.4;
 const POST_APEX_MAX_SECONDS = 2.4;
 const RISE_EASE_SHARE = 0.35;
@@ -216,9 +222,11 @@ const drop = upward ?
 Math.max(Math.min(clamp(z * SHORT_FALL_FACTOR, SHORT_FALL_MIN, SHORT_FALL_MAX), room * 0.5), SHORT_FALL_FLOOR) :
 Math.max(Math.min(clamp(z * DROP_FACTOR, DROP_MIN, DROP_MAX), room * DROP_ROOM_SHARE), DROP_FLOOR);
 const E = { x: B.x, y: B.y - drop };
-const scrollSeconds = clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
+const scrollSeconds = upward ?
+clamp(UP_SCROLL_SECONDS_BASE + Math.abs(scrollDistance || 0) / UP_SCROLL_PX_PER_SECOND, UP_SCROLL_SECONDS_MIN, UP_SCROLL_SECONDS_MAX) :
+clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
 const S = upward ?
-{ x: A.x, y: Math.min(clamp(Math.min(A.y - Math.max(UP_RISE_MIN, UP_RISE_TARGET_SPEED * scrollSeconds), B.y), safeTop + UP_ARC_ROOM, A.y), A.y) } :
+{ x: A.x, y: Math.min(clamp(Math.max(Math.min(A.y - Math.max(UP_RISE_MIN, UP_RISE_TARGET_SPEED * scrollSeconds), B.y), B.y - UP_LOW_ARC_DROP), safeTop + UP_ARC_ROOM, A.y - UP_RISE_MIN), A.y) } :
 { x: A.x, y: A.y };
 const topY = Math.min(S.y, E.y);
 const dx = E.x - S.x;
@@ -243,7 +251,7 @@ high = middle;
 }
 riseLift = high;
 }
-const wantedLift = Math.max(BEZIER_LIFT_MIN, Math.abs(dx) * BEZIER_LIFT_SPAN, z * BEZIER_LIFT_Z, riseLift);
+const wantedLift = Math.max(BEZIER_LIFT_MIN, Math.abs(dx) * (upward ? UP_BEZIER_LIFT_SPAN : BEZIER_LIFT_SPAN), z * BEZIER_LIFT_Z, riseLift);
 const build = function (lift) {
 const controlY = topY - lift;
 const P1 = { x: S.x, y: controlY };
@@ -281,7 +289,7 @@ const apexIndex = sIndex + plan.sampled.apexIndex;
 const apexY = points[apexIndex].y;
 const eIndex = points.length - 1;
 const riseLength = A.y - S.y;
-const riseSpeed = upward && riseLength > 1 ? clamp(riseLength / dropSeconds, UP_RISE_SPEED_MIN, speed * 1.2) : speed;
+const riseSpeed = upward && riseLength > 1 ? clamp(riseLength / scrollSeconds, UP_RISE_SPEED_MIN, speed * 1.2) : speed;
 const dropSteps = Math.max(2, Math.ceil(drop / 2));
 for (let step = 1; step <= dropSteps; step += 1) {
 points.push({ x: B.x, y: E.y + (drop * step) / dropSteps });
@@ -293,7 +301,7 @@ postLength += Math.hypot(points[index].x - points[index - 1].x, points[index].y 
 const postSeconds = upward ?
 clamp(UP_POST_BASE_SECONDS + postLength / UP_POST_PX_PER_SECOND, UP_POST_MIN_SECONDS, UP_POST_MAX_SECONDS) :
 Math.min(dropSeconds + POST_APEX_ARC_SECONDS, POST_APEX_MAX_SECONDS);
-const vTop = clamp((TOP_SPEED_SHARE * postLength) / postSeconds, TOP_SPEED_MIN, Math.max(riseSpeed * 0.6, TOP_SPEED_MIN));
+const vTop = clamp((TOP_SPEED_SHARE * postLength) / postSeconds, TOP_SPEED_MIN, Math.max(riseSpeed * (upward ? 0.8 : 0.6), TOP_SPEED_MIN));
 const climb = Math.max(S.y - apexY, 1);
 const easeDepth = clamp(climb * RISE_EASE_SHARE, RISE_EASE_MIN, RISE_EASE_MAX);
 function speedAt(index, gDown) {
@@ -1490,7 +1498,7 @@ element: media,
 section: "landing",
 side: "center",
 kind: "landing-floor",
-x: window.innerWidth * 0.26,
+x: window.innerWidth * 0.38,
 y: groundY + scrollY,
 width: window.innerWidth,
 height: 1
