@@ -1,4 +1,4 @@
-/* scripts/main.js (source c3a030ca866e8238), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/main.js (source 58d49977c6be35ea), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 var SCRIPT_DIR = (document.currentScript && document.currentScript.src ? document.currentScript.src.replace(/[^\/]*$/, "") : "") || "scripts/";
 const CONTACT_FORM_ENDPOINT = "https://formspree.io/f/mwlpdepp";
@@ -518,7 +518,7 @@ queueUpdate();
 }, { once: true });
 }
 function initTileImageFade() {
-Array.prototype.forEach.call(document.querySelectorAll(".work-tile img"), function (img) {
+Array.prototype.forEach.call(document.querySelectorAll(".work-tile img, .about-portrait img, .archive-bar img"), function (img) {
 if (img.complete && img.naturalWidth > 0) {
 return;
 }
