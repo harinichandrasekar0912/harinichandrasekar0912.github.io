@@ -14,7 +14,6 @@
   --color-paper: #faf8f3;
   --color-paper-shade: #f6f3ec; /* an empty picture frame, before its picture arrives */
   --color-paper-warm: var(--color-paper-shade); /* older name, same value */
-  --color-paper-soft: #f1eee7; /* about portrait frame only: to become --color-paper-shade (About owner) */
   --color-ink: #151412;
   --color-ink-soft: #625d54; /* secondary text */
   --color-ink-faint: rgb(var(--color-ink-rgb) / 0.42); /* placeholders, the dotted spokes of the menu */
@@ -58,6 +57,7 @@
   --text-sm: clamp(0.78rem, 0.75rem + 0.1vw, 0.88rem); /* form fields, project text */
   --text-md: clamp(0.94rem, 0.88rem + 0.18vw, 1.06rem); /* reading text, the name */
   --text-lg: clamp(1rem, 0.86rem + 0.48vw, 1.32rem); /* section titles */
+  --text-name: clamp(0.94rem, 0.7rem + 0.4vw, 1.36rem); /* the name: --text-md up to a laptop, then a little larger with the scene */
   --title-gap: clamp(3.375rem, 7.2vh, 5.625rem); /* from a section title to its content */
 
   --line-thin: var(--hairline); /* older name */
@@ -72,9 +72,9 @@
 
   /* the navigation's own sequence (scripts/navigation-ball.js times the spokes and the ball against these; change them together) */
   --nav-blink: 120ms; /* a linear cut in or out */
-  --nav-draw: 500ms; /* the ring draws, then the spokes and the black disc arrive */
+  --nav-draw: 360ms; /* the ring draws, then the spokes and the black disc arrive */
   --nav-pop: 440ms; /* each circle pops in ... */
-  --nav-pop-after: 940ms; /* ... starting once the drawing is done */
+  --nav-pop-after: 700ms; /* ... as its spoke reaches it (the whole fan is open in ~1.25 s; it was ~1.5 s) */
   --nav-choose: 900ms; /* the chosen circle shrinks into the ball */
   --nav-restore: 420ms; /* the plus comes back after a trip */
 
@@ -422,17 +422,19 @@ body.is-project-open .viewport-edge-blur {
   grid-template-rows: auto minmax(0, 1fr);
   align-items: stretch;
   min-height: 100svh;
-  padding-top: clamp(1rem, 2.4vh, 1.55rem);
+  /* the name and the plus frame the scene: the middle of the name's line is as far from the top of the screen as the middle of the plus
+     is from the bottom, on every screen (the name pulls itself up by half its own line, below) */
+  padding-top: calc(var(--nav-bottom-buffer) + var(--plus-circle-size) / 2);
   padding-bottom: calc(var(--space-8) + var(--nav-size));
 }
 
 .site-name {
   position: relative;
   z-index: var(--z-site-name);
-  margin: 0;
+  margin: calc(var(--leading-tight) * -0.5em) 0 0;
   text-align: center;
   color: var(--color-ink);
-  font-size: var(--text-md);
+  font-size: var(--text-name);
   font-weight: var(--weight-medium);
   line-height: var(--leading-tight);
   letter-spacing: 0;
@@ -502,7 +504,7 @@ body.is-project-open .viewport-edge-blur {
   object-position: 50% 40%;
   border: var(--hairline) solid var(--color-line);
   border-radius: inherit;
-  background: var(--color-paper-soft);
+  background: var(--color-paper-shade);
 }
 
 .about-copy {
@@ -510,7 +512,7 @@ body.is-project-open .viewport-edge-blur {
   max-width: 33rem;
   color: var(--color-ink-soft);
   font-size: var(--text-md);
-  font-weight: 340;
+  font-weight: var(--weight-regular);
   line-height: 1.68;
   text-align: left;
   text-wrap: pretty;
