@@ -24,7 +24,6 @@
 
   .landing-section {
     min-height: 100svh;
-    padding-top: 1.2rem;
     padding-bottom: 6.25rem;
   }
 
@@ -243,6 +242,11 @@
 
   .section {
     padding-block: clamp(2.75rem, 6vh, 4rem);
+  }
+
+  /* ...but not the landing screen's top: the name keeps its place opposite the plus (main.css; this rule used to push it ~30px lower) */
+  .landing-section {
+    padding-top: calc(var(--nav-bottom-buffer) + var(--plus-circle-size) / 2);
   }
 
   /* contact sets its own height (one screen, see main.css); the general section padding above must not reach it: it made the section

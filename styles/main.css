@@ -58,6 +58,7 @@
   --text-sm: clamp(0.78rem, 0.75rem + 0.1vw, 0.88rem); /* form fields, project text */
   --text-md: clamp(0.94rem, 0.88rem + 0.18vw, 1.06rem); /* reading text, the name */
   --text-lg: clamp(1rem, 0.86rem + 0.48vw, 1.32rem); /* section titles */
+  --text-name: clamp(0.94rem, 0.7rem + 0.4vw, 1.36rem); /* the name: --text-md up to a laptop, then a little larger with the scene */
   --title-gap: clamp(2.25rem, 4.8vh, 3.75rem); /* from a section title to its content */
 
   --line-thin: var(--hairline); /* older name */
@@ -422,17 +423,19 @@ body.is-project-open .viewport-edge-blur {
   grid-template-rows: auto minmax(0, 1fr);
   align-items: stretch;
   min-height: 100svh;
-  padding-top: clamp(1rem, 2.4vh, 1.55rem);
+  /* the name and the plus frame the scene: the middle of the name's line is as far from the top of the screen as the middle of the plus
+     is from the bottom, on every screen (the name pulls itself up by half its own line, below) */
+  padding-top: calc(var(--nav-bottom-buffer) + var(--plus-circle-size) / 2);
   padding-bottom: calc(var(--space-8) + var(--nav-size));
 }
 
 .site-name {
   position: relative;
   z-index: var(--z-site-name);
-  margin: 0;
+  margin: calc(var(--leading-tight) * -0.5em) 0 0;
   text-align: center;
   color: var(--color-ink);
-  font-size: var(--text-md);
+  font-size: var(--text-name);
   font-weight: var(--weight-medium);
   line-height: var(--leading-tight);
   letter-spacing: 0;
