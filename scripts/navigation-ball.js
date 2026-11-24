@@ -38,6 +38,7 @@
    *        with the impact (it also scrolls while the ball still moves sideways on the arc)
    *   "d": like "c" on screen, but the page scrolls only during the straight part */
   const NAV_BALL_FALL = "d";
+  const ARC_PACE = 1.22; // the arc over the top runs this much faster than a plain throw (her 24 Nov ask: "a tiny bit faster")
   const FALL_SECONDS_BASE = 0.55; // "c" / "d": the camera leg lasts 0.55 s + (its distance through the page) / 8000 px/s, 0.6 - 1.2 s
   const FALL_PX_PER_SECOND = 8000;
   const FALL_SECONDS_MIN = 0.6;
@@ -496,6 +497,8 @@
       }
     }
 
+    vTop *= ARC_PACE;
+
     /* "c" and "d" (the default is "c"): the camera takes over at the top. On screen the ball's height changes at ONE constant rate from the
      * top: downward, it falls from the top under a gentle on-screen gravity all the way to B (through the rest of the arc and the
      * straight drop; bead on a wire, so its on-screen speed only ever rises, and the straight drop is one constant acceleration); the camera (page scroll) speeds up at a constant rate and stops dead with the
@@ -565,7 +568,7 @@
         const T = fallSeconds(depthAt(lastIndex) + scrollAbs);
 
         // over the top at the throw's speed (at most 0.6 x the average the way down needs, so a gentle gravity can still fit the time)
-        const overTop = Math.max(Math.min(vTop, (0.6 * lengthBetween(apexIndex, lastIndex)) / T), 20);
+        const overTop = Math.max(Math.min(vTop, (0.6 * ARC_PACE * lengthBetween(apexIndex, lastIndex)) / T), 20);
 
         screenGravity = fitGravity(apexIndex, lastIndex, overTop, T);
         ct[0] = 0;
@@ -587,7 +590,7 @@
         };
       } else {
         const T = fallSeconds(depthAt(0) + scrollAbs);
-        const overTop = Math.max(Math.min(vTop, (0.6 * lengthBetween(0, apexIndex)) / T), 20);
+        const overTop = Math.max(Math.min(vTop, (0.6 * ARC_PACE * lengthBetween(0, apexIndex)) / T), 20);
 
         screenGravity = fitGravity(0, apexIndex, overTop, T);
         ct[0] = 0;

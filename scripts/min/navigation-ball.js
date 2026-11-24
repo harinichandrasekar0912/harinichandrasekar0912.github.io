@@ -1,4 +1,4 @@
-/* scripts/navigation-ball.js (source d844de77562efed4), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/navigation-ball.js (source c5dacce62f7aea57), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 const NAV_BALL_PATH_MODE = "bezier";
@@ -7,6 +7,7 @@ const DEBUG_NAV_BALL_SEQUENCE = false;
 const DEBUG_PHONE_NAV_BALL = false;
 const FLIGHT_GRAVITY = 2400;
 const NAV_BALL_FALL = "d";
+const ARC_PACE = 1.22;
 const FALL_SECONDS_BASE = 0.55;
 const FALL_PX_PER_SECOND = 8000;
 const FALL_SECONDS_MIN = 0.6;
@@ -330,6 +331,7 @@ high = middle;
 vTop = high;
 }
 }
+vTop *= ARC_PACE;
 if ((fall === "c" || fall === "d") && scrollAbs > 1) {
 const depthAt = function (index) {
 return Math.max(points[index].y - apexY, 0);
@@ -374,7 +376,7 @@ let scrollShare;
 let screenGravity;
 if (!upward) {
 const T = fallSeconds(depthAt(lastIndex) + scrollAbs);
-const overTop = Math.max(Math.min(vTop, (0.6 * lengthBetween(apexIndex, lastIndex)) / T), 20);
+const overTop = Math.max(Math.min(vTop, (0.6 * ARC_PACE * lengthBetween(apexIndex, lastIndex)) / T), 20);
 screenGravity = fitGravity(apexIndex, lastIndex, overTop, T);
 ct[0] = 0;
 for (let index = 1; index <= apexIndex; index += 1) {
@@ -391,7 +393,7 @@ return u * u;
 };
 } else {
 const T = fallSeconds(depthAt(0) + scrollAbs);
-const overTop = Math.max(Math.min(vTop, (0.6 * lengthBetween(0, apexIndex)) / T), 20);
+const overTop = Math.max(Math.min(vTop, (0.6 * ARC_PACE * lengthBetween(0, apexIndex)) / T), 20);
 screenGravity = fitGravity(0, apexIndex, overTop, T);
 ct[0] = 0;
 for (let index = 1; index <= apexIndex; index += 1) {
