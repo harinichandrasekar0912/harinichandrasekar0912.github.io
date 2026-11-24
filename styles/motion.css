@@ -601,6 +601,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
   --ball-scale-x: 1;
   --ball-scale-y: 1;
   --ball-rotation: 0deg;
+  --ball-stretch-angle: 0deg; /* squash / stretch along this direction (navigation-ball.js) */
   --ball-sphere-opacity: 0;
   position: fixed;
   left: 0;
@@ -620,7 +621,7 @@ html:not([data-debug-nav-geometry="true"]) .debug-label {
     calc(var(--ball-x) - (var(--ball-size) / 2)),
     calc(var(--ball-y) - (var(--ball-size) / 2) + var(--ball-lift)),
     0
-  ) scale(var(--ball-scale-x), var(--ball-scale-y));
+  ) rotate(var(--ball-stretch-angle)) scale(var(--ball-scale-x), var(--ball-scale-y)) rotate(calc(-1 * var(--ball-stretch-angle)));
   will-change: transform, opacity;
   box-shadow: none;
 }
