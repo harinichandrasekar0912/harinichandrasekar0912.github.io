@@ -1,4 +1,4 @@
-/* scripts/navigation-ball.js (source c5dacce62f7aea57), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/navigation-ball.js (source 610799dfe14a22c9), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 const NAV_BALL_PATH_MODE = "bezier";
@@ -8,6 +8,8 @@ const DEBUG_PHONE_NAV_BALL = false;
 const FLIGHT_GRAVITY = 2400;
 const NAV_BALL_FALL = "d";
 const ARC_PACE = 1.22;
+const ARC_QUICKEN = 1.15;
+const DROP_EASE = 1.15;
 const FALL_SECONDS_BASE = 0.55;
 const FALL_PX_PER_SECOND = 8000;
 const FALL_SECONDS_MIN = 0.6;
@@ -369,6 +371,78 @@ high = middle;
 }
 return high;
 };
+const retimeArcAndDrop = function (times, apex, join, end, v0, gs) {
+const arcFrom = Math.min(apex, join);
+const arcTo = Math.max(apex, join);
+const straightFrom = Math.min(join, end);
+const straightTo = Math.max(join, end);
+const arcTarget = (times[arcTo] - times[arcFrom]) / ARC_QUICKEN;
+const straightTarget = (times[straightTo] - times[straightFrom]) * DROP_EASE;
+const vTopFast = v0 * ARC_QUICKEN;
+const quicker = function (from, to) {
+const target = (times[to] - times[from]) / ARC_QUICKEN;
+return beadSeconds(from, to, 0, vTopFast) > target ? fitGravity(from, to, vTopFast, target) : 0;
+};
+const gArc = quicker(arcFrom, arcTo);
+const freeFrom = end < join ? apex : 0;
+const freeTo = end < join ? times.length - 1 : apex;
+const gFree = quicker(freeFrom, freeTo);
+const joinSpeed = Math.sqrt(vTopFast * vTopFast + 2 * gArc * depthAt(join));
+let span = 0;
+for (let index = straightFrom; index <= straightTo; index += 1) {
+span = Math.max(span, Math.abs(depthAt(index) - depthAt(join)));
+}
+const straightSeconds = function (a) {
+let totalSeconds = 0;
+for (let index = straightFrom + 1; index <= straightTo; index += 1) {
+const va = Math.sqrt(Math.max(joinSpeed * joinSpeed + 2 * a * (depthAt(index - 1) - depthAt(join)), 1));
+const vb = Math.sqrt(Math.max(joinSpeed * joinSpeed + 2 * a * (depthAt(index) - depthAt(join)), 1));
+const length = Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+totalSeconds += length > 0 ? (2 * length) / Math.max(va + vb, 1e-6) : 0;
+}
+return totalSeconds;
+};
+let low = span > 0 ? (-0.45 * joinSpeed * joinSpeed) / span : 0;
+let high = Math.max(gs, 100);
+while (straightSeconds(high) > straightTarget && high < 1e8) {
+high *= 2;
+}
+if (straightSeconds(low) < straightTarget) {
+high = low;
+} else {
+for (let stepIndex = 0; stepIndex < 50; stepIndex += 1) {
+const middle = (low + high) / 2;
+if (straightSeconds(middle) > straightTarget) {
+low = middle;
+} else {
+high = middle;
+}
+}
+}
+const aStraight = high;
+const segment = function (index) {
+const a = points[index - 1];
+const b = points[index];
+const length = Math.hypot(b.x - a.x, b.y - a.y);
+let va;
+let vb;
+if (index > straightFrom && index <= straightTo) {
+va = Math.sqrt(Math.max(joinSpeed * joinSpeed + 2 * aStraight * (depthAt(index - 1) - depthAt(join)), 1));
+vb = Math.sqrt(Math.max(joinSpeed * joinSpeed + 2 * aStraight * (depthAt(index) - depthAt(join)), 1));
+} else if (index > arcFrom && index <= arcTo) {
+va = Math.sqrt(vTopFast * vTopFast + 2 * gArc * depthAt(index - 1));
+vb = Math.sqrt(vTopFast * vTopFast + 2 * gArc * depthAt(index));
+} else {
+va = Math.sqrt(vTopFast * vTopFast + 2 * gFree * depthAt(index - 1));
+vb = Math.sqrt(vTopFast * vTopFast + 2 * gFree * depthAt(index));
+}
+return length > 0 ? (2 * length) / Math.max(va + vb, 1e-6) : 0;
+};
+times[0] = 0;
+for (let index = 1; index < times.length; index += 1) {
+times[index] = times[index - 1] + segment(index);
+}
+};
 const ct = new Array(points.length);
 let camStart;
 let camEnd;
@@ -384,6 +458,9 @@ ct[index] = ct[index - 1] + segmentSeconds(index, overTop);
 }
 for (let index = apexIndex + 1; index <= lastIndex; index += 1) {
 ct[index] = ct[index - 1] + beadSeconds(index - 1, index, screenGravity, overTop);
+}
+if (fall === "d" && eIndex < lastIndex) {
+retimeArcAndDrop(ct, apexIndex, eIndex, lastIndex, overTop, screenGravity);
 }
 camStart = fall === "c" ? ct[apexIndex] : ct[eIndex];
 camEnd = ct[lastIndex];
@@ -401,6 +478,9 @@ ct[index] = ct[index - 1] + beadSeconds(index - 1, index, screenGravity, overTop
 }
 for (let index = apexIndex + 1; index <= lastIndex; index += 1) {
 ct[index] = ct[index - 1] + segmentSeconds(index, overTop);
+}
+if (fall === "d" && sIndex > 0) {
+retimeArcAndDrop(ct, apexIndex, sIndex, 0, overTop, screenGravity);
 }
 camStart = 0;
 camEnd = fall === "c" ? ct[apexIndex] : ct[sIndex];

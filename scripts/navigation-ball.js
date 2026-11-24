@@ -39,6 +39,11 @@
    *   "d": like "c" on screen, but the page scrolls only during the straight part */
   const NAV_BALL_FALL = "d";
   const ARC_PACE = 1.22; // the arc over the top runs this much faster than a plain throw (her 24 Nov ask: "a tiny bit faster")
+  // "d": a retime on top of that, same path (her 24 Nov ask: "the downward drop a tiny bit slower and the arc a tiny bit faster so
+  // that it looks seamless"): the arc (the climb, the top and the way over to the drop) runs ARC_QUICKEN times faster, the straight
+  // part where the page scrolls lasts DROP_EASE times longer; the speed is the same on both sides of the join
+  const ARC_QUICKEN = 1.15;
+  const DROP_EASE = 1.15;
   const FALL_SECONDS_BASE = 0.55; // "c" / "d": the camera leg lasts 0.55 s + (its distance through the page) / 8000 px/s, 0.6 - 1.2 s
   const FALL_PX_PER_SECOND = 8000;
   const FALL_SECONDS_MIN = 0.6;
@@ -558,6 +563,100 @@
 
         return high;
       };
+      /* the "d" retime (ARC_QUICKEN, DROP_EASE). ct holds the approved timing; the path never changes. Over the top the ball now carries
+       * ARC_QUICKEN x the speed, the arc's other side (top -> join) gets the gentle gravity that makes it ARC_QUICKEN x quicker, and the
+       * straight part gets the steady acceleration that makes it DROP_EASE x longer, starting at exactly the speed the arc reached the
+       * join with (so nothing jumps there). The side of the arc with no camera (downward: the climb; upward: the way down to B) is
+       * ARC_QUICKEN x quicker too, through the same speed over the top. */
+      const retimeArcAndDrop = function (times, apex, join, end, v0, gs) {
+        const arcFrom = Math.min(apex, join);
+        const arcTo = Math.max(apex, join);
+        const straightFrom = Math.min(join, end);
+        const straightTo = Math.max(join, end);
+        const arcTarget = (times[arcTo] - times[arcFrom]) / ARC_QUICKEN;
+        const straightTarget = (times[straightTo] - times[straightFrom]) * DROP_EASE;
+        const vTopFast = v0 * ARC_QUICKEN;
+        const quicker = function (from, to) {
+          const target = (times[to] - times[from]) / ARC_QUICKEN;
+
+          return beadSeconds(from, to, 0, vTopFast) > target ? fitGravity(from, to, vTopFast, target) : 0;
+        };
+        const gArc = quicker(arcFrom, arcTo);
+        const freeFrom = end < join ? apex : 0; // the side without the camera: upward [apex, B], downward [A, apex]
+        const freeTo = end < join ? times.length - 1 : apex;
+        const gFree = quicker(freeFrom, freeTo);
+
+        const joinSpeed = Math.sqrt(vTopFast * vTopFast + 2 * gArc * depthAt(join));
+        // the straight part: speed^2 = joinSpeed^2 + 2 a (depth - depth at the join); a may be a little negative on screen (the page
+        // scroll then carries the speed-up), never so negative that the ball would stop
+        let span = 0;
+
+        for (let index = straightFrom; index <= straightTo; index += 1) {
+          span = Math.max(span, Math.abs(depthAt(index) - depthAt(join)));
+        }
+
+        const straightSeconds = function (a) {
+          let totalSeconds = 0;
+
+          for (let index = straightFrom + 1; index <= straightTo; index += 1) {
+            const va = Math.sqrt(Math.max(joinSpeed * joinSpeed + 2 * a * (depthAt(index - 1) - depthAt(join)), 1));
+            const vb = Math.sqrt(Math.max(joinSpeed * joinSpeed + 2 * a * (depthAt(index) - depthAt(join)), 1));
+            const length = Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+
+            totalSeconds += length > 0 ? (2 * length) / Math.max(va + vb, 1e-6) : 0;
+          }
+
+          return totalSeconds;
+        };
+        let low = span > 0 ? (-0.45 * joinSpeed * joinSpeed) / span : 0;
+        let high = Math.max(gs, 100);
+
+        while (straightSeconds(high) > straightTarget && high < 1e8) {
+          high *= 2;
+        }
+
+        if (straightSeconds(low) < straightTarget) {
+          high = low;
+        } else {
+          for (let stepIndex = 0; stepIndex < 50; stepIndex += 1) {
+            const middle = (low + high) / 2;
+
+            if (straightSeconds(middle) > straightTarget) {
+              low = middle;
+            } else {
+              high = middle;
+            }
+          }
+        }
+
+        const aStraight = high;
+        const segment = function (index) {
+          const a = points[index - 1];
+          const b = points[index];
+          const length = Math.hypot(b.x - a.x, b.y - a.y);
+          let va;
+          let vb;
+
+          if (index > straightFrom && index <= straightTo) {
+            va = Math.sqrt(Math.max(joinSpeed * joinSpeed + 2 * aStraight * (depthAt(index - 1) - depthAt(join)), 1));
+            vb = Math.sqrt(Math.max(joinSpeed * joinSpeed + 2 * aStraight * (depthAt(index) - depthAt(join)), 1));
+          } else if (index > arcFrom && index <= arcTo) {
+            va = Math.sqrt(vTopFast * vTopFast + 2 * gArc * depthAt(index - 1));
+            vb = Math.sqrt(vTopFast * vTopFast + 2 * gArc * depthAt(index));
+          } else {
+            va = Math.sqrt(vTopFast * vTopFast + 2 * gFree * depthAt(index - 1));
+            vb = Math.sqrt(vTopFast * vTopFast + 2 * gFree * depthAt(index));
+          }
+
+          return length > 0 ? (2 * length) / Math.max(va + vb, 1e-6) : 0;
+        };
+
+        times[0] = 0;
+
+        for (let index = 1; index < times.length; index += 1) {
+          times[index] = times[index - 1] + segment(index);
+        }
+      };
       const ct = new Array(points.length);
       let camStart;
       let camEnd;
@@ -581,6 +680,10 @@
           ct[index] = ct[index - 1] + beadSeconds(index - 1, index, screenGravity, overTop);
         }
 
+        if (fall === "d" && eIndex < lastIndex) {
+          retimeArcAndDrop(ct, apexIndex, eIndex, lastIndex, overTop, screenGravity);
+        }
+
         camStart = fall === "c" ? ct[apexIndex] : ct[eIndex];
         camEnd = ct[lastIndex];
         scrollShare = function (t) {
@@ -601,6 +704,10 @@
 
         for (let index = apexIndex + 1; index <= lastIndex; index += 1) {
           ct[index] = ct[index - 1] + segmentSeconds(index, overTop);
+        }
+
+        if (fall === "d" && sIndex > 0) {
+          retimeArcAndDrop(ct, apexIndex, sIndex, 0, overTop, screenGravity);
         }
 
         camStart = 0;
