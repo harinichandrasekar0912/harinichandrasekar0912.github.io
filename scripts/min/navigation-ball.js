@@ -1,13 +1,31 @@
-/* scripts/navigation-ball.js (source 6c511025689ad4b5), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
+/* scripts/navigation-ball.js (source d844de77562efed4), made smaller by tools/minify.mjs: edit the source, then run node tools/minify.mjs */
 (function () {
 "use strict";
 const NAV_BALL_PATH_MODE = "bezier";
 const DEBUG_NAV_TRAJECTORY_OVERLAY = false;
 const DEBUG_NAV_BALL_SEQUENCE = false;
 const DEBUG_PHONE_NAV_BALL = false;
-const MAIN_PATH_SPEED = 430;
-const MAIN_PATH_MIN_DURATION = 0.6;
-const MAIN_PATH_MAX_DURATION = 6;
+const FLIGHT_GRAVITY = 2400;
+const NAV_BALL_FALL = "d";
+const FALL_SECONDS_BASE = 0.55;
+const FALL_PX_PER_SECOND = 8000;
+const FALL_SECONDS_MIN = 0.6;
+const FALL_SECONDS_MAX = 1.2;
+const CAMERA_LEG_MAX_SECONDS = 1.2;
+const APEX_SPEED_MIN = 40;
+const APEX_SPEED_MAX = 900;
+const RESTITUTION = 0.55;
+const LAND_FIRST_MIN = 0.6;
+const LAND_FIRST_MAX = 0.85;
+const CONTACT_MS = 60;
+const LAUNCH_CONTACT_MS = 95;
+const SQUASH_MAX = 0.3;
+const SQUASH_SPEED_FULL = 2600;
+const SQUASH_WIDEN = 0.8;
+const ANTICIPATION_SHARE = 0.45;
+const STRETCH_FROM = 350;
+const STRETCH_FULL = 2400;
+const STRETCH_MAX = 0.22;
 const BEZIER_LIFT_MIN = 40;
 const BEZIER_LIFT_SPAN = 0.55;
 const BEZIER_LIFT_Z = 0.65;
@@ -20,12 +38,6 @@ const DROP_MIN = 110;
 const DROP_MAX = 220;
 const DROP_ROOM_SHARE = 0.75;
 const DROP_FLOOR = 40;
-const DROP_SECONDS_BASE = 0.62;
-const DROP_SCROLL_PX_PER_SECOND = 4800;
-const DROP_SECONDS_MIN = 0.75;
-const DROP_SECONDS_MAX = 1.38;
-const TOP_SPEED_SHARE = 0.8;
-const TOP_SPEED_MIN = 40;
 const SHORT_FALL_FACTOR = 0.55;
 const SHORT_FALL_MIN = 36;
 const SHORT_FALL_MAX = 64;
@@ -36,23 +48,13 @@ const UP_BEZIER_LIFT_SPAN = 0.3;
 const UP_ARC_RISE_MAX = 100;
 const UP_RISE_MIN = 80;
 const UP_ARC_ROOM = 40;
-const UP_RISE_SPEED_MIN = 90;
 const UP_RISE_TARGET_SPEED = 300;
 const UP_SCROLL_END_SHARE = 0.92;
-const UP_POST_BASE_SECONDS = 0.3;
-const UP_POST_PX_PER_SECOND = 450;
-const UP_POST_MIN_SECONDS = 0.5;
-const UP_POST_MAX_SECONDS = 1.4;
 const UP_LOW_ARC_DROP = 170;
 const UP_SCROLL_SECONDS_BASE = 0.5;
 const UP_SCROLL_PX_PER_SECOND = 6000;
 const UP_SCROLL_SECONDS_MIN = 0.6;
 const UP_SCROLL_SECONDS_MAX = 0.95;
-const POST_APEX_ARC_SECONDS = 0.4;
-const POST_APEX_MAX_SECONDS = 2.4;
-const RISE_EASE_SHARE = 0.35;
-const RISE_EASE_MIN = 60;
-const RISE_EASE_MAX = 220;
 const FLIGHT_TOP_CLEAR_SHARE = 0.12;
 const FLIGHT_TOP_CLEAR_MIN = 72;
 const FLIGHT_TOP_CLEAR_MIN_PHONE = 56;
@@ -63,7 +65,7 @@ const PHONE_MAIN_LIFT_FACTOR = 1.7;
 const PHONE_MAIN_LIFT_MIN = 84;
 const PHONE_MAIN_LIFT_MAX = 150;
 const PHONE_MAIN_LIFT_FLOOR = 28;
-const PHONE_APEX_HANG = 110;
+const PHONE_APEX_HANG = 0;
 const ARCHIVE_STEP_FACTOR = 0.055;
 const ARCHIVE_STEP_MIN = 48;
 const ARCHIVE_STEP_MAX = 110;
@@ -72,10 +74,7 @@ const LANDING_SCREEN_FRACTION = 0.2;
 const LANDING_SCREEN_FRACTION_MAX = 0.34;
 const SCROLL_PROGRESS_MODE = "smootherstep";
 const BALL_MORPH_DURATION = 1300;
-const NAV_BALL_PREP_DURATIONS = [360, 430, 500];
-const NAV_BALL_LANDING_DURATIONS = [480, 360, 260];
 const NAV_BALL_ROLL_DURATION = 2180;
-const ROLL_GRAVITY = 2600;
 const ROLL_FADE_MS = 450;
 const ROLL_TIP_MIN_ANGLE = 0.6;
 const ROLL_TIP_MAX_ANGLE = 1.25;
@@ -127,9 +126,6 @@ return x * x * x * (x * (x * 6 - 15) + 10);
 }
 function easeOutCubic(t) {
 return 1 - Math.pow(1 - clamp(t, 0, 1), 3);
-}
-function easeRollOut(t) {
-return 1 - Math.pow(1 - clamp(t, 0, 1), 2.2);
 }
 function round(value) {
 return typeof value === "number" && Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
@@ -217,15 +213,13 @@ points[count].x = B.x;
 points[count].y = B.y;
 return { points: points, length: length, minY: minY, apexIndex: apexIndex };
 }
-function planBezierPath(A, B, z, safeTop, speed, scrollDistance, upward) {
+function planBezierPath(A, B, z, safeTop, scrollDistance, upward, gravity, fall) {
 const room = Math.max(B.y - safeTop, 0);
 const drop = upward ?
 Math.max(Math.min(clamp(z * SHORT_FALL_FACTOR, SHORT_FALL_MIN, SHORT_FALL_MAX), room * 0.5), SHORT_FALL_FLOOR) :
 Math.max(Math.min(clamp(z * DROP_FACTOR, DROP_MIN, DROP_MAX), room * DROP_ROOM_SHARE), DROP_FLOOR);
 const E = { x: B.x, y: B.y - drop };
-const scrollSeconds = upward ?
-clamp(UP_SCROLL_SECONDS_BASE + Math.abs(scrollDistance || 0) / UP_SCROLL_PX_PER_SECOND, UP_SCROLL_SECONDS_MIN, UP_SCROLL_SECONDS_MAX) :
-clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
+const scrollSeconds = clamp(UP_SCROLL_SECONDS_BASE + Math.abs(scrollDistance || 0) / UP_SCROLL_PX_PER_SECOND, UP_SCROLL_SECONDS_MIN, UP_SCROLL_SECONDS_MAX);
 const S = upward ?
 { x: A.x, y: Math.min(clamp(Math.max(Math.min(A.y - Math.max(UP_RISE_MIN, UP_RISE_TARGET_SPEED * scrollSeconds), B.y), B.y - UP_LOW_ARC_DROP), safeTop + UP_ARC_ROOM, A.y - UP_RISE_MIN), A.y) } :
 { x: A.x, y: A.y };
@@ -273,7 +267,7 @@ high = middle;
 }
 plan = build(Math.max(low, BEZIER_MIN_LIFT));
 }
-const dropSeconds = clamp(DROP_SECONDS_BASE + Math.abs(scrollDistance || 0) / DROP_SCROLL_PX_PER_SECOND, DROP_SECONDS_MIN, DROP_SECONDS_MAX);
+let g = Math.max(gravity || FLIGHT_GRAVITY, 1);
 const arcPoints = plan.sampled.points;
 const points = [];
 if (S.y < A.y - 0.5) {
@@ -289,67 +283,262 @@ points.push({ x: point.x, y: point.y });
 const apexIndex = sIndex + plan.sampled.apexIndex;
 const apexY = points[apexIndex].y;
 const eIndex = points.length - 1;
-const riseLength = A.y - S.y;
-const riseSpeed = upward && riseLength > 1 ? clamp(riseLength / scrollSeconds, UP_RISE_SPEED_MIN, speed * 1.2) : speed;
 const dropSteps = Math.max(2, Math.ceil(drop / 2));
 for (let step = 1; step <= dropSteps; step += 1) {
 points.push({ x: B.x, y: E.y + (drop * step) / dropSteps });
 }
-let postLength = 0;
-for (let index = apexIndex + 1; index < points.length; index += 1) {
-postLength += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+const lastIndex = points.length - 1;
+const scrollSigned = scrollDistance || 0;
+const scrollAbs = Math.abs(scrollSigned);
+const pageCamera = fall === "b" && scrollAbs > 1;
+if (pageCamera) {
+const legWorld = upward ? A.y - apexY + scrollAbs : B.y - apexY + scrollAbs;
+g = Math.max(g, (2 * legWorld) / (CAMERA_LEG_MAX_SECONDS * CAMERA_LEG_MAX_SECONDS));
 }
-const postSeconds = upward ?
-clamp(UP_POST_BASE_SECONDS + postLength / UP_POST_PX_PER_SECOND, UP_POST_MIN_SECONDS, UP_POST_MAX_SECONDS) :
-Math.min(dropSeconds + POST_APEX_ARC_SECONDS, POST_APEX_MAX_SECONDS);
-const vTop = clamp((TOP_SPEED_SHARE * postLength) / postSeconds, TOP_SPEED_MIN, Math.max(riseSpeed * (upward ? 0.8 : 0.6), TOP_SPEED_MIN));
-const climb = Math.max(S.y - apexY, 1);
-const easeDepth = clamp(climb * RISE_EASE_SHARE, RISE_EASE_MIN, RISE_EASE_MAX);
-function speedAt(index, gDown) {
-const depth = Math.max(points[index].y - apexY, 0);
-if (index <= apexIndex) {
-const u = clamp(depth / easeDepth, 0, 1);
-return vTop + (riseSpeed - vTop) * (1 - (1 - u) * (1 - u));
+function speedAt(index, vTop) {
+return Math.sqrt(vTop * vTop + 2 * g * Math.max(points[index].y - apexY, 0));
 }
-return Math.sqrt(vTop * vTop + 2 * gDown * depth);
-}
-function segmentTime(index, gDown) {
+function segmentSeconds(index, vTop) {
 const a = points[index - 1];
 const b = points[index];
 const length = Math.hypot(b.x - a.x, b.y - a.y);
-return length > 0 ? (2 * length) / Math.max(speedAt(index - 1, gDown) + speedAt(index, gDown), 1e-6) : 0;
+return length > 0 ? (2 * length) / Math.max(speedAt(index - 1, vTop) + speedAt(index, vTop), 1e-6) : 0;
 }
-function postTime(gDown) {
+function spanSeconds(from, to, vTop) {
 let total = 0;
-for (let index = apexIndex + 1; index < points.length; index += 1) {
-total += segmentTime(index, gDown);
+for (let index = from + 1; index <= to; index += 1) {
+total += segmentSeconds(index, vTop);
 }
 return total;
 }
-let gLow = 0;
-let gHigh = 200;
-while (postTime(gHigh) > postSeconds && gHigh < 1e7) {
-gHigh *= 2;
-}
-for (let step = 0; step < 40; step += 1) {
-const middle = (gLow + gHigh) / 2;
-if (postTime(middle) > postSeconds) {
-gLow = middle;
+const throwSeconds = Math.sqrt((2 * Math.max(S.y - apexY, 0)) / g) + Math.sqrt((2 * Math.max(E.y - apexY, 0)) / g);
+let vTop = APEX_SPEED_MIN;
+if (spanSeconds(sIndex, eIndex, vTop) > throwSeconds) {
+let low = APEX_SPEED_MIN;
+let high = APEX_SPEED_MAX;
+if (spanSeconds(sIndex, eIndex, high) > throwSeconds) {
+vTop = high;
 } else {
-gHigh = middle;
+for (let step = 0; step < 32; step += 1) {
+const middle = (low + high) / 2;
+if (spanSeconds(sIndex, eIndex, middle) > throwSeconds) {
+low = middle;
+} else {
+high = middle;
 }
 }
-const gDown = gHigh;
+vTop = high;
+}
+}
+if ((fall === "c" || fall === "d") && scrollAbs > 1) {
+const depthAt = function (index) {
+return Math.max(points[index].y - apexY, 0);
+};
+const lengthBetween = function (from, to) {
+let total = 0;
+for (let index = Math.min(from, to) + 1; index <= Math.max(from, to); index += 1) {
+total += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+}
+return total;
+};
+const beadSeconds = function (from, to, gs, v0) {
+let totalSeconds = 0;
+for (let index = from + 1; index <= to; index += 1) {
+const va = Math.sqrt(v0 * v0 + 2 * gs * depthAt(index - 1));
+const vb = Math.sqrt(v0 * v0 + 2 * gs * depthAt(index));
+const length = Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+totalSeconds += length > 0 ? (2 * length) / Math.max(va + vb, 1e-6) : 0;
+}
+return totalSeconds;
+};
+const fitGravity = function (from, to, v0, seconds) {
+let low = 0;
+let high = 100;
+while (beadSeconds(from, to, high, v0) > seconds && high < 1e8) {
+high *= 2;
+}
+for (let stepIndex = 0; stepIndex < 50; stepIndex += 1) {
+const middle = (low + high) / 2;
+if (beadSeconds(from, to, middle, v0) > seconds) {
+low = middle;
+} else {
+high = middle;
+}
+}
+return high;
+};
+const ct = new Array(points.length);
+let camStart;
+let camEnd;
+let scrollShare;
+let screenGravity;
+if (!upward) {
+const T = fallSeconds(depthAt(lastIndex) + scrollAbs);
+const overTop = Math.max(Math.min(vTop, (0.6 * lengthBetween(apexIndex, lastIndex)) / T), 20);
+screenGravity = fitGravity(apexIndex, lastIndex, overTop, T);
+ct[0] = 0;
+for (let index = 1; index <= apexIndex; index += 1) {
+ct[index] = ct[index - 1] + segmentSeconds(index, overTop);
+}
+for (let index = apexIndex + 1; index <= lastIndex; index += 1) {
+ct[index] = ct[index - 1] + beadSeconds(index - 1, index, screenGravity, overTop);
+}
+camStart = fall === "c" ? ct[apexIndex] : ct[eIndex];
+camEnd = ct[lastIndex];
+scrollShare = function (t) {
+const u = clamp((t - camStart) / Math.max(camEnd - camStart, 1e-6), 0, 1);
+return u * u;
+};
+} else {
+const T = fallSeconds(depthAt(0) + scrollAbs);
+const overTop = Math.max(Math.min(vTop, (0.6 * lengthBetween(0, apexIndex)) / T), 20);
+screenGravity = fitGravity(0, apexIndex, overTop, T);
+ct[0] = 0;
+for (let index = 1; index <= apexIndex; index += 1) {
+ct[index] = ct[index - 1] + beadSeconds(index - 1, index, screenGravity, overTop);
+}
+for (let index = apexIndex + 1; index <= lastIndex; index += 1) {
+ct[index] = ct[index - 1] + segmentSeconds(index, overTop);
+}
+camStart = 0;
+camEnd = fall === "c" ? ct[apexIndex] : ct[sIndex];
+scrollShare = function (t) {
+const u = clamp(t / Math.max(camEnd, 1e-6), 0, 1);
+return 1 - (1 - u) * (1 - u);
+};
+}
+const total = Math.max(ct[lastIndex], 0.05);
+const cdPoint = function (seconds) {
+if (seconds <= 0) {
+return { x: A.x, y: A.y };
+}
+if (seconds >= total) {
+return { x: B.x, y: B.y };
+}
+let low = 1;
+let high = ct.length - 1;
+while (low < high) {
+const middle = (low + high) >> 1;
+if (ct[middle] < seconds) {
+low = middle + 1;
+} else {
+high = middle;
+}
+}
+const span = ct[low] - ct[low - 1];
+const fraction = span > 1e-12 ? clamp((seconds - ct[low - 1]) / span, 0, 1) : 0;
+return { x: mix(points[low - 1].x, points[low].x, fraction), y: mix(points[low - 1].y, points[low].y, fraction) };
+};
+const cdScroll = function (seconds) {
+return seconds >= total ? 1 : scrollShare(seconds);
+};
+const cdWorld = function (seconds) {
+const point = cdPoint(seconds);
+return { x: point.x, y: point.y + cdScroll(seconds) * scrollSigned };
+};
+const step = 0.008;
+const launchSpeed = Math.hypot(cdWorld(step).x - cdWorld(0).x, cdWorld(step).y - cdWorld(0).y) / step;
+const impactSpeed = Math.hypot(cdWorld(total).x - cdWorld(total - step).x, cdWorld(total).y - cdWorld(total - step).y) / step;
+let cdLength = 0;
+for (let index = 1; index < points.length; index += 1) {
+cdLength += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+}
+return {
+mode: upward ? "rise-then-bezier" : "bezier-then-drop",
+camera: fall,
+duration: total,
+length: cdLength,
+speed: cdLength / total,
+pointAt: cdPoint,
+progressAt: function (seconds) {
+return clamp(seconds / total, 0, 1);
+},
+scrollProgressAt: cdScroll,
+worldAt: cdWorld,
+launchSpeed: launchSpeed,
+impactSpeed: impactSpeed,
+gravity: g,
+samples: points.map(function (point) {
+return { x: point.x, y: point.y };
+}),
+apex: copyPoint(points[apexIndex]),
+guides: [
+{ name: "P1", point: copyPoint(plan.P1), colour: "#1fa34a" },
+{ name: "P2", point: copyPoint(plan.P2), colour: "#11a5b8" },
+{ name: "camera " + (upward ? "stops" : "starts"), point: copyPoint(points[upward ? (fall === "c" ? apexIndex : sIndex) : (fall === "c" ? apexIndex : eIndex)]), colour: "#8a2be2" }
+],
+geometry: { A: copyPoint(A), E: copyPoint(E), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, drop: drop, fall: fall, cameraStart: camStart, cameraEnd: camEnd, screenGravity: screenGravity, gravity: g, launchSpeed: launchSpeed, impactSpeed: impactSpeed, safeTop: safeTop }
+};
+}
 const times = [0];
 for (let index = 1; index < points.length; index += 1) {
-times.push(times[index - 1] + segmentTime(index, gDown));
+times.push(times[index - 1] + segmentSeconds(index, vTop));
 }
-const arcSeconds = Math.max(times[eIndex], 0.05);
-const riseSeconds = times[sIndex];
-const duration = Math.max(times[times.length - 1], arcSeconds + 0.05);
+const cam = { active: false, start: 0, T: 0, q: 1, proportional: false, v0: 0, sign: 1, length: 0, total: 0 };
+if (pageCamera && !upward) {
+const vE = speedAt(eIndex, vTop);
+const total = drop + scrollAbs;
+const vB = Math.sqrt(vE * vE + 2 * g * total);
+cam.active = true;
+cam.start = times[eIndex];
+cam.T = Math.max((vB - vE) / g, 0.05);
+cam.v0 = vE;
+cam.sign = 1;
+cam.length = drop;
+cam.total = total;
+cam.q = (vE * cam.T) / Math.max(drop, 1e-6);
+cam.proportional = cam.q < 1;
+cam.landing = vB;
+} else if (pageCamera && upward) {
+const rise = Math.max(A.y - S.y, 0);
+const vS = speedAt(sIndex, vTop);
+const total = rise + scrollAbs;
+const vA = Math.sqrt(vS * vS + 2 * g * total);
+cam.active = true;
+cam.start = 0;
+cam.T = Math.max((vA - vS) / g, 0.05);
+cam.v0 = vA;
+cam.sign = -1;
+cam.length = rise;
+cam.total = total;
+cam.q = (vS * cam.T) / Math.max(rise, 1e-6);
+cam.proportional = cam.q < 1 || rise < 1;
+cam.launch = vA;
+}
+function camWorld(t) {
+const s = clamp(t, 0, cam.T);
+return cam.sign > 0 ? cam.v0 * s + 0.5 * g * s * s : cam.v0 * s - 0.5 * g * s * s;
+}
+function camScreen(t) {
+const u = clamp(t / cam.T, 0, 1);
+if (cam.proportional) {
+return (cam.length * camWorld(t)) / Math.max(cam.total, 1e-6);
+}
+return cam.sign > 0 ? cam.length * (1 - Math.pow(1 - u, cam.q)) : cam.length * Math.pow(u, cam.q);
+}
+const arcOffset = cam.active && cam.sign < 0 ? cam.T - times[sIndex] : 0;
+const duration = cam.active && cam.sign > 0 ? cam.start + cam.T : Math.max(times[lastIndex] + arcOffset, 0.05);
+const arcSeconds = Math.max(times[eIndex] + arcOffset, 0.05);
+const riseSeconds = cam.active && cam.sign < 0 ? cam.T : times[sIndex];
 let pathLength = 0;
 for (let index = 1; index < points.length; index += 1) {
 pathLength += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+}
+function interpolate(seconds) {
+const local = seconds - arcOffset;
+let low = 1;
+let high = times.length - 1;
+while (low < high) {
+const middle = (low + high) >> 1;
+if (times[middle] < local) {
+low = middle + 1;
+} else {
+high = middle;
+}
+}
+const span = times[low] - times[low - 1];
+const fraction = span > 1e-12 ? clamp((local - times[low - 1]) / span, 0, 1) : 0;
+return { x: mix(points[low - 1].x, points[low].x, fraction), y: mix(points[low - 1].y, points[low].y, fraction) };
 }
 function pointAt(seconds) {
 if (seconds <= 0) {
@@ -358,25 +547,42 @@ return { x: A.x, y: A.y };
 if (seconds >= duration) {
 return { x: B.x, y: B.y };
 }
-let low = 1;
-let high = times.length - 1;
-while (low < high) {
-const middle = (low + high) >> 1;
-if (times[middle] < seconds) {
-low = middle + 1;
-} else {
-high = middle;
+if (cam.active && cam.sign > 0 && seconds >= cam.start) {
+return { x: B.x, y: E.y + camScreen(seconds - cam.start) };
 }
+if (cam.active && cam.sign < 0 && seconds < cam.T) {
+return { x: A.x, y: A.y - camScreen(seconds) };
 }
-const span = times[low] - times[low - 1];
-const fraction = span > 1e-12 ? (seconds - times[low - 1]) / span : 0;
-return { x: mix(points[low - 1].x, points[low].x, fraction), y: mix(points[low - 1].y, points[low].y, fraction) };
+return interpolate(seconds);
+}
+function scrollProgressAt(seconds) {
+if (cam.active && cam.sign > 0) {
+if (seconds <= cam.start) {
+return 0;
+}
+const t = seconds - cam.start;
+return clamp((camWorld(t) - camScreen(t)) / scrollAbs, 0, 1);
+}
+if (cam.active && cam.sign < 0) {
+if (seconds >= cam.T) {
+return 1;
+}
+return clamp((camWorld(seconds) - camScreen(seconds)) / scrollAbs, 0, 1);
+}
+if (upward) {
+const scrollEnd = Math.max(Math.min(riseSeconds * UP_SCROLL_END_SHARE, riseSeconds - 0.06), riseSeconds * 0.6);
+return riseSeconds > 0 ? smootherstep(seconds / scrollEnd) : 1;
+}
+return seconds <= arcSeconds ? 0 : smootherstep((seconds - arcSeconds) / Math.max(duration - arcSeconds, 1e-6));
 }
 const samples = points.map(function (point) {
 return { x: point.x, y: point.y };
 });
+const launchSpeed = cam.launch || speedAt(0, vTop);
+const impactSpeed = cam.landing || speedAt(lastIndex, vTop);
 return {
 mode: upward ? "rise-then-bezier" : "bezier-then-drop",
+camera: cam.active ? "page" : "screen",
 duration: duration,
 length: pathLength,
 speed: pathLength / duration,
@@ -384,81 +590,130 @@ pointAt: pointAt,
 progressAt: function (seconds) {
 return clamp(seconds / duration, 0, 1);
 },
-scrollProgressAt: function (seconds) {
-if (upward) {
-return riseSeconds > 0 ? smootherstep(seconds / (riseSeconds * UP_SCROLL_END_SHARE)) : 1;
-}
-return seconds <= arcSeconds ? 0 : smootherstep((seconds - arcSeconds) / (duration - arcSeconds));
+scrollProgressAt: scrollProgressAt,
+worldAt: function (seconds) {
+const point = pointAt(seconds);
+return cam.active ? { x: point.x, y: point.y + scrollProgressAt(seconds) * scrollSigned } : point;
 },
+launchSpeed: launchSpeed,
+impactSpeed: impactSpeed,
+gravity: g,
 samples: samples,
-apex: copyPoint(arcPoints[apexIndex]),
+apex: copyPoint(points[apexIndex]),
 guides: [
 { name: "P1", point: copyPoint(plan.P1), colour: "#1fa34a" },
 { name: "P2", point: copyPoint(plan.P2), colour: "#11a5b8" },
 upward ? { name: "S (scroll ends)", point: copyPoint(S), colour: "#8a2be2" } : { name: "E (scroll starts)", point: copyPoint(E), colour: "#8a2be2" }
 ],
-geometry: { A: copyPoint(A), E: copyPoint(E), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, drop: drop, arcSeconds: arcSeconds, dropSeconds: duration - arcSeconds, launchSpeed: speed, topSpeed: vTop, entrySpeed: speedAt(eIndex, gDown), landingSpeed: speedAt(points.length - 1, gDown), gDown: gDown, safeTop: safeTop }
+geometry: { A: copyPoint(A), E: copyPoint(E), B: copyPoint(B), P1: copyPoint(plan.P1), P2: copyPoint(plan.P2), lift: plan.lift, drop: drop, arcSeconds: arcSeconds, dropSeconds: duration - arcSeconds, riseSeconds: riseSeconds, gravity: g, topSpeed: vTop, launchSpeed: launchSpeed, impactSpeed: impactSpeed, camera: cam.active ? "page" : "screen", cameraSeconds: cam.T, cameraQ: cam.q, safeTop: safeTop }
 };
 }
-function planPhoneBounce(A, B, phoneZ, safeTop, upward) {
+function planPhoneBounce(A, B, phoneZ, safeTop, upward, gravity, scrollDistance, fall) {
 const topY = Math.min(A.y, B.y);
 const wantedLift = clamp(phoneZ * PHONE_MAIN_LIFT_FACTOR, PHONE_MAIN_LIFT_MIN, PHONE_MAIN_LIFT_MAX);
 const lift = Math.max(Math.min(wantedLift, topY - safeTop), PHONE_MAIN_LIFT_FLOOR);
 const apex = { x: A.x, y: topY - lift };
 const upDistance = Math.abs(A.y - apex.y);
 const downDistance = Math.abs(B.y - apex.y);
-const upMs = clamp(Math.sqrt(upDistance) * 48, 620, 880);
-const hangMs = PHONE_APEX_HANG;
-const downMs = clamp(Math.sqrt(downDistance) * 55, 775, 1150);
-const totalMs = upMs + hangMs + downMs;
-const samples = [];
-function pointAtMs(ms) {
-if (ms <= 0) {
-return { x: A.x, y: A.y };
+const scrollSigned = scrollDistance || 0;
+const scrollAbs = Math.abs(scrollSigned);
+const pageCamera = fall === "b" && scrollAbs > 1;
+const shareCamera = (fall === "c" || fall === "d") && scrollAbs > 1;
+const upWorld = upDistance + (pageCamera && upward ? scrollAbs : 0);
+const downWorld = downDistance + (pageCamera && !upward ? scrollAbs : 0);
+const g = Math.max(gravity || FLIGHT_GRAVITY, 1, pageCamera ? (2 * (upward ? upWorld : downWorld)) / (CAMERA_LEG_MAX_SECONDS * CAMERA_LEG_MAX_SECONDS) : 1);
+const upT = shareCamera && upward ? fallSeconds(upDistance + scrollAbs) : Math.max(Math.sqrt((2 * upWorld) / g), 0.05);
+const downT = shareCamera && !upward ? fallSeconds(downDistance + scrollAbs) : Math.max(Math.sqrt((2 * downWorld) / g), 0.05);
+const hangT = PHONE_APEX_HANG / 1000;
+const total = upT + hangT + downT;
+const camT = upward ? upT : downT;
+const camScreen = upward ? upDistance : downDistance;
+const camWorld = upward ? upWorld : downWorld;
+function screenFrom(r, tau) {
+const e = Math.exp(-r / tau);
+return g * (tau * tau * (1 - e) - tau * r * e);
 }
-if (ms < upMs) {
-const u = ms / upMs;
-return { x: A.x, y: mix(A.y, apex.y, u * (2 - u)) };
+let tau = 1e4;
+if (pageCamera && screenFrom(camT, tau) > camScreen) {
+let low = 1e-4;
+let high = tau;
+for (let step = 0; step < 60; step += 1) {
+const middle = Math.sqrt(low * high);
+if (screenFrom(camT, middle) > camScreen) {
+high = middle;
+} else {
+low = middle;
 }
-if (ms < upMs + hangMs) {
-return { x: A.x, y: apex.y };
 }
-if (ms < totalMs) {
-const t = (ms - upMs - hangMs) / downMs;
-return { x: A.x, y: mix(apex.y, B.y, t * t) };
+tau = (low + high) / 2;
 }
+const tauScale = pageCamera ? camScreen / Math.max(screenFrom(camT, tau), 1e-6) : 1;
+function stateAt(seconds) {
+const t = clamp(seconds, 0, total);
+if (t < upT) {
+const r = upT - t;
+const worldLeft = 0.5 * g * r * r;
+if (pageCamera && upward) {
+const screenLeft = screenFrom(r, tau) * tauScale;
+return { y: apex.y + screenLeft, scroll: clamp((upWorld - worldLeft - (upDistance - screenLeft)) / scrollAbs, 0, 1) };
+}
+const left = (r / upT) * (r / upT);
+return { y: apex.y + upDistance * left, scroll: upward ? (shareCamera ? 1 - left : smootherstep(t / upT)) : 0 };
+}
+if (t < upT + hangT) {
+return { y: apex.y, scroll: upward ? 1 : 0 };
+}
+const r = t - upT - hangT;
+const worldDone = Math.min(0.5 * g * r * r, downWorld);
+if (pageCamera && !upward) {
+const screenDone = Math.min(screenFrom(r, tau) * tauScale, downDistance);
+return { y: apex.y + screenDone, scroll: clamp((worldDone - screenDone) / scrollAbs, 0, 1) };
+}
+const done = Math.min((r / downT) * (r / downT), 1);
+return { y: apex.y + downDistance * done, scroll: upward ? 1 : shareCamera ? done : smootherstep(r / downT) };
+}
+function pointAt(seconds) {
+if (seconds >= total) {
 return { x: A.x, y: B.y };
 }
+return { x: A.x, y: stateAt(seconds).y };
+}
+function scrollProgressAt(seconds) {
+if (seconds >= total) {
+return 1;
+}
+return seconds <= 0 ? 0 : stateAt(seconds).scroll;
+}
+const samples = [];
 for (let index = 0; index <= 240; index += 1) {
-const point = pointAtMs((index / 240) * totalMs);
+const point = pointAt((index / 240) * total);
 samples.push({ x: point.x, y: point.y });
 }
+const launchSpeed = shareCamera && upward ? (2 * (upDistance + scrollAbs)) / upT : Math.sqrt(2 * g * upWorld);
+const impactSpeed = shareCamera && !upward ? (2 * (downDistance + scrollAbs)) / downT : Math.sqrt(2 * g * downWorld);
 return {
 mode: "phone-bounce",
-duration: totalMs / 1000,
+camera: fall,
+duration: total,
 length: upDistance + downDistance,
-speed: (upDistance + downDistance) / (totalMs / 1000),
-pointAt: function (seconds) {
-return pointAtMs(seconds * 1000);
-},
+speed: (upDistance + downDistance) / total,
+pointAt: pointAt,
 progressAt: function (seconds) {
-return clamp((seconds * 1000) / totalMs, 0, 1);
+return clamp(seconds / total, 0, 1);
 },
-scrollProgressAt: function (seconds) {
-const ms = seconds * 1000;
-if (upward) {
-return smootherstep(ms / upMs);
-}
-if (ms <= upMs + hangMs) {
-return 0;
-}
-return smootherstep((ms - upMs - hangMs) / downMs);
+scrollProgressAt: scrollProgressAt,
+worldAt: function (seconds) {
+const point = pointAt(seconds);
+return pageCamera || shareCamera ? { x: point.x, y: point.y + scrollProgressAt(seconds) * scrollSigned } : point;
 },
+launchSpeed: launchSpeed,
+impactSpeed: impactSpeed,
+gravity: g,
 samples: samples,
 apex: copyPoint(apex),
 guides: [],
 phoneX: A.x,
-geometry: { A: copyPoint(A), B: copyPoint(B), apex: copyPoint(apex), lift: lift, wantedLift: wantedLift, upMs: upMs, hangMs: hangMs, downMs: downMs, safeTop: safeTop }
+geometry: { A: copyPoint(A), B: copyPoint(B), apex: copyPoint(apex), lift: lift, wantedLift: wantedLift, upMs: upT * 1000, hangMs: PHONE_APEX_HANG, downMs: downT * 1000, gravity: g, camera: pageCamera ? "page" : "screen", cameraWorld: camWorld, tau: tau, safeTop: safeTop }
 };
 }
 function bouncePoint(base, height, p) {
@@ -475,15 +730,19 @@ const endX = dir < 0 ? -radius - 18 : options.screenW + radius + 18;
 const circumference = Math.max(1, Math.PI * radius * 2);
 const support = options.support;
 const span = endX - startX;
+function rollShare(ms) {
+const u = clamp(ms / duration, 0, 1);
+return 1 - (1 - u) * (1 - u);
+}
 function rollX(ms) {
-return mix(startX, endX, easeRollOut(ms / duration));
+return mix(startX, endX, rollShare(ms));
 }
 function rotationFor(distance) {
 return dir * (distance / circumference) * 360;
 }
 function timeAtX(x) {
 const share = clamp((x - startX) / (Math.abs(span) > 1e-6 ? span : 1), 0, 1);
-return (1 - Math.pow(1 - share, 1 / 2.2)) * duration;
+return (1 - Math.sqrt(1 - share)) * duration;
 }
 if (!support) {
 const leaveX = dir < 0 ? 0 : options.screenW;
@@ -507,7 +766,7 @@ flatEndX = startX;
 }
 const flatMs = timeAtX(flatEndX);
 const flatRaw = clamp(flatMs / duration, 0, 1);
-const entrySpeed = Math.max((Math.abs(span) * 2.2 * Math.pow(1 - flatRaw, 1.2)) / (duration / 1000), 40);
+const entrySpeed = Math.max((Math.abs(span) * 2 * (1 - flatRaw)) / (duration / 1000), 40);
 const corner = { x: flatEndX, y: top + cornerR };
 const ratio = (entrySpeed * entrySpeed) / (gravity * R);
 const leaveAngle = clamp(Math.acos(clamp((ratio + 2) / 3, -1, 1)), ROLL_TIP_MIN_ANGLE, ROLL_TIP_MAX_ANGLE);
@@ -630,6 +889,24 @@ try {
 window.dispatchEvent(new CustomEvent(name, { detail: detail }));
 } catch (error) {
 }
+}
+function fallMode() {
+try {
+const params = new URLSearchParams(window.location.search);
+const wanted = params.get("fall");
+const legacy = params.get("navcam");
+if (wanted === "a" || wanted === "b" || wanted === "c" || wanted === "d") {
+return wanted;
+}
+if (legacy === "screen" || legacy === "page") {
+return legacy === "screen" ? "a" : "b";
+}
+} catch (error) {
+}
+return NAV_BALL_FALL;
+}
+function fallSeconds(distance) {
+return clamp(FALL_SECONDS_BASE + distance / FALL_PX_PER_SECOND, FALL_SECONDS_MIN, FALL_SECONDS_MAX);
 }
 function trajectoryDebugRequested() {
 if (DEBUG_NAV_TRAJECTORY_OVERLAY) {
@@ -1089,18 +1366,28 @@ function setBallPosition(x, y) {
 ball.style.setProperty("--ball-x", x + "px");
 ball.style.setProperty("--ball-y", y + "px");
 }
-function setBallScale(scaleX, scaleY) {
-ball.style.setProperty("--ball-scale-x", String(scaleX));
-ball.style.setProperty("--ball-scale-y", String(scaleY));
+function setBallShape(along, across, angleDeg, liftPx) {
+ball.style.setProperty("--ball-scale-x", along.toFixed(4));
+ball.style.setProperty("--ball-scale-y", across.toFixed(4));
+ball.style.setProperty("--ball-stretch-angle", angleDeg.toFixed(2) + "deg");
+ball.style.setProperty("--ball-lift", liftPx.toFixed(2) + "px");
 }
-function applyBounceScale(raw, intensity) {
-const p = clamp(raw, 0, 1);
-const liftRatio = 4 * p * (1 - p);
-const safeIntensity = clamp(intensity, 0, 1);
-setBallScale(
-mix(1 + 0.08 * safeIntensity, 1 - 0.04 * safeIntensity, liftRatio),
-mix(1 - 0.08 * safeIntensity, 1 + 0.06 * safeIntensity, liftRatio)
-);
+function squashAmount(impactSpeed, launchSpeed) {
+return SQUASH_MAX * clamp(Math.max(impactSpeed || 0, ANTICIPATION_SHARE * (launchSpeed || 0)) / SQUASH_SPEED_FULL, 0, 1);
+}
+function applyContactShape(u, amount) {
+const k = Math.sin(Math.PI * clamp(u, 0, 1));
+const short = 1 - amount * k;
+setBallShape(1 + SQUASH_WIDEN * amount * k, short, 0, ballRadius() * (1 - short));
+}
+function applyAirShape(vx, vy) {
+const speed = Math.hypot(vx, vy);
+const s = STRETCH_MAX * clamp((speed - STRETCH_FROM) / (STRETCH_FULL - STRETCH_FROM), 0, 1);
+if (s <= 1e-4) {
+setBallShape(1, 1, 0, 0);
+return;
+}
+setBallShape(1 + s, 1 / Math.sqrt(1 + s), (Math.atan2(vy, vx) * 180) / Math.PI, 0);
 }
 function setTimelineShadow(opacity, scale) {
 if (!travelShadow) {
@@ -1144,6 +1431,7 @@ ball.style.opacity = "0";
 ball.style.setProperty("--ball-lift", "0px");
 ball.style.setProperty("--ball-scale-x", "1");
 ball.style.setProperty("--ball-scale-y", "1");
+ball.style.setProperty("--ball-stretch-angle", "0deg");
 ball.style.setProperty("--ball-rotation", "0deg");
 ball.style.removeProperty("--restore-duration");
 delete ball.dataset.ballPhase;
@@ -1159,6 +1447,7 @@ ball.style.setProperty("--ball-y", "-9999px");
 ball.style.setProperty("--ball-lift", "0px");
 ball.style.setProperty("--ball-scale-x", "1");
 ball.style.setProperty("--ball-scale-y", "1");
+ball.style.setProperty("--ball-stretch-angle", "0deg");
 ball.style.setProperty("--ball-rotation", "0deg");
 ball.style.removeProperty("--restore-duration");
 resetTimelineShadow();
@@ -1613,10 +1902,26 @@ const isPhone = isMobileViewport();
 const bounds = getSafeBounds({ allowFloor: targetId === "contact" });
 const radius = ballRadius();
 const z = tripBounceHeight(isPhone);
+const gravity = FLIGHT_GRAVITY / motionScale();
+const contactMs = scaleMotionDuration(CONTACT_MS);
+const launchContactMs = scaleMotionDuration(LAUNCH_CONTACT_MS);
+const airMsFor = function (height) {
+return 1000 * Math.sqrt((8 * Math.max(height, 0)) / gravity);
+};
+const speedFor = function (height) {
+return Math.sqrt(2 * gravity * Math.max(height, 0));
+};
 const prepHeights = [z / 4, z / 2, (3 * z) / 4];
-const landingHeights = [(3 * z) / 4, z / 2, z / 4];
-const prepDurations = NAV_BALL_PREP_DURATIONS.map(scaleMotionDuration);
-const landingDurations = NAV_BALL_LANDING_DURATIONS.map(scaleMotionDuration);
+const prepAirMs = prepHeights.map(airMsFor);
+const prepDurations = prepAirMs.map(function (air) {
+return contactMs + air;
+});
+let landingHeights = [(3 * z) / 4, (3 * z) / 4 * RESTITUTION * RESTITUTION, (3 * z) / 4 * Math.pow(RESTITUTION, 4)];
+let landingAirMs = landingHeights.map(airMsFor);
+let landingDurations = landingAirMs.map(function (air) {
+return contactMs + air;
+});
+let landingImpacts = [0, 0, 0];
 const rollDuration = scaleMotionDuration(NAV_BALL_ROLL_DURATION);
 let rollDirection = rollDirectionFor(targetId);
 const target = document.getElementById(targetId);
@@ -1701,8 +2006,17 @@ F = { x: archiveLandingX(F.x), y: F.y };
 }
 const safeTop = radius + flightTopClearance(isPhone);
 const upward = scrollTarget < scrollStart - 1;
-path = isPhone ? planPhoneBounce(A0, F, z, safeTop, upward) : planBezierPath(A0, F, z, safeTop, MAIN_PATH_SPEED, scrollTarget - scrollStart, upward);
-mainMs = Math.max(1, path.duration * 1000);
+path = isPhone ?
+planPhoneBounce(A0, F, z, safeTop, upward, gravity, scrollTarget - scrollStart, fallMode()) :
+planBezierPath(A0, F, z, safeTop, scrollTarget - scrollStart, upward, gravity, fallMode());
+mainMs = Math.max(1, launchContactMs + path.duration * 1000);
+const firstHeight = clamp((RESTITUTION * RESTITUTION * path.impactSpeed * path.impactSpeed) / (2 * gravity), LAND_FIRST_MIN * z, LAND_FIRST_MAX * z);
+landingHeights = [firstHeight, firstHeight * RESTITUTION * RESTITUTION, firstHeight * Math.pow(RESTITUTION, 4)];
+landingAirMs = landingHeights.map(airMsFor);
+landingDurations = landingAirMs.map(function (air) {
+return contactMs + air;
+});
+landingImpacts = [path.impactSpeed, speedFor(landingHeights[0]), speedFor(landingHeights[1])];
 rollDirection = endPoint.side === "right" ? 1 : endPoint.side === "left" ? -1 : rollDirectionFor(targetId);
 if (activeTrip) {
 activeTrip.scrollTarget = scrollTarget;
@@ -1840,7 +2154,7 @@ durationMs: rollDuration,
 screenW: window.innerWidth,
 screenH: window.innerHeight,
 support: rollSupport(),
-gravity: ROLL_GRAVITY / (motionScale() * motionScale()),
+gravity: gravity,
 fadeMs: scaleMotionDuration(ROLL_FADE_MS)
 });
 rollMs = Math.max(1, roll.totalMs);
@@ -1886,6 +2200,17 @@ if (phoneLateral) {
 console.warn("BUG: phone ball has lateral motion");
 }
 }
+function renderBounce(base, elapsed, height, airMs, impactSpeed, launchSpeed) {
+if (elapsed < contactMs) {
+setBallPosition(base.x, base.y);
+applyContactShape(elapsed / contactMs, squashAmount(impactSpeed, launchSpeed));
+return;
+}
+const p = clamp((elapsed - contactMs) / Math.max(airMs, 1), 0, 1);
+const point = bouncePoint(base, height, p);
+setBallPosition(point.x, point.y);
+applyAirShape(0, -launchSpeed * (1 - 2 * p));
+}
 function renderPhase(name, elapsed, now) {
 let raw;
 let point;
@@ -1894,16 +2219,19 @@ case PHASE.PREP1:
 case PHASE.PREP2:
 case PHASE.PREP3: {
 const index = name === PHASE.PREP1 ? 0 : name === PHASE.PREP2 ? 1 : 2;
-raw = elapsed / prepDurations[index];
 freezeScrollAt(scrollStart, "scrollMovedDuringPrep");
-point = bouncePoint(A0, prepHeights[index], raw);
-setBallPosition(point.x, point.y);
-applyBounceScale(raw, [0.68, 0.78, 0.9][index]);
+renderBounce(A0, elapsed, prepHeights[index], prepAirMs[index], index > 0 ? speedFor(prepHeights[index - 1]) : 0, speedFor(prepHeights[index]));
 setTimelineShadow(0, 0.72);
 break;
 }
 case PHASE.MAIN: {
-const flightSeconds = Math.min(elapsed / 1000, path.duration);
+if (elapsed < launchContactMs) {
+setBallPosition(A0.x, A0.y);
+applyContactShape(elapsed / launchContactMs, squashAmount(speedFor(prepHeights[2]), path.launchSpeed));
+setTimelineShadow(0, 0.72);
+break;
+}
+const flightSeconds = Math.min((elapsed - launchContactMs) / 1000, path.duration);
 const progress = path.progressAt(flightSeconds);
 const scrollProgress = path.scrollProgressAt(flightSeconds);
 point = path.pointAt(flightSeconds);
@@ -1911,11 +2239,11 @@ debugInfo.lastPathProgress = progress;
 debugInfo.lastScrollProgress = scrollProgress;
 scrollInstantly(mix(scrollStart, scrollTarget, scrollProgress));
 setBallPosition(point.x, point.y);
-const ahead = path.pointAt(Math.min(flightSeconds + 0.02, path.duration));
-const step = Math.hypot(ahead.x - point.x, ahead.y - point.y);
-const falling = step > 1e-6 ? Math.max(0, (ahead.y - point.y) / step) : 1;
-const stretch = smootherstep((progress - 0.6) / 0.3) * falling * falling;
-setBallScale(1 - 0.015 * stretch, 1 + 0.025 * stretch);
+const dt = 1 / 240;
+const t0 = Math.max(0, Math.min(flightSeconds - dt, path.duration - 2 * dt));
+const before = path.worldAt(t0);
+const after = path.worldAt(t0 + 2 * dt);
+applyAirShape((after.x - before.x) / (2 * dt), (after.y - before.y) / (2 * dt));
 setTimelineShadow(0, 0.72);
 if (previousSample && elapsed > previousSample.elapsed) {
 const speed = Math.hypot(point.x - previousSample.x, point.y - previousSample.y) / ((elapsed - previousSample.elapsed) / 1000);
@@ -1931,15 +2259,12 @@ case PHASE.LAND1:
 case PHASE.LAND2:
 case PHASE.LAND3: {
 const index = name === PHASE.LAND1 ? 0 : name === PHASE.LAND2 ? 1 : 2;
-raw = elapsed / landingDurations[index];
 freezeScrollAt(scrollTarget, "scrollMovedDuringLanding");
-point = bouncePoint(F, landingHeights[index], raw);
-setBallPosition(point.x, point.y);
-applyBounceScale(raw, [1, 0.72, 0.48][index]);
+renderBounce(F, elapsed, landingHeights[index], landingAirMs[index], landingImpacts[index], speedFor(landingHeights[index]));
 if (endPoint.kind === "floor") {
 setTimelineShadow(0, 0.72);
 } else {
-const q = clamp(raw, 0, 1);
+const q = elapsed < contactMs ? 0 : clamp((elapsed - contactMs) / landingAirMs[index], 0, 1);
 const contact = Math.pow(1 - 4 * q * (1 - q), 6);
 const compressedOpacity = [0.42, 0.32, 0.24][index];
 const compressedScale = [1.32, 1.14, 1.04][index];
@@ -1953,7 +2278,11 @@ freezeScrollAt(scrollTarget, "scrollMovedDuringLanding");
 const state = roll.at(Math.min(elapsed, rollMs));
 ball.style.setProperty("--ball-rotation", state.rotation + "deg");
 setBallPosition(state.x, state.y);
-setBallScale(1, 1);
+if (elapsed < contactMs && state.touching) {
+applyContactShape(elapsed / contactMs, squashAmount(speedFor(landingHeights[2]), 0));
+} else {
+setBallShape(1, 1, 0, 0);
+}
 if (roll.mode === "fall") {
 ball.style.opacity = String(state.opacity);
 }
@@ -2037,6 +2366,7 @@ ball.style.opacity = "";
 ball.style.setProperty("--ball-lift", "0px");
 ball.style.setProperty("--ball-scale-x", "1");
 ball.style.setProperty("--ball-scale-y", "1");
+ball.style.setProperty("--ball-stretch-angle", "0deg");
 ball.style.setProperty("--ball-rotation", "0deg");
 ball.style.setProperty("--nav-ball-form-duration", morphDuration + "ms");
 ballLabel.textContent = "";

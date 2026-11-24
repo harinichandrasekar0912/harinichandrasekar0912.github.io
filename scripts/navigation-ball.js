@@ -37,7 +37,7 @@
    *   "c": the camera takes over at the top: on screen the ball's speed only rises after the top, the page speeds up evenly and stops dead
    *        with the impact (it also scrolls while the ball still moves sideways on the arc)
    *   "d": like "c" on screen, but the page scrolls only during the straight part */
-  const NAV_BALL_FALL = "c";
+  const NAV_BALL_FALL = "d";
   const FALL_SECONDS_BASE = 0.55; // "c" / "d": the camera leg lasts 0.55 s + (its distance through the page) / 8000 px/s, 0.6 - 1.2 s
   const FALL_PX_PER_SECOND = 8000;
   const FALL_SECONDS_MIN = 0.6;
